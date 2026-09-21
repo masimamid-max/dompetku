@@ -9,7 +9,7 @@
 
   <!-- PWA Manifest & Icons -->
   <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="icons/icon-192.svg">
+  <link rel="apple-touch-icon" href="icon-192.svg">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="DompetKeluarga">
@@ -19,11 +19,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
-  <!-- Core & Component Stylesheets -->
-  <link rel="stylesheet" href="css/tokens.css">
-  <link rel="stylesheet" href="css/layout.css">
-  <link rel="stylesheet" href="css/components.css">
-  <link rel="stylesheet" href="css/pages.css">
+  <!-- Core & Component Stylesheets (Support both Root and Subdirectory) -->
+  <link rel="stylesheet" href="tokens.css" onerror="this.href='css/tokens.css'">
+  <link rel="stylesheet" href="layout.css" onerror="this.href='css/layout.css'">
+  <link rel="stylesheet" href="components.css" onerror="this.href='css/components.css'">
+  <link rel="stylesheet" href="pages.css" onerror="this.href='css/pages.css'">
 </head>
 <body>
   <!-- App Root Shell -->
@@ -37,33 +37,43 @@
   <!-- Toast Notification Container -->
   <div id="toast-container"></div>
 
-  <!-- Main ES Module Application Script with Cache Buster & Global Diagnostic -->
+  <!-- Global Diagnostic & Self-Healing Script Loader -->
   <script>
-    // Global error listener to display any unexpected runtime or load error directly on screen
     window.addEventListener('error', function(e) {
       console.error('Captured Global Error:', e);
       var shell = document.getElementById('app-shell');
-      if (shell) {
+      if (shell && !document.querySelector('.app-main')) {
         shell.innerHTML = `
           <div style="padding:2.5rem 1.5rem;max-width:560px;margin:2rem auto;background:#fff;border:1px solid #fca5a5;border-radius:12px;box-shadow:0 10px 25px rgba(0,0,0,0.1);font-family:'Plus Jakarta Sans',sans-serif;text-align:center;">
             <div style="width:48px;height:48px;border-radius:50%;background:#fee2e2;color:#dc2626;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem auto;font-size:24px;font-weight:bold;">!</div>
             <h2 style="color:#991b1b;font-size:1.25rem;font-weight:800;margin-bottom:0.5rem;">Pemberitahuan Sistem</h2>
             <p style="color:#64748b;font-size:0.875rem;line-height:1.5;margin-bottom:1.25rem;">
-              Terjadi penyesuaian cache browser: <strong>${e.message || 'Error loading module'}</strong>
+              Sedang memuat ulang data terbaru: <strong>${e.message || 'Memperbarui cache'}</strong>
             </p>
             <div style="display:flex;gap:0.75rem;justify-content:center;">
               <button onclick="localStorage.clear();location.href=location.pathname+'?reset='+Date.now();" style="padding:0.625rem 1.25rem;background:#059669;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;">
-                Bersihkan Cache & Buka Aplikasi
+                Buka Aplikasi Sekarang
               </button>
             </div>
           </div>
         `;
       }
     });
-  </script>
 
-  <!-- Load unified single-file bundle with cache buster -->
-  <script src="js/bundle.js?v=3.1.0"></script>
+    // Dynamic Script Loader (Loads bundle.js from root or js/ directory)
+    function loadBundleScript() {
+      var s = document.createElement('script');
+      s.src = 'bundle.js?v=3.2.0';
+      s.onerror = function() {
+        console.log('Fallback loading js/bundle.js');
+        var s2 = document.createElement('script');
+        s2.src = 'js/bundle.js?v=3.2.0';
+        document.body.appendChild(s2);
+      };
+      document.body.appendChild(s);
+    }
+    loadBundleScript();
+  </script>
 
   <!-- PWA Service Worker Registration -->
   <script>
