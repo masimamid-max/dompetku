@@ -1,0 +1,7 @@
+.git
+.github
+.DS_Store
+*.md
+!README.md
+dev_server.py
+build_bundle.py
