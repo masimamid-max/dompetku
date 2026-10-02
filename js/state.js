@@ -33,10 +33,22 @@ class AppState {
       this.resetToInitialData();
     }
 
-    // Default filters
+    // Default filters: prioritize month of latest transaction or current date
     const now = new Date();
-    this.selectedMonth = 9; // September
-    this.selectedYear = 2026;
+    if (this.transactions && this.transactions.length > 0) {
+      const latestTx = this.transactions[0];
+      const d = new Date(latestTx.date);
+      if (!isNaN(d.getTime())) {
+        this.selectedMonth = d.getMonth() + 1;
+        this.selectedYear = d.getFullYear();
+      } else {
+        this.selectedMonth = now.getMonth() + 1;
+        this.selectedYear = now.getFullYear();
+      }
+    } else {
+      this.selectedMonth = now.getMonth() + 1;
+      this.selectedYear = now.getFullYear();
+    }
     this.activeTab = 'dashboard';
   }
 
@@ -70,6 +82,87 @@ class AppState {
     this.budgets = JSON.parse(JSON.stringify(INITIAL_DATA.budgets));
     this.goals = JSON.parse(JSON.stringify(INITIAL_DATA.goals));
     this.recurringBills = JSON.parse(JSON.stringify(INITIAL_DATA.recurringBills));
+    this.saveState();
+  }
+
+  resetToCleanData() {
+    const session = (window.AuthAccess && typeof window.AuthAccess.getSession === 'function')
+      ? window.AuthAccess.getSession()
+      : null;
+
+    const ownerName = session?.fullName || (this.currentUser?.name && this.currentUser.name !== 'Budi Santoso' ? this.currentUser.name : 'Keluarga');
+    const ownerEmail = session?.email || (this.currentUser?.email && this.currentUser.email !== 'budi@keluarga.id' ? this.currentUser.email : '');
+    const avatar = ownerName.split(' ').map(v => v[0]).join('').slice(0, 2).toUpperCase() || 'DK';
+
+    this.family = {
+      id: 'fam_' + Date.now(),
+      name: `Keluarga ${ownerName !== 'Keluarga' ? ownerName.split(' ')[0] : 'Harmonis'}`,
+      currency: 'IDR',
+      currencySymbol: 'Rp',
+      inviteCode: 'DK-' + Math.random().toString(36).substring(2, 8).toUpperCase(),
+      createdAt: new Date().toISOString()
+    };
+
+    const ownerId = 'mem_owner_' + Date.now();
+    this.currentUser = {
+      id: ownerId,
+      name: ownerName,
+      email: ownerEmail,
+      role: 'owner',
+      roleLabel: 'Kepala Keluarga',
+      avatarText: avatar
+    };
+
+    this.members = [
+      {
+        id: ownerId,
+        name: ownerName,
+        email: ownerEmail,
+        role: 'owner',
+        roleLabel: 'Kepala Keluarga',
+        avatarText: avatar
+      }
+    ];
+
+    // Buat 2 akun standar awal dengan saldo Rp 0
+    this.accounts = [
+      {
+        id: 'acc_kas_utama',
+        familyId: this.family.id,
+        name: 'Dompet Tunai (Kas Utama)',
+        type: 'cash',
+        typeLabel: 'Tunai',
+        accountNumber: '-',
+        initialBalance: 0,
+        color: '#10b981',
+        icon: 'wallet',
+        isArchived: false
+      },
+      {
+        id: 'acc_bank_utama',
+        familyId: this.family.id,
+        name: 'Rekening Bank Utama',
+        type: 'bank',
+        typeLabel: 'Bank',
+        accountNumber: '-',
+        initialBalance: 0,
+        color: '#0ea5e9',
+        icon: 'creditCard',
+        isArchived: false
+      }
+    ];
+
+    // Gunakan template kategori bawaan agar langsung siap pakai
+    this.categories = JSON.parse(JSON.stringify(INITIAL_DATA.categories || []));
+
+    // Riwayat transaksi bersih (0 transaksi)
+    this.transactions = [];
+
+    // Anggaran, tabungan, dan tagihan bersih
+    this.budgets = [];
+    this.goals = [];
+    this.recurringBills = [];
+
     this.saveState();
   }
 
@@ -780,6 +873,125 @@ class AppState {
   updateFamilyInfo(name) {
     this.family.name = name.trim();
     this.saveState();
+  }
+
+  // ==========================================
+  // Backup, Restore & CSV Export
+  // ==========================================
+  exportFullBackupJSON() {
+    try {
+      const backupData = {
+        app: 'Dompet Keluarga',
+        version: '3.17.0',
+        exportedAt: new Date().toISOString(),
+        family: this.family,
+        currentUser: this.currentUser,
+        members: this.members,
+        accounts: this.accounts,
+        categories: this.categories,
+        transactions: this.transactions,
+        budgets: this.budgets,
+        goals: this.goals,
+        recurringBills: this.recurringBills
+      };
+
+      const jsonStr = JSON.stringify(backupData, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const nowStr = new Date().toISOString().split('T')[0];
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `dompetku_backup_${nowStr}_${Date.now().toString().slice(-4)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      return true;
+    } catch (e) {
+      console.error('Failed to export JSON backup', e);
+      return false;
+    }
+  }
+
+  exportAllTransactionsCSV() {
+    try {
+      const headers = ['ID', 'Tanggal', 'Tipe', 'Deskripsi', 'Kategori', 'Subkategori', 'Jumlah (IDR)', 'Rekening Asal', 'Rekening Tujuan', 'Dicatat Oleh', 'Catatan', 'Status'];
+      const rows = [headers];
+
+      const accountMap = new Map((this.accounts || []).map(a => [a.id, a.name]));
+      const categoryMap = new Map((this.categories || []).map(c => [c.id, c.name]));
+      const memberMap = new Map((this.members || []).map(m => [m.id, m.name]));
+
+      (this.transactions || []).forEach(tx => {
+        const typeLabel = tx.type === 'income' ? 'Pemasukan' : tx.type === 'expense' ? 'Pengeluaran' : 'Transfer Antar Rekening';
+        const catName = categoryMap.get(tx.categoryId) || '-';
+        const subCat = tx.subcategory || '-';
+        const accSource = accountMap.get(tx.accountId) || '-';
+        const accTarget = tx.targetAccountId ? (accountMap.get(tx.targetAccountId) || '-') : '-';
+        const recorder = memberMap.get(tx.recordedBy || tx.memberId) || 'Saya';
+        const statusLabel = tx.status === 'verified' ? 'Terverifikasi' : tx.status === 'cancelled' ? 'Dibatalkan' : 'Pending';
+
+        const row = [
+          `"${tx.id || ''}"`,
+          `"${tx.date || ''}"`,
+          `"${typeLabel}"`,
+          `"${(tx.description || '').replace(/"/g, '""')}"`,
+          `"${catName}"`,
+          `"${subCat}"`,
+          tx.amount || 0,
+          `"${accSource}"`,
+          `"${accTarget}"`,
+          `"${recorder}"`,
+          `"${(tx.notes || '').replace(/"/g, '""')}"`,
+          `"${statusLabel}"`
+        ];
+        rows.push(row);
+      });
+
+      const csvContent = '\uFEFF' + rows.map(r => r.join(',')).join('\r\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const nowStr = new Date().toISOString().split('T')[0];
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `dompetku_transaksi_${nowStr}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      return true;
+    } catch (e) {
+      console.error('Failed to export transactions CSV', e);
+      return false;
+    }
+  }
+
+  importFullBackupJSON(jsonString) {
+    try {
+      const data = typeof jsonString === 'string' ? JSON.parse(jsonString) : jsonString;
+      if (!data || typeof data !== 'object') {
+        return { success: false, message: 'Format data cadangan tidak valid.' };
+      }
+
+      if (data.family) this.family = data.family;
+      if (data.currentUser) this.currentUser = data.currentUser;
+      if (Array.isArray(data.members)) this.members = data.members;
+      if (Array.isArray(data.accounts)) this.accounts = data.accounts;
+      if (Array.isArray(data.categories)) this.categories = data.categories;
+      if (Array.isArray(data.transactions)) this.transactions = data.transactions;
+      if (Array.isArray(data.budgets)) this.budgets = data.budgets;
+      if (Array.isArray(data.goals)) this.goals = data.goals;
+      if (Array.isArray(data.recurringBills)) this.recurringBills = data.recurringBills;
+
+      this.saveState();
+      return { 
+        success: true, 
+        message: `Cadangan berhasil dipulihkan! (${this.transactions.length} transaksi dimuat).` 
+      };
+    } catch (e) {
+      console.error('Failed to restore backup', e);
+      return { success: false, message: 'Gagal memproses file: ' + e.message };
+    }
   }
 }
 

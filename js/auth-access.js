@@ -113,6 +113,7 @@
     escapeHtml(value) {
       return String(value || '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
     }
+    getApiUrl() { return ACCESS_API_URL; }
     mountGoogleButton(onAuthenticated) {
       const host = document.getElementById('google-signin-button');
       if (!host) return;
@@ -125,13 +126,36 @@
               this.showNotice('Menyiapkan dashboard Anda…');
               const encoded = response.credential.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
               const payload = JSON.parse(decodeURIComponent(atob(encoded).split('').map(char => '%' + ('00' + char.charCodeAt(0).toString(16)).slice(-2)).join('')));
+              
+              // Cek apakah perangkat sudah memiliki lisensi PRO permanen
+              let isPro = false;
+              let proPlan = 'Dompetku PRO Lifetime';
+              try {
+                const storedLicenseStr = localStorage.getItem('dk_app_license_v1');
+                if (storedLicenseStr) {
+                  const lic = JSON.parse(storedLicenseStr);
+                  if (lic && lic.status === 'active') {
+                    isPro = true;
+                    proPlan = lic.plan || 'Dompetku PRO Lifetime';
+                    // Kaitkan email akun Google ke lisensi yang tersimpan
+                    lic.email = payload.email;
+                    localStorage.setItem('dk_app_license_v1', JSON.stringify(lic));
+                  }
+                }
+              } catch (_) {}
+
               const session = {
                 accountId: payload.sub,
                 email: payload.email,
                 fullName: payload.name || payload.email,
                 picture: payload.picture || '',
                 idToken: response.credential,
-                access: { authorized: true, status: 'trial', role: 'owner', plan: 'Uji Coba' }
+                access: { 
+                  authorized: true, 
+                  status: isPro ? 'active' : 'trial', 
+                  role: 'owner', 
+                  plan: isPro ? proPlan : 'Uji Coba' 
+                }
               };
               sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
               onAuthenticated(session);

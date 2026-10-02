@@ -32,11 +32,49 @@ class DompetKeluargaApp {
   startAuthenticatedApp(session) {
     if (session) {
       const member = appState.members.find(m => (m.email || '').toLowerCase() === session.email.toLowerCase());
-      if (member && (member.id !== appState.currentUser.id || !appState.currentUser.roleLabel)) appState.setCurrentUser(member.id);
-      if (!member) {
-        appState.currentUser = { ...appState.currentUser, name: session.fullName, email: session.email, avatarText: session.fullName.split(' ').map(v => v[0]).join('').slice(0, 2).toUpperCase() };
+      if (member) {
+        if (member.id !== appState.currentUser.id || !appState.currentUser.roleLabel) {
+          appState.setCurrentUser(member.id);
+        }
+      } else {
+        const initials = session.fullName.split(' ').map(v => v[0]).join('').slice(0, 2).toUpperCase() || 'DK';
+        appState.currentUser = {
+          ...appState.currentUser,
+          name: session.fullName,
+          email: session.email,
+          role: 'owner',
+          roleLabel: 'Kepala Keluarga',
+          avatarText: initials
+        };
+        // Perbarui anggota pertama jika masih demo atau tambahkan anggota baru
+        if (appState.members.length > 0 && appState.members[0].email === 'budi@keluarga.id') {
+          appState.members[0].name = session.fullName;
+          appState.members[0].email = session.email;
+          appState.members[0].avatarText = initials;
+        } else if (!appState.members.some(m => (m.email || '').toLowerCase() === session.email.toLowerCase())) {
+          appState.members.push({
+            id: `mem-${Date.now()}`,
+            name: session.fullName,
+            email: session.email,
+            role: 'owner',
+            roleLabel: 'Kepala Keluarga',
+            avatarText: initials
+          });
+        }
+        appState.saveState();
       }
     }
+
+    // Auto-sync data dari Cloud Google Sheets saat login / aplikasi dibuka (jika URL terhubung)
+    const cloudConfig = CloudSyncService.getConfig();
+    if (cloudConfig.gasUrl && cloudConfig.autoSync) {
+      CloudSyncService.pullFullState(cloudConfig.gasUrl).then(() => {
+        console.log('✅ Catatan transaksi berhasil disinkronkan dari Google Sheets');
+      }).catch(err => {
+        console.warn('ℹ️ Cloud sync background notice:', err);
+      });
+    }
+
     if (this.authenticatedInitialized) {
       this.render();
       return;
@@ -49,6 +87,11 @@ class DompetKeluargaApp {
         if (e.detail) {
           CloudSyncService.syncTransactionAsync(e.detail);
         }
+      });
+
+      // Listen to license updates across the app
+      window.addEventListener('license-updated', () => {
+        this.render();
       });
     }
 
