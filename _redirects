@@ -1,2 +1,2 @@
-# SPA Redirects for Cloudflare Pages / Netlify / Vercel
-/*    /index.html   200
+# Cloudflare Pages & Netlify Single Page Application (SPA) Rule
+/*    /    200
