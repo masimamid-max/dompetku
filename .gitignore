@@ -1,0 +1,12 @@
+# Operating System
+.DS_Store
+Thumbs.db
+
+# Local Archive Files
+*.zip
+*.log
+
+# Node & Temp
+node_modules/
+.vscode/
+.idea/

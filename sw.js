@@ -1,7 +1,7 @@
 /**
  * Dompet Keluarga Service Worker (PWA Offline First)
  */
-const CACHE_NAME = 'dompet-keluarga-v3.0.0';
+const CACHE_NAME = 'dompet-keluarga-v3.15.0';
 
 const STATIC_ASSETS = [
   './',
@@ -11,7 +11,8 @@ const STATIC_ASSETS = [
   './css/layout.css',
   './css/components.css',
   './css/pages.css',
-  './js/bundle.js?v=3.0.0',
+  './js/auth-access.js?v=3.15.0',
+  './js/bundle.js?v=3.15.0',
   './icons/icon-192.svg',
   './icons/icon-512.svg'
 ];

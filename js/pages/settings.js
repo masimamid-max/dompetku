@@ -4,8 +4,10 @@ import { formatRupiah, parseRupiah } from '../utils.js';
 import { modal } from '../components/modal.js';
 import { toast } from '../components/toast.js';
 import { CloudSyncService } from '../utils/cloudSync.js';
+import { LicenseService } from '../utils/licenseService.js';
+import { openLicenseActivationModal } from '../components/licenseModal.js';
 
-let settingsSubTab = 'family'; // 'family' | 'accounts' | 'categories' | 'cloud' | 'system'
+let settingsSubTab = 'family'; // 'family' | 'accounts' | 'categories' | 'cloud' | 'license' | 'system'
 
 export function renderSettingsPage() {
   const family = appState.family;
@@ -15,17 +17,21 @@ export function renderSettingsPage() {
   const current = appState.currentUser;
   const isOwner = appState.canManageFamily();
   const canManage = appState.canManageFinances();
+  const isPro = LicenseService.isLicensed();
 
   return `
     <div class="settings-page">
       <!-- Header -->
-      <div class="dashboard-header">
+      <div class="dashboard-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;">
         <div>
           <h1 style="font-size:1.5rem;font-weight:800;color:var(--color-slate-900);">Pengaturan</h1>
           <p style="font-size:0.875rem;color:var(--text-muted);margin-top:0.25rem;">
-            Kelola ruang keluarga, hak akses anggota, akun rekening, dan integrasi database Google Sheets
+            Kelola ruang keluarga, hak akses anggota, akun rekening, lisensi developer, dan integrasi Google Sheets
           </p>
         </div>
+        <button class="btn btn-secondary btn-sm" id="btn-settings-logout" style="color:#dc2626;border-color:#fecaca;background:#fff5f5;font-weight:700;display:flex;align-items:center;gap:0.375rem;" title="Keluar dari Akun">
+          ${Icons.logOut ? Icons.logOut(16) : '🚪'} Keluar (Logout)
+        </button>
       </div>
 
       <!-- Settings Sub-Tabs -->
@@ -42,6 +48,9 @@ export function renderSettingsPage() {
         <button class="settings-tab-btn ${settingsSubTab === 'cloud' ? 'active' : ''}" data-subtab="cloud">
           ☁️ Google Sheets Cloud DB
         </button>
+        <button class="settings-tab-btn ${settingsSubTab === 'license' ? 'active' : ''}" data-subtab="license">
+          ${isPro ? '✨ Lisensi PRO (Aktif)' : '🔒 Lisensi Developer & PRO'}
+        </button>
         <button class="settings-tab-btn ${settingsSubTab === 'system' ? 'active' : ''}" data-subtab="system">
           ${Icons.refresh(16)} Data & Reset
         </button>
@@ -52,6 +61,7 @@ export function renderSettingsPage() {
       ${settingsSubTab === 'accounts' ? renderAccountsTab(accounts, canManage) : ''}
       ${settingsSubTab === 'categories' ? renderCategoriesTab(categories, canManage) : ''}
       ${settingsSubTab === 'cloud' ? renderCloudTab() : ''}
+      ${settingsSubTab === 'license' ? renderLicenseTab() : ''}
       ${settingsSubTab === 'system' ? renderSystemTab() : ''}
     </div>
   `;
@@ -448,32 +458,357 @@ function renderCloudTab() {
   `;
 }
 
-function renderSystemTab() {
+function renderLicenseTab() {
+  const license = LicenseService.getLicense();
+  const isPro = LicenseService.isLicensed();
+
   return `
-    <div class="card">
-      <div class="card-header">
-        <div>
-          <div class="card-title">${Icons.refresh(18)} Pengaturan Sistem & Reset Database</div>
-          <div class="card-subtitle">Kembalikan data simulasi awal untuk demonstrasi atau hapus data lokal</div>
+    <div style="display:flex;flex-direction:column;gap:1.5rem;">
+      <!-- Hero Status Card -->
+      <div class="card" style="border-left: 5px solid ${isPro ? '#10b981' : '#f59e0b'}; background: ${isPro ? 'linear-gradient(to right, #ecfdf5, #ffffff)' : 'linear-gradient(to right, #fffbeb, #ffffff)'};">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;">
+          <div style="display:flex;gap:1rem;align-items:center;">
+            <div style="width:52px;height:52px;border-radius:14px;background:${isPro ? '#d1fae5' : '#fef3c7'};color:${isPro ? '#059669' : '#d97706'};display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;">
+              ${isPro ? '👑' : '🔒'}
+            </div>
+            <div>
+              <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+                <h3 style="font-size:1.25rem;font-weight:800;color:var(--color-slate-900);margin:0;">
+                  ${isPro ? 'Lisensi Dompetku PRO Aktif' : 'Status: Mode Uji Coba (Unlicensed)'}
+                </h3>
+                <span class="badge" style="background:${isPro ? '#059669' : '#d97706'};color:#ffffff;font-weight:700;padding:0.25rem 0.65rem;border-radius:999px;font-size:0.75rem;">
+                  ${isPro ? 'PRO LIFETIME' : 'FITUR TERKUNCI'}
+                </span>
+              </div>
+              <p style="font-size:0.875rem;color:var(--color-slate-600);margin:0.25rem 0 0;">
+                ${isPro 
+                  ? 'Semua fitur pencatatan transaksi, AI Assistant, OCR nota, dan sinkronisasi Google Sheets terbuka penuh.' 
+                  : 'Pencatatan transaksi baru & asisten AI terkunci. Aktifkan lisensi resmi untuk membuka semua fitur selamanya.'}
+              </p>
+            </div>
+          </div>
+
+          <button class="btn btn-primary" id="btn-open-license-popup" style="background:${isPro ? 'linear-gradient(135deg, #059669, #047857)' : 'linear-gradient(135deg, #2563eb, #1d4ed8)'};white-space:nowrap;font-weight:700;">
+            ${isPro ? '✨ Kelola Lisensi' : '🚀 Aktifkan Lisensi Sekarang'}
+          </button>
+        </div>
+
+        <!-- License Key Details -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:0.75rem;margin-top:1.25rem;padding-top:1rem;border-top:1px solid ${isPro ? '#a7f3d0' : '#fde68a'};">
+          <div>
+            <div style="font-size:0.725rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Paket Lisensi</div>
+            <div style="font-size:0.95rem;font-weight:800;color:var(--color-slate-800);margin-top:0.2rem;">${license.plan || 'Dompetku Standard'}</div>
+          </div>
+          <div>
+            <div style="font-size:0.725rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Kode Serial Lisensi</div>
+            <div style="font-size:0.95rem;font-weight:800;color:var(--color-primary-700);font-family:monospace;margin-top:0.2rem;">
+              ${license.key ? license.key : '<span style="color:#94a3b8;font-weight:500;">(Belum Diaktivasi)</span>'}
+            </div>
+          </div>
+          <div>
+            <div style="font-size:0.725rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Masa Berlaku</div>
+            <div style="font-size:0.95rem;font-weight:800;color:var(--color-slate-800);margin-top:0.2rem;">${license.validUntil || (isPro ? 'Selamanya (Lifetime)' : 'Terbatas')}</div>
+          </div>
         </div>
       </div>
 
-      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:var(--radius-md);padding:1.25rem;margin-bottom:1.5rem;">
-        <div style="font-size:0.9375rem;font-weight:700;color:#92400e;margin-bottom:0.25rem;">
-          Reset ke Data Bawaan (Keluarga Santoso)
+      <!-- In-Page Activation Box -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">🔑 Masukkan / Ganti Kunci Lisensi</div>
+            <div class="card-subtitle">Verifikasi instan online atau master key offline yang diberikan oleh developer</div>
+          </div>
         </div>
-        <p style="font-size:0.8125rem;color:#b45309;line-height:1.5;margin-bottom:1rem;">
-          Tindakan ini akan mengembalikan data keluarga, 3 anggota, rekening bank, kategori, anggaran, dan 18+ transaksi contoh awal untuk memudahkan pengujian.
-        </p>
-        <button class="btn btn-danger" id="btn-reset-demo-db">
-          ${Icons.refresh(16)} Reset ke Data Demo
-        </button>
+
+        <div style="display:flex;flex-direction:column;gap:1rem;max-width:560px;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label" for="settings-license-key-input">Kunci Serial Lisensi (Lisensi Developer):</label>
+            <div style="display:flex;gap:0.5rem;">
+              <input 
+                type="text" 
+                id="settings-license-key-input" 
+                class="form-input" 
+                placeholder="Contoh: DKPRO-LIFETIME-2026"
+                value="${license.key || ''}"
+                style="font-family:monospace;text-transform:uppercase;font-weight:700;font-size:0.95rem;"
+              />
+              <button class="btn btn-primary" id="btn-settings-activate-key" style="white-space:nowrap;font-weight:700;">
+                Aktivasi Kunci
+              </button>
+            </div>
+            <div id="settings-license-feedback" style="font-size:0.825rem;margin-top:0.4rem;"></div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;padding-top:0.5rem;">
+            <a 
+              href="${LicenseService.getBuyWhatsAppUrl()}" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              class="btn" 
+              style="background:#25D366;color:#ffffff;text-decoration:none;font-weight:700;font-size:0.875rem;display:inline-flex;align-items:center;gap:0.5rem;padding:0.6rem 1rem;border-radius:8px;"
+            >
+              <span>${Icons.send ? Icons.send(16) : '💬'}</span>
+              <span>Hubungi Developer via WhatsApp</span>
+            </a>
+
+            ${isPro ? `
+              <button class="btn btn-secondary btn-sm" id="btn-settings-remove-license" style="color:#ef4444;border-color:#fecaca;">
+                Hapus Lisensi di Perangkat Ini
+              </button>
+            ` : ''}
+          </div>
+        </div>
+      </div>
+
+      <!-- Feature Comparison & Benefits -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">📋 Matriks Fitur & Hak Akses</div>
+            <div class="card-subtitle">Perbandingan fitur antara Mode Uji Coba dan Lisensi PRO Developer</div>
+          </div>
+        </div>
+
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:0.875rem;">
+            <thead>
+              <tr style="border-bottom:2px solid #e2e8f0;text-align:left;color:var(--color-slate-600);">
+                <th style="padding:0.75rem 1rem;">Fitur Dompetku</th>
+                <th style="padding:0.75rem 1rem;text-align:center;width:140px;">Mode Uji Coba</th>
+                <th style="padding:0.75rem 1rem;text-align:center;width:160px;color:#059669;font-weight:800;">PRO Developer</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom:1px solid #f1f5f9;">
+                <td style="padding:0.75rem 1rem;font-weight:600;">Lihat Dashboard & Ringkasan Keuangan</td>
+                <td style="padding:0.75rem 1rem;text-align:center;color:#10b981;">✅ Terbuka</td>
+                <td style="padding:0.75rem 1rem;text-align:center;color:#10b981;font-weight:700;">✅ Terbuka</td>
+              </tr>
+              <tr style="border-bottom:1px solid #f1f5f9;background:#f8fafc;">
+                <td style="padding:0.75rem 1rem;font-weight:600;">Pencatatan Transaksi Baru (Pemasukan/Pengeluaran/Transfer)</td>
+                <td style="padding:0.75rem 1rem;text-align:center;color:#ef4444;font-weight:700;">🔒 Terkunci</td>
+                <td style="padding:0.75rem 1rem;text-align:center;color:#10b981;font-weight:700;">✅ Unlimited</td>
+              </tr>
+              <tr style="border-bottom:1px solid #f1f5f9;">
+                <td style="padding:0.75rem 1rem;font-weight:600;">AI OCR Scan Struk & Nota Pembayaran</td>
+                <td style="padding:0.75rem 1rem;text-align:center;color:#ef4444;font-weight:700;">🔒 Terkunci</td>
+                <td style="padding:0.75rem 1rem;text-align:center;color:#10b981;font-weight:700;">✅ Aktif</td>
+              </tr>
+              <tr style="border-bottom:1px solid #f1f5f9;background:#f8fafc;">
+                <td style="padding:0.75rem 1rem;font-weight:600;">Asisten AI Natural Language Input</td>
+                <td style="padding:0.75rem 1rem;text-align:center;color:#ef4444;font-weight:700;">🔒 Terkunci</td>
+                <td style="padding:0.75rem 1rem;text-align:center;color:#10b981;font-weight:700;">✅ Aktif</td>
+              </tr>
+              <tr style="border-bottom:1px solid #f1f5f9;">
+                <td style="padding:0.75rem 1rem;font-weight:600;">Sinkronisasi Realtime Google Spreadsheet Cloud DB</td>
+                <td style="padding:0.75rem 1rem;text-align:center;color:#10b981;">✅ Terbuka</td>
+                <td style="padding:0.75rem 1rem;text-align:center;color:#10b981;font-weight:700;">✅ Terbuka</td>
+              </tr>
+              <tr style="border-bottom:1px solid #f1f5f9;background:#f8fafc;">
+                <td style="padding:0.75rem 1rem;font-weight:600;">Ekspor Laporan PDF, Excel & CSV</td>
+                <td style="padding:0.75rem 1rem;text-align:center;color:#10b981;">✅ Terbuka</td>
+                <td style="padding:0.75rem 1rem;text-align:center;color:#10b981;font-weight:700;">✅ Terbuka</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderSystemTab() {
+  const txCount = appState.transactions ? appState.transactions.length : 0;
+  const accCount = appState.accounts ? appState.accounts.length : 0;
+  const memberCount = appState.members ? appState.members.length : 0;
+  const budgetCount = appState.budgets ? appState.budgets.length : 0;
+  const goalCount = appState.goals ? appState.goals.length : 0;
+  const billCount = appState.recurringBills ? appState.recurringBills.length : 0;
+  const familyName = appState.family?.name || 'Keluarga';
+
+  return `
+    <div style="display:flex;flex-direction:column;gap:1.5rem;">
+      <!-- Ringkasan Status Database Lokal & Privasi -->
+      <div class="card">
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:0.75rem;">
+          <div>
+            <div class="card-title">${Icons.database ? Icons.database(18) : '💾'} Status Database & Privasi Mandiri</div>
+            <div class="card-subtitle">Data tersimpan 100% di browser perangkat Anda dengan isolasi penuh (Zero-Knowledge)</div>
+          </div>
+          <span class="badge" style="background:#ecfdf5;color:#059669;border:1px solid #a7f3d0;font-weight:700;padding:0.35rem 0.75rem;border-radius:999px;font-size:0.75rem;">
+            🛡️ 100% Privasi Terisolasi
+          </span>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:0.75rem;margin-top:0.75rem;">
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:var(--radius-md);padding:0.875rem 1rem;text-align:center;">
+            <div style="font-size:1.375rem;font-weight:800;color:var(--color-slate-800);">${txCount}</div>
+            <div style="font-size:0.75rem;color:var(--text-muted);font-weight:600;margin-top:0.25rem;">Total Transaksi</div>
+          </div>
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:var(--radius-md);padding:0.875rem 1rem;text-align:center;">
+            <div style="font-size:1.375rem;font-weight:800;color:var(--color-slate-800);">${accCount}</div>
+            <div style="font-size:0.75rem;color:var(--text-muted);font-weight:600;margin-top:0.25rem;">Akun & Dompet</div>
+          </div>
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:var(--radius-md);padding:0.875rem 1rem;text-align:center;">
+            <div style="font-size:1.375rem;font-weight:800;color:var(--color-slate-800);">${memberCount}</div>
+            <div style="font-size:0.75rem;color:var(--text-muted);font-weight:600;margin-top:0.25rem;">Anggota</div>
+          </div>
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:var(--radius-md);padding:0.875rem 1rem;text-align:center;">
+            <div style="font-size:1.375rem;font-weight:800;color:var(--color-slate-800);">${budgetCount + goalCount + billCount}</div>
+            <div style="font-size:0.75rem;color:var(--text-muted);font-weight:600;margin-top:0.25rem;">Target & Anggaran</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Kartu Panduan Setup Awal (Onboarding Wizard) -->
+      <div class="card" style="border-left:4px solid #3b82f6;background:linear-gradient(to right, #eff6ff, #ffffff);">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;">
+          <div style="flex:1;min-width:240px;">
+            <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.25rem;">
+              <span style="font-size:1.25rem;">🚀</span>
+              <strong style="font-size:1rem;color:#1e40af;">Panduan Setup Awal (Onboarding Wizard)</strong>
+            </div>
+            <p style="font-size:0.8125rem;color:#1e3a8a;line-height:1.45;margin:0;">
+              Jalankan kembali panduan interaktif untuk mengatur nama keluarga, nominal kas & rekening bank awal, serta memilih mode mulai dari awal.
+            </p>
+          </div>
+          <button class="btn btn-primary" id="btn-open-onboarding-wizard" style="background:#2563eb;border-color:#2563eb;white-space:nowrap;">
+            🚀 Buka Panduan Setup Awal
+          </button>
+        </div>
+      </div>
+
+      <!-- Kartu Reset & Mode Database -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">${Icons.refresh(18)} Reset & Mode Database</div>
+            <div class="card-subtitle">Pilih mode data bersih untuk mulai mencatat keuangan asli, atau muat simulasi untuk belajar</div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:1rem;margin-top:0.5rem;">
+          <!-- Opsi 1: Mulai dari Nol (Bersih / 0 Transaksi) -->
+          <div style="background:#f0fdfa;border:1.5px solid #5eead4;border-radius:var(--radius-md);padding:1.25rem;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.5rem;">
+              <div style="font-size:1rem;font-weight:800;color:#0f766e;">
+                🟢 Mulai dari Nol (Data Bersih / 0 Transaksi)
+              </div>
+              <span class="badge" style="background:#ccfbf1;color:#0f766e;font-weight:700;padding:0.25rem 0.625rem;border-radius:6px;font-size:0.75rem;">
+                Rekomendasi Pelanggan Asli
+              </span>
+            </div>
+            <p style="font-size:0.8125rem;color:#115e59;line-height:1.5;margin-bottom:1rem;">
+              Mengosongkan seluruh riwayat transaksi (0 transaksi), menyiapkan 2 akun kas & rekening utama dengan saldo awal Rp 0, serta membersihkan simulasi sehingga siap untuk mencatat keuangan nyata Anda.
+            </p>
+            <button class="btn btn-primary" id="btn-reset-clean-db" style="background:#0f766e;border-color:#0f766e;">
+              ${Icons.plus(16)} Kosongkan & Mulai dari Nol (0 Transaksi)
+            </button>
+          </div>
+
+          <!-- Opsi 2: Muat Data Demo (Keluarga Santoso) -->
+          <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:var(--radius-md);padding:1.25rem;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.5rem;">
+              <div style="font-size:0.9375rem;font-weight:700;color:#92400e;">
+                🔵 Muat Data Simulasi Demo (Keluarga Santoso)
+              </div>
+              <span class="badge" style="background:#fef3c7;color:#92400e;font-weight:700;padding:0.25rem 0.625rem;border-radius:6px;font-size:0.75rem;">
+                Untuk Demonstrasi & Belajar
+              </span>
+            </div>
+            <p style="font-size:0.8125rem;color:#b45309;line-height:1.5;margin-bottom:1rem;">
+              Mengisi database dengan data contoh Keluarga Santoso (3 anggota, rekening bank, kategori, anggaran bulanan, dan 18+ transaksi contoh) untuk memudahkan pengujian dan mempelajari seluruh laporan.
+            </p>
+            <button class="btn btn-secondary" id="btn-reset-demo-db" style="color:#92400e;border-color:#fcd34d;">
+              ${Icons.refresh(16)} Muat Data Demo
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Kartu Cadangan & Pemulihan (Backup & Restore Mandiri) -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">${Icons.download ? Icons.download(18) : '📥'} Cadangan & Pemulihan Mandiri (Backup & Restore)</div>
+            <div class="card-subtitle">Unduh atau pulihkan database Anda kapan saja dengan kendali dan kepemilikan 100% milik Anda</div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:1rem;margin-top:0.5rem;">
+          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:var(--radius-md);padding:1rem 1.25rem;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:1rem;">
+            <div style="flex:1;min-width:240px;">
+              <div style="font-size:0.9375rem;font-weight:700;color:#166534;margin-bottom:0.25rem;">
+                💾 Unduh Cadangan Lengkap (.JSON)
+              </div>
+              <p style="font-size:0.8125rem;color:#15803d;line-height:1.4;margin:0;">
+                Simpan seluruh data profil keluarga, akun, transaksi, kategori, anggaran, impian, dan tagihan dalam 1 file cadangan terstruktur.
+              </p>
+            </div>
+            <button class="btn btn-primary" id="btn-backup-json" style="white-space:nowrap;">
+              ${Icons.download ? Icons.download(16) : '📥'} Unduh File Backup
+            </button>
+          </div>
+
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:var(--radius-md);padding:1rem 1.25rem;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:1rem;">
+            <div style="flex:1;min-width:240px;">
+              <div style="font-size:0.9375rem;font-weight:700;color:var(--color-slate-800);margin-bottom:0.25rem;">
+                📊 Unduh Rekap Buku Kas (.CSV / Excel)
+              </div>
+              <p style="font-size:0.8125rem;color:var(--text-muted);line-height:1.4;margin:0;">
+                Ekspor seluruh rincian transaksi buku kas ke format tabel spreadsheet CSV yang siap dibuka di Microsoft Excel / Google Sheets.
+              </p>
+            </div>
+            <button class="btn btn-secondary" id="btn-backup-csv" style="white-space:nowrap;">
+              ${Icons.fileText ? Icons.fileText(16) : '📊'} Unduh CSV
+            </button>
+          </div>
+
+          <div style="background:#fdf4ff;border:1px solid #f0abfc;border-radius:var(--radius-md);padding:1rem 1.25rem;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:1rem;">
+            <div style="flex:1;min-width:240px;">
+              <div style="font-size:0.9375rem;font-weight:700;color:#86198f;margin-bottom:0.25rem;">
+                🔄 Pulihkan Data dari Cadangan (.JSON)
+              </div>
+              <p style="font-size:0.8125rem;color:#a21caf;line-height:1.4;margin:0;">
+                Unggah file JSON cadangan untuk memulihkan seluruh data dan catatan keuangan Anda secara instan di perangkat ini.
+              </p>
+            </div>
+            <div>
+              <input type="file" id="input-restore-file" accept=".json,application/json" style="display:none;" />
+              <button class="btn btn-secondary" id="btn-trigger-restore" style="white-space:nowrap;color:#86198f;border-color:#d8b4fe;">
+                ${Icons.upload ? Icons.upload(16) : '📂'} Pilih File Backup
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   `;
 }
 
 export function attachSettingsListeners() {
+  // Logout Button in Settings Header
+  const logoutBtn = document.getElementById('btn-settings-logout');
+  if (logoutBtn) {
+    logoutBtn.onclick = () => {
+      modal.confirm({
+        title: 'Keluar dari Akun',
+        message: 'Apakah Anda yakin ingin keluar dari akun saat ini? Data yang tersimpan di perangkat Anda tetap aman.',
+        confirmText: 'Ya, Keluar',
+        confirmType: 'btn-danger',
+        onConfirm: () => {
+          if (window.AuthAccess && typeof window.AuthAccess.logout === 'function') {
+            window.AuthAccess.logout();
+          } else {
+            sessionStorage.removeItem('dk_google_session_v2');
+            location.reload();
+          }
+        }
+      });
+    };
+  }
+
   // Sub-tabs switcher
   document.querySelectorAll('[data-subtab]').forEach(btn => {
     btn.onclick = () => {
@@ -866,20 +1201,108 @@ export function attachSettingsListeners() {
     };
   });
 
-  // Reset Demo DB
+  // Buka Panduan Setup Awal (Onboarding Wizard)
+  const openWizardBtn = document.getElementById('btn-open-onboarding-wizard');
+  if (openWizardBtn) {
+    openWizardBtn.onclick = () => {
+      if (typeof openOnboardingWizardModal === 'function') {
+        openOnboardingWizardModal(true);
+      }
+    };
+  }
+
+  // Reset ke Data Bersih (0 Transaksi)
+  const resetCleanBtn = document.getElementById('btn-reset-clean-db');
+  if (resetCleanBtn) {
+    resetCleanBtn.onclick = () => {
+      modal.confirm({
+        title: 'Mulai dari Nol (Data Bersih)',
+        message: 'Tindakan ini akan mengosongkan seluruh riwayat transaksi (0 transaksi) dan menyiapkan akun kas & bank utama dengan saldo Rp 0 agar Anda dapat mulai mencatat data asli keluarga Anda. Lanjutkan?',
+        confirmText: 'Ya, Kosongkan Data',
+        confirmType: 'btn-primary',
+        onConfirm: () => {
+          appState.resetToCleanData();
+          toast.success('Database berhasil dikosongkan (0 transaksi). Selamat mencatat!');
+          appState.notify();
+        }
+      });
+    };
+  }
+
+  // Reset ke Data Demo
   const resetDemoBtn = document.getElementById('btn-reset-demo-db');
   if (resetDemoBtn) {
     resetDemoBtn.onclick = () => {
       modal.confirm({
-        title: 'Reset ke Data Demo Bawaan',
-        message: 'Apakah Anda yakin ingin mengembalikan seluruh data ke kondisi awal (Keluarga Santoso)? Transaksi kustom yang dibuat akan terhapus.',
-        confirmText: 'Ya, Reset Sekarang',
+        title: 'Muat Data Simulasi Demo',
+        message: 'Apakah Anda ingin memuat data contoh (Keluarga Santoso beserta 18+ transaksi simulasi)? Data saat ini akan digantikan dengan data simulasi.',
+        confirmText: 'Ya, Muat Data Demo',
         confirmType: 'btn-danger',
         onConfirm: () => {
           appState.resetToInitialData();
-          toast.success('Database berhasil direset ke data demo bawaan!');
+          toast.success('Data simulasi Keluarga Santoso berhasil dimuat!');
+          appState.notify();
         }
       });
+    };
+  }
+
+  // Unduh Cadangan JSON
+  const backupJsonBtn = document.getElementById('btn-backup-json');
+  if (backupJsonBtn) {
+    backupJsonBtn.onclick = () => {
+      const ok = appState.exportFullBackupJSON();
+      if (ok) {
+        toast.success('File cadangan JSON berhasil diunduh ke perangkat Anda!');
+      } else {
+        toast.error('Gagal membuat file cadangan.');
+      }
+    };
+  }
+
+  // Unduh Rekap CSV
+  const backupCsvBtn = document.getElementById('btn-backup-csv');
+  if (backupCsvBtn) {
+    backupCsvBtn.onclick = () => {
+      const ok = appState.exportAllTransactionsCSV();
+      if (ok) {
+        toast.success('File rekap transaksi CSV berhasil diunduh!');
+      } else {
+        toast.error('Gagal mengekspor data transaksi.');
+      }
+    };
+  }
+
+  // Trigger File Picker untuk Restore JSON
+  const triggerRestoreBtn = document.getElementById('btn-trigger-restore');
+  const restoreFileInput = document.getElementById('input-restore-file');
+  if (triggerRestoreBtn && restoreFileInput) {
+    triggerRestoreBtn.onclick = () => {
+      restoreFileInput.click();
+    };
+
+    restoreFileInput.onchange = (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const content = event.target.result;
+          const res = appState.importFullBackupJSON(content);
+          if (res.success) {
+            toast.success(res.message);
+            appState.notify();
+          } else {
+            toast.error(res.message);
+          }
+        } catch (err) {
+          toast.error('Format file tidak valid atau rusak: ' + err.message);
+        } finally {
+          restoreFileInput.value = '';
+        }
+      };
+      reader.readAsText(file);
     };
   }
 
@@ -1018,4 +1441,69 @@ export function attachSettingsListeners() {
       });
     };
   }
+
+  // License Listeners
+  const openLicensePopupBtn = document.getElementById('btn-open-license-popup');
+  if (openLicensePopupBtn) {
+    openLicensePopupBtn.onclick = () => {
+      openLicenseActivationModal('Akses Fitur PRO');
+    };
+  }
+
+  const activateKeyBtn = document.getElementById('btn-settings-activate-key');
+  const keyInput = document.getElementById('settings-license-key-input');
+  const keyFeedback = document.getElementById('settings-license-feedback');
+
+  if (activateKeyBtn && keyInput) {
+    activateKeyBtn.onclick = async () => {
+      const rawKey = keyInput.value.trim();
+      if (!rawKey) {
+        if (keyFeedback) keyFeedback.innerHTML = '<span style="color:#ef4444;font-weight:600;">Harap masukkan kode kunci lisensi.</span>';
+        keyInput.focus();
+        return;
+      }
+
+      activateKeyBtn.disabled = true;
+      activateKeyBtn.innerText = 'Memverifikasi...';
+      if (keyFeedback) keyFeedback.innerHTML = '<span style="color:#0284c7;font-weight:600;">Sedang memeriksa validitas lisensi...</span>';
+
+      try {
+        const res = await LicenseService.activate(rawKey);
+        if (res.success) {
+          if (keyFeedback) keyFeedback.innerHTML = `<span style="color:#10b981;font-weight:700;">${res.message}</span>`;
+          toast.success(res.message);
+          setTimeout(() => {
+            appState.notify();
+          }, 1000);
+        } else {
+          if (keyFeedback) keyFeedback.innerHTML = `<span style="color:#ef4444;font-weight:600;">${res.message}</span>`;
+          toast.error(res.message);
+          activateKeyBtn.disabled = false;
+          activateKeyBtn.innerText = 'Aktivasi Kunci';
+        }
+      } catch (err) {
+        if (keyFeedback) keyFeedback.innerHTML = `<span style="color:#ef4444;font-weight:600;">Gagal aktivasi: ${err.message || err}</span>`;
+        activateKeyBtn.disabled = false;
+        activateKeyBtn.innerText = 'Aktivasi Kunci';
+      }
+    };
+  }
+
+  const removeLicenseBtn = document.getElementById('btn-settings-remove-license');
+  if (removeLicenseBtn) {
+    removeLicenseBtn.onclick = () => {
+      modal.confirm({
+        title: 'Hapus Lisensi PRO',
+        message: 'Apakah Anda yakin ingin menghapus lisensi PRO dari perangkat ini? Fitur pencatatan baru akan terkunci kembali hingga lisensi diaktifkan lagi.',
+        confirmText: 'Ya, Hapus Lisensi',
+        confirmType: 'btn-danger',
+        onConfirm: () => {
+          LicenseService.deactivate();
+          toast.info('Lisensi PRO berhasil dihapus.');
+          appState.notify();
+        }
+      });
+    };
+  }
 }
+

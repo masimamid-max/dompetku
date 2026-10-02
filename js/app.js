@@ -16,10 +16,33 @@ import { CloudSyncService } from './utils/cloudSync.js';
 class DompetKeluargaApp {
   constructor() {
     this.appShell = document.getElementById('app-shell');
+    this.authenticatedInitialized = false;
     this.init();
   }
 
   init() {
+    const session = window.AuthAccess?.getSession();
+    if (window.AuthAccess && !session) {
+      window.AuthAccess.render(this.appShell, authenticatedSession => this.startAuthenticatedApp(authenticatedSession));
+      return;
+    }
+    this.startAuthenticatedApp(session);
+  }
+
+  startAuthenticatedApp(session) {
+    if (session) {
+      const member = appState.members.find(m => (m.email || '').toLowerCase() === session.email.toLowerCase());
+      if (member && (member.id !== appState.currentUser.id || !appState.currentUser.roleLabel)) appState.setCurrentUser(member.id);
+      if (!member) {
+        appState.currentUser = { ...appState.currentUser, name: session.fullName, email: session.email, avatarText: session.fullName.split(' ').map(v => v[0]).join('').slice(0, 2).toUpperCase() };
+      }
+    }
+    if (this.authenticatedInitialized) {
+      this.render();
+      return;
+    }
+    this.authenticatedInitialized = true;
+
     // Listen to auto-sync transactions
     if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
       window.addEventListener('transaction:added', (e) => {
@@ -36,6 +59,21 @@ class DompetKeluargaApp {
 
     // Initial render
     this.render();
+
+    // Check Onboarding Wizard for new user (only on fresh first-time install)
+    const onboardingDone = localStorage.getItem('dk_onboarding_completed');
+    const hasCustomData = localStorage.getItem('dompet_keluarga_db_v1');
+
+    if (!onboardingDone && !hasCustomData) {
+      setTimeout(() => {
+        if (typeof openOnboardingWizardModal === 'function') {
+          openOnboardingWizardModal(false);
+        }
+      }, 400);
+    } else if (!onboardingDone && hasCustomData) {
+      // User already has existing configured state, mark completed silently
+      localStorage.setItem('dk_onboarding_completed', 'true');
+    }
   }
 
   navigate(tabName) {

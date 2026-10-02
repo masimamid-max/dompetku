@@ -7,8 +7,15 @@ import { modal } from './modal.js';
 import { toast } from './toast.js';
 import { Icons, getCategoryIcon } from './icons.js';
 import { formatRupiah } from '../utils.js';
+import { LicenseService } from '../utils/licenseService.js';
+import { openLicenseActivationModal } from './licenseModal.js';
 
 export function openAIExpenseModal() {
+  if (!LicenseService.isLicensed()) {
+    openLicenseActivationModal('AI Smart Input Transaksi');
+    return;
+  }
+
   let parsedResult = null;
 
   function renderAIContent() {
@@ -225,5 +232,7 @@ export function openAIExpenseModal() {
   });
 }
 
-export const openAiModal = openAIExpenseModal;
+export function openAiModal() {
+  return openAIExpenseModal();
+}
 

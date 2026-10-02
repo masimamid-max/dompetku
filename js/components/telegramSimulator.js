@@ -209,5 +209,7 @@ export function openTelegramBotSimulator() {
   attachChatListeners();
 }
 
-export const openTelegramModal = openTelegramBotSimulator;
+export function openTelegramModal() {
+  return openTelegramBotSimulator();
+}
 

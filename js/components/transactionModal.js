@@ -7,8 +7,18 @@ import { toast } from './toast.js';
 import { Icons } from './icons.js';
 import { formatRupiah, parseRupiah } from '../utils.js';
 import { openReceiptScanModal } from './receiptScanModal.js';
+import { openAiModal } from './aiModal.js';
+import { openTelegramModal } from './telegramSimulator.js';
+import { LicenseService } from '../utils/licenseService.js';
+import { openLicenseActivationModal } from './licenseModal.js';
 
 export function openTransactionModal(existingTx = null) {
+  // Paywall Check for New Transactions (Requires Active Developer / PRO License)
+  if (!existingTx && !LicenseService.isLicensed()) {
+    openLicenseActivationModal('Pencatatan Transaksi Baru');
+    return;
+  }
+
   const isEdit = !!existingTx;
   let currentType = existingTx ? existingTx.type : 'expense';
   let currentReceiptUrl = existingTx && existingTx.receiptUrl ? existingTx.receiptUrl : null;
@@ -35,6 +45,24 @@ export function openTransactionModal(existingTx = null) {
 
     return `
       <form id="transaction-form" onsubmit="return false;">
+        ${!isEdit ? `
+          <!-- Baris Opsi Input Cepat & Cerdas -->
+          <div style="background:var(--color-slate-50,#f8fafc);border:1px solid var(--border-subtle,#e2e8f0);border-radius:12px;padding:0.6rem 0.75rem;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;gap:0.5rem;flex-wrap:wrap;">
+            <span style="font-size:0.75rem;font-weight:700;color:var(--text-muted,#64748b);text-transform:uppercase;letter-spacing:0.04em;">Mode Pintar:</span>
+            <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-quick-ocr" style="background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe;padding:0.35rem 0.65rem;font-size:0.75rem;font-weight:700;display:flex;align-items:center;gap:0.35rem;" title="Foto atau Scan Nota Belanja">
+                ${Icons.camera(14)} Scan Struk AI
+              </button>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-quick-ai" style="background:#f5f3ff;color:#6d28d9;border-color:#ddd6fe;padding:0.35rem 0.65rem;font-size:0.75rem;font-weight:700;display:flex;align-items:center;gap:0.35rem;" title="Ketik Bahasa Santai / Suara">
+                ${Icons.sparkles(14)} Catat AI
+              </button>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-quick-bot" style="background:#f8fafc;color:#334155;border-color:#cbd5e1;padding:0.35rem 0.65rem;font-size:0.75rem;font-weight:700;display:flex;align-items:center;gap:0.35rem;" title="Simulasi Input via Bot Telegram">
+                ${Icons.bot(14)} Bot Telegram
+              </button>
+            </div>
+          </div>
+        ` : ''}
+
         <!-- Type Selection -->
         <div class="type-segmented-control">
           <button type="button" class="segment-btn type-expense ${type === 'expense' ? 'active' : ''}" data-type="expense">
@@ -310,6 +338,28 @@ export function openTransactionModal(existingTx = null) {
     if (switchOcrBtn) {
       switchOcrBtn.onclick = () => {
         openReceiptScanModal();
+      };
+    }
+
+    // Quick Smart Option Buttons (Scan Struk, AI, Telegram)
+    const quickOcrBtn = document.getElementById('btn-quick-ocr');
+    if (quickOcrBtn) {
+      quickOcrBtn.onclick = () => {
+        openReceiptScanModal();
+      };
+    }
+
+    const quickAiBtn = document.getElementById('btn-quick-ai');
+    if (quickAiBtn) {
+      quickAiBtn.onclick = () => {
+        openAiModal();
+      };
+    }
+
+    const quickBotBtn = document.getElementById('btn-quick-bot');
+    if (quickBotBtn) {
+      quickBotBtn.onclick = () => {
+        openTelegramModal();
       };
     }
   }

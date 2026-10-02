@@ -8,8 +8,15 @@ import { modal } from './modal.js';
 import { toast } from './toast.js';
 import { Icons, getCategoryIcon } from './icons.js';
 import { formatRupiah, parseRupiah } from '../utils.js';
+import { LicenseService } from '../utils/licenseService.js';
+import { openLicenseActivationModal } from './licenseModal.js';
 
 export function openReceiptScanModal() {
+  if (!LicenseService.isLicensed()) {
+    openLicenseActivationModal('AI Scan Struk / Nota');
+    return;
+  }
+
   let currentStep = 'upload'; // 'upload' | 'scanning' | 'confirm'
   let currentImageDataUrl = null;
   let analysisResult = null;

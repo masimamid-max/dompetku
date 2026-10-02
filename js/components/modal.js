@@ -62,7 +62,10 @@ class ModalManager {
     document.body.appendChild(backdrop);
 
     // Event listeners for close
-    document.getElementById('modal-close-action').onclick = () => this.close();
+    const closeBtn = document.getElementById('modal-close-action');
+    if (closeBtn) {
+      closeBtn.onclick = () => this.close();
+    }
     backdrop.onclick = (e) => {
       if (e.target === backdrop) this.close();
     };

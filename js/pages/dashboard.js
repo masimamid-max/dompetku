@@ -61,49 +61,6 @@ export function renderDashboardPage() {
         </div>
       </div>
 
-      <!-- Quick Fast Entry Actions Bar -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));gap:0.75rem;margin-bottom:1.25rem;">
-        <button class="btn btn-secondary" id="dash-btn-scan-receipt" style="background:linear-gradient(135deg, #eff6ff, #dbeafe);color:#1d4ed8;border-color:#bfdbfe;justify-content:flex-start;padding:0.75rem 1rem;">
-          ${Icons.camera(20)}
-          <div style="text-align:left;">
-            <div style="font-size:0.8125rem;font-weight:800;">Scan Struk</div>
-            <div style="font-size:0.6875rem;color:#3b82f6;">Foto & OCR AI</div>
-          </div>
-        </button>
-
-        <button class="btn btn-secondary" id="dash-btn-ai" style="background:linear-gradient(135deg, #f5f3ff, #ede9fe);color:#6d28d9;border-color:#ddd6fe;justify-content:flex-start;padding:0.75rem 1rem;">
-          ${Icons.sparkles(20)}
-          <div style="text-align:left;">
-            <div style="font-size:0.8125rem;font-weight:800;">Catat Pintar AI</div>
-            <div style="font-size:0.6875rem;color:#7c3aed;">Bahasa santai</div>
-          </div>
-        </button>
-
-        <button class="btn btn-secondary" id="dash-btn-manual-tx" style="background:linear-gradient(135deg, #f0fdf4, #dcfce7);color:#15803d;border-color:#bbf7d0;justify-content:flex-start;padding:0.75rem 1rem;">
-          ${Icons.plus(20)}
-          <div style="text-align:left;">
-            <div style="font-size:0.8125rem;font-weight:800;">Catat Manual</div>
-            <div style="font-size:0.6875rem;color:#16a34a;">Form transaksi</div>
-          </div>
-        </button>
-
-        <button class="btn btn-secondary" id="dash-btn-export" style="background:linear-gradient(135deg, #fffbeb, #fef3c7);color:#b45309;border-color:#fde68a;justify-content:flex-start;padding:0.75rem 1rem;">
-          ${Icons.download(20)}
-          <div style="text-align:left;">
-            <div style="font-size:0.8125rem;font-weight:800;">Ekspor Laporan</div>
-            <div style="font-size:0.6875rem;color:#d97706;">PDF / Excel</div>
-          </div>
-        </button>
-
-        <button class="btn btn-secondary" id="dash-btn-bot" style="background:linear-gradient(135deg, #f8fafc, #f1f5f9);color:#334155;border-color:#cbd5e1;justify-content:flex-start;padding:0.75rem 1rem;">
-          ${Icons.bot(20)}
-          <div style="text-align:left;">
-            <div style="font-size:0.8125rem;font-weight:800;">Bot Telegram</div>
-            <div style="font-size:0.6875rem;color:#64748b;">Simulasi chat</div>
-          </div>
-        </button>
-      </div>
-
       <!-- Insight Alert Banner -->
       <div class="${insightBannerClass}">
         <div class="summary-alert-icon">
@@ -308,30 +265,5 @@ export function attachDashboardListeners(navigateToTab) {
   const quickRecordBtn = document.getElementById('btn-quick-record-tx');
   if (quickRecordBtn) {
     quickRecordBtn.onclick = () => openTransactionModal();
-  }
-
-  const dashScanBtn = document.getElementById('dash-btn-scan-receipt');
-  if (dashScanBtn) {
-    dashScanBtn.onclick = () => openReceiptScanModal();
-  }
-
-  const dashAiBtn = document.getElementById('dash-btn-ai');
-  if (dashAiBtn) {
-    dashAiBtn.onclick = () => openAiModal();
-  }
-
-  const dashManualBtn = document.getElementById('dash-btn-manual-tx');
-  if (dashManualBtn) {
-    dashManualBtn.onclick = () => openTransactionModal();
-  }
-
-  const dashExportBtn = document.getElementById('dash-btn-export');
-  if (dashExportBtn) {
-    dashExportBtn.onclick = () => openExportModal();
-  }
-
-  const dashBotBtn = document.getElementById('dash-btn-bot');
-  if (dashBotBtn) {
-    dashBotBtn.onclick = () => openTelegramModal();
   }
 }
