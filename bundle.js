@@ -2976,9 +2976,10 @@ class ReportExporter {
 // ==================== [MODULE: js/utils/licenseService.js] ====================
 /**
  * ============================================================================
- * DOMPETKU - COMMERCIAL LICENSE & PAYWALL SERVICE
+ * DOMPETKU - COMMERCIAL LICENSE & PAYWALL SERVICE (v3.0)
  * ============================================================================
- * Mengatur hak akses fitur PRO, validasi kunci lisensi pelanggan, dan proteksi paywall.
+ * Mengatur hak akses fitur PRO, validasi kunci lisensi pelanggan, pengumpulan database
+ * nomor WhatsApp pelanggan, dan proteksi paywall komersial.
  */
 
 const LICENSE_STORAGE_KEY = 'dk_app_license_v1';
@@ -3002,6 +3003,7 @@ class LicenseService {
       plan: 'Mode Uji Coba (Fitur Input Terkunci)',
       key: '',
       email: '',
+      phone: '',
       activatedAt: null,
       validUntil: null
     };
@@ -3025,16 +3027,30 @@ class LicenseService {
   }
 
   /**
-   * Verifikasi dan Aktivasi Kunci Lisensi
+   * Format & Standarisasi Nomor Telepon / WhatsApp
+   */
+  static formatPhoneNumber(rawPhone) {
+    if (!rawPhone) return '';
+    let str = String(rawPhone).replace(/[^0-9+]/g, '');
+    if (str.startsWith('08')) str = '628' + str.slice(2);
+    if (str.startsWith('+62')) str = '62' + str.slice(3);
+    return str;
+  }
+
+  /**
+   * Verifikasi dan Aktivasi Kunci Lisensi Unik + Simpan Nomor WhatsApp
    * Mendukung validasi online via Backend Developer & Master Key Offline
    */
-  static async activate(rawKey, userEmail = '') {
+  static async activate(rawKey, userEmail = '', userPhone = '') {
     const key = (rawKey || '').trim().toUpperCase();
     if (!key) {
       return { success: false, message: 'Harap masukkan kode kunci lisensi.' };
     }
 
-    const email = userEmail || (window.AuthAccess?.getSession()?.email) || 'pelanggan@email.com';
+    const session = window.AuthAccess?.getSession() || {};
+    const email = userEmail || session.email || 'pelanggan@email.com';
+    const fullName = session.fullName || 'Pelanggan';
+    const phone = this.formatPhoneNumber(userPhone || session.phone || '');
 
     // 1. Cek Offline Master Keys (Untuk kemudahan aktivasi developer langsung)
     const masterKeys = [
@@ -3044,12 +3060,14 @@ class LicenseService {
       'DK-SUPER-ACCESS'
     ];
 
-    if (masterKeys.includes(key) || key.startsWith('DKPRO-') && key.length >= 12) {
+    if (masterKeys.includes(key) || (key.startsWith('DKPRO-') && key.length >= 12)) {
       const license = {
         status: 'active',
         plan: 'Dompetku PRO (Akses Penuh Selamanya)',
         key: key,
         email: email,
+        phone: phone,
+        fullName: fullName,
         activatedAt: new Date().toISOString(),
         validUntil: 'Selamanya (Lifetime)'
       };
@@ -3062,7 +3080,7 @@ class LicenseService {
       };
     }
 
-    // 2. Cek Online Verification ke Spreadsheet Backend Developer (jika ada)
+    // 2. Cek Online Verification ke Spreadsheet Backend Developer
     const apiUrl = window.AuthAccess?.getApiUrl?.() || 'https://script.google.com/macros/s/AKfycbxYmS0CU2kekjbOvAnRHB2axnojysBvGHbA30fUoRWiRAsNflhBnucN5XWHUU_j78DqJg/exec';
     
     try {
@@ -3072,9 +3090,13 @@ class LicenseService {
           mode: 'cors',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify({
-            action: 'verify_license',
+            action: 'activate_license',
             key: key,
+            licenseKey: key,
             email: email,
+            phone: phone,
+            fullName: fullName,
+            userAgent: navigator.userAgent || '-',
             timestamp: new Date().toISOString()
           })
         });
@@ -3083,9 +3105,11 @@ class LicenseService {
         if (data && data.success) {
           const license = {
             status: 'active',
-            plan: data.plan || 'Dompetku PRO Lifetime',
+            plan: data.license?.plan || data.plan || 'Dompetku PRO Lifetime',
             key: key,
             email: email,
+            phone: phone,
+            fullName: fullName,
             activatedAt: new Date().toISOString(),
             validUntil: data.validUntil || 'Selamanya (Lifetime)'
           };
@@ -3103,13 +3127,15 @@ class LicenseService {
       console.warn('Online license check fallback to pattern:', err);
     }
 
-    // 3. Fallback Pattern Validation: Jika format kode memenuhi standar serial (DK-XXXX-XXXX-XXXX)
+    // 3. Fallback Pattern Validation: Jika format kode memenuhi standar serial unik (DK-XXXX-YYYY-ZZZZ)
     if (/^DK-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(key)) {
       const license = {
         status: 'active',
         plan: 'Dompetku PRO (Serial Terverifikasi)',
         key: key,
         email: email,
+        phone: phone,
+        fullName: fullName,
         activatedAt: new Date().toISOString(),
         validUntil: 'Selamanya (Lifetime)'
       };
@@ -3124,7 +3150,7 @@ class LicenseService {
 
     return {
       success: false,
-      message: 'Kunci lisensi tidak valid atau belum terdaftar. Silakan hubungi admin untuk mendapatkan kunci lisensi resmi.'
+      message: 'Kunci lisensi tidak valid atau belum terdaftar. Silakan hubungi admin di WhatsApp untuk mendapatkan kunci lisensi resmi.'
     };
   }
 
@@ -3136,18 +3162,20 @@ class LicenseService {
   }
 
   /**
-   * Kirim catatan aktivasi ke spreadsheet developer
+   * Kirim catatan aktivasi & data nomor WhatsApp ke spreadsheet developer
    */
   static notifyServerOfActivation(license) {
     try {
       const session = window.AuthAccess?.getSession() || {};
       const payload = {
-        action: 'record_login',
+        action: 'activate_license',
         email: session.email || license.email,
-        fullName: session.fullName || 'Pengguna PRO',
+        fullName: session.fullName || license.fullName || 'Pengguna PRO',
+        phone: license.phone || '',
         licenseKey: license.key,
         licensePlan: license.plan,
         licenseStatus: 'PRO Aktif',
+        userAgent: navigator.userAgent || '-',
         timestamp: new Date().toISOString()
       };
       const apiUrl = window.AuthAccess?.getApiUrl?.();
@@ -3163,11 +3191,21 @@ class LicenseService {
   }
 
   /**
-   * Link WhatsApp Pembelian Lisensi
+   * Link WhatsApp Pembelian Lisensi (Dilengkapi Pesan Otomatis Nama & Email)
    */
-  static getBuyWhatsAppUrl() {
-    const text = encodeURIComponent('Halo Admin Dompetku, saya ingin membeli Kunci Lisensi Dompetku PRO untuk membuka akses pencatatan keuangan.');
-    return `https://wa.me/${DEFAULT_DEVELOPER_WA}?text=${text}`;
+  static getBuyWhatsAppUrl(featureReason = 'Akses Penuh Dompetku PRO') {
+    const session = window.AuthAccess?.getSession() || {};
+    const userName = session.fullName || 'Pelanggan Dompetku';
+    const userEmail = session.email || '';
+
+    let messageText = `Halo Admin Dompetku, saya *${userName}*`;
+    if (userEmail) {
+      messageText += ` (Email: *${userEmail}*)`;
+    }
+    messageText += ` ingin membeli/mengaktifkan *Kunci Lisensi Dompetku PRO Resmi* untuk ${featureReason}.\n\nMohon info rekening pembayaran dan nomor lisensi saya. Terima kasih!`;
+
+    const encoded = encodeURIComponent(messageText);
+    return `https://wa.me/${DEFAULT_DEVELOPER_WA}?text=${encoded}`;
   }
 }
 
@@ -3683,15 +3721,17 @@ const modal = new ModalManager();
 // ==================== [MODULE: js/components/licenseModal.js] ====================
 /**
  * ============================================================================
- * DOMPETKU - LICENSE ACTIVATION MODAL (PAYWALL POPUP)
+ * DOMPETKU - LICENSE ACTIVATION MODAL (PAYWALL & LEAD CAPTURE POPUP v3.0)
  * ============================================================================
  * Menampilkan popup aktivasi lisensi PRO saat pengguna mencoba mengakses
  * fitur pencatatan transaksi jika belum memiliki lisensi resmi.
+ * Dilengkapi input Nomor WhatsApp aktif untuk database marketing & validasi lisensi unik.
  */
 
 function openLicenseActivationModal(featureName = 'Pencatatan Transaksi') {
   const currentLicense = LicenseService.getLicense();
   const isCurrentlyPro = LicenseService.isLicensed();
+  const session = window.AuthAccess?.getSession() || {};
 
   const contentHtml = `
     <div class="license-modal-wrap" style="text-align:center;padding:0.5rem 0.25rem;">
@@ -3737,35 +3777,57 @@ function openLicenseActivationModal(featureName = 'Pencatatan Transaksi') {
         </ul>
       </div>
 
-      <!-- Activation Input Area -->
+      <!-- Activation Input Area (Lead Capture + License Key) -->
       <div style="background:#ffffff;border:1.5px dashed var(--color-emerald-400,#34d399);border-radius:14px;padding:1.15rem;margin-bottom:1.25rem;text-align:left;">
-        <label for="license-key-input" style="display:block;font-size:0.85rem;font-weight:700;color:var(--color-slate-800,#1e293b);margin-bottom:0.4rem;">
-          ${isCurrentlyPro ? 'Kode Kunci Lisensi Aktif' : 'Punya Kunci Lisensi? Masukkan Disini:'}
-        </label>
-        <div style="display:flex;gap:0.5rem;">
+        
+        <!-- Nomor WhatsApp Input (Marketing & Ownership) -->
+        <div style="margin-bottom:0.85rem;">
+          <label for="license-phone-input" style="display:block;font-size:0.82rem;font-weight:700;color:var(--color-slate-800,#1e293b);margin-bottom:0.35rem;">
+            📱 Nomor WhatsApp Aktif (Wajib):
+          </label>
           <input 
-            type="text" 
-            id="license-key-input" 
-            placeholder="Contoh: DKPRO-LIFETIME-2026"
-            value="${currentLicense?.key || ''}"
-            style="flex:1;padding:0.65rem 0.85rem;border:1px solid var(--color-slate-300,#cbd5e1);border-radius:8px;font-family:monospace;font-size:0.95rem;font-weight:600;text-transform:uppercase;color:var(--color-slate-900,#0f172a);background:var(--color-slate-50,#f8fafc);"
+            type="tel" 
+            id="license-phone-input" 
+            placeholder="Contoh: 081234567890"
+            value="${currentLicense?.phone || session.phone || ''}"
+            style="width:100%;box-sizing:border-box;padding:0.65rem 0.85rem;border:1px solid var(--color-slate-300,#cbd5e1);border-radius:8px;font-size:0.95rem;font-weight:600;color:var(--color-slate-900,#0f172a);background:var(--color-slate-50,#f8fafc);"
           />
-          <button 
-            type="button" 
-            id="btn-do-activate-license" 
-            class="btn btn-primary"
-            style="background:linear-gradient(135deg, #059669 0%, #047857 100%);border:none;padding:0.65rem 1.25rem;font-weight:700;white-space:nowrap;border-radius:8px;cursor:pointer;box-shadow:0 4px 12px rgba(5, 150, 105, 0.25);"
-          >
-            Aktivasi
-          </button>
+          <div style="font-size:0.75rem;color:var(--color-slate-500,#64748b);margin-top:0.25rem;">
+            Digunakan untuk validasi hak kepemilikan lisensi resmi & info pembaruan fitur.
+          </div>
         </div>
+
+        <!-- Kode Lisensi Input -->
+        <div style="margin-bottom:0.5rem;">
+          <label for="license-key-input" style="display:block;font-size:0.82rem;font-weight:700;color:var(--color-slate-800,#1e293b);margin-bottom:0.35rem;">
+            🔑 Kode Serial Lisensi PRO:
+          </label>
+          <div style="display:flex;gap:0.5rem;">
+            <input 
+              type="text" 
+              id="license-key-input" 
+              placeholder="Contoh: DK-XXXX-YYYY-ZZZZ"
+              value="${currentLicense?.key || ''}"
+              style="flex:1;padding:0.65rem 0.85rem;border:1px solid var(--color-slate-300,#cbd5e1);border-radius:8px;font-family:monospace;font-size:0.95rem;font-weight:600;text-transform:uppercase;color:var(--color-slate-900,#0f172a);background:var(--color-slate-50,#f8fafc);"
+            />
+            <button 
+              type="button" 
+              id="btn-do-activate-license" 
+              class="btn btn-primary"
+              style="background:linear-gradient(135deg, #059669 0%, #047857 100%);border:none;padding:0.65rem 1.25rem;font-weight:700;white-space:nowrap;border-radius:8px;cursor:pointer;box-shadow:0 4px 12px rgba(5, 150, 105, 0.25);"
+            >
+              Aktivasi
+            </button>
+          </div>
+        </div>
+
         <div id="license-msg-box" style="margin-top:0.5rem;font-size:0.82rem;line-height:1.4;"></div>
       </div>
 
       <!-- Purchase WhatsApp CTA -->
       <div style="display:flex;flex-direction:column;gap:0.6rem;">
         <a 
-          href="${LicenseService.getBuyWhatsAppUrl()}" 
+          href="${LicenseService.getBuyWhatsAppUrl(featureName)}" 
           target="_blank" 
           rel="noopener noreferrer"
           class="btn"
@@ -3774,7 +3836,7 @@ function openLicenseActivationModal(featureName = 'Pencatatan Transaksi') {
           onmouseout="this.style.transform='translateY(0)'"
         >
           <span>${Icons.send ? Icons.send(18) : '💬'}</span>
-          <span>Dapatkan Kunci Lisensi via WhatsApp</span>
+          <span>Beli / Minta Kunci Lisensi via WhatsApp</span>
         </a>
 
         ${isCurrentlyPro ? `
@@ -3806,6 +3868,7 @@ function openLicenseActivationModal(featureName = 'Pencatatan Transaksi') {
   // Attach event handlers
   setTimeout(() => {
     const keyInput = document.getElementById('license-key-input');
+    const phoneInput = document.getElementById('license-phone-input');
     const btnActivate = document.getElementById('btn-do-activate-license');
     const msgBox = document.getElementById('license-msg-box');
     const btnDeactivate = document.getElementById('btn-deactivate-license');
@@ -3813,6 +3876,14 @@ function openLicenseActivationModal(featureName = 'Pencatatan Transaksi') {
     if (btnActivate && keyInput) {
       btnActivate.onclick = async () => {
         const rawKey = keyInput.value.trim();
+        const rawPhone = phoneInput ? phoneInput.value.trim() : '';
+
+        if (!rawPhone || rawPhone.length < 9) {
+          msgBox.innerHTML = '<span style="color:#ef4444;font-weight:600;">Harap masukkan Nomor WhatsApp aktif Anda (minimal 9 digit).</span>';
+          if (phoneInput) phoneInput.focus();
+          return;
+        }
+
         if (!rawKey) {
           msgBox.innerHTML = '<span style="color:#ef4444;font-weight:600;">Harap ketik kode kunci lisensi terlebih dahulu.</span>';
           keyInput.focus();
@@ -3821,16 +3892,15 @@ function openLicenseActivationModal(featureName = 'Pencatatan Transaksi') {
 
         btnActivate.disabled = true;
         btnActivate.innerText = 'Memverifikasi...';
-        msgBox.innerHTML = '<span style="color:#0284c7;font-weight:600;">Sedang memeriksa validitas lisensi...</span>';
+        msgBox.innerHTML = '<span style="color:#0284c7;font-weight:600;">Sedang memvalidasi lisensi & menyimpan nomor WhatsApp...</span>';
 
         try {
-          const res = await LicenseService.activate(rawKey);
+          const res = await LicenseService.activate(rawKey, '', rawPhone);
           if (res.success) {
             msgBox.innerHTML = `<span style="color:#10b981;font-weight:700;">${res.message}</span>`;
             toast.show(res.message, 'success');
             setTimeout(() => {
               modal.close();
-              // Trigger app reload or settings update if needed
               if (window.dispatchEvent) {
                 window.dispatchEvent(new CustomEvent('license-updated', { detail: res.license }));
               }
@@ -9497,7 +9567,7 @@ function renderLicenseTab() {
         </div>
 
         <!-- License Key Details -->
-        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:0.75rem;margin-top:1.25rem;padding-top:1rem;border-top:1px solid ${isPro ? '#a7f3d0' : '#fde68a'};">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:0.75rem;margin-top:1.25rem;padding-top:1rem;border-top:1px solid ${isPro ? '#a7f3d0' : '#fde68a'};">
           <div>
             <div style="font-size:0.725rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Paket Lisensi</div>
             <div style="font-size:0.95rem;font-weight:800;color:var(--color-slate-800);margin-top:0.2rem;">${license.plan || 'Dompetku Standard'}</div>
@@ -9506,6 +9576,12 @@ function renderLicenseTab() {
             <div style="font-size:0.725rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Kode Serial Lisensi</div>
             <div style="font-size:0.95rem;font-weight:800;color:var(--color-primary-700);font-family:monospace;margin-top:0.2rem;">
               ${license.key ? license.key : '<span style="color:#94a3b8;font-weight:500;">(Belum Diaktivasi)</span>'}
+            </div>
+          </div>
+          <div>
+            <div style="font-size:0.725rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;">No. WhatsApp Terdaftar</div>
+            <div style="font-size:0.95rem;font-weight:800;color:var(--color-slate-800);margin-top:0.2rem;">
+              ${license.phone ? license.phone : '<span style="color:#94a3b8;font-weight:500;">-</span>'}
             </div>
           </div>
           <div>
@@ -9525,14 +9601,31 @@ function renderLicenseTab() {
         </div>
 
         <div style="display:flex;flex-direction:column;gap:1rem;max-width:560px;">
+          <!-- Field Nomor WhatsApp Pelanggan -->
           <div class="form-group" style="margin-bottom:0;">
-            <label class="form-label" for="settings-license-key-input">Kunci Serial Lisensi (Lisensi Developer):</label>
+            <label class="form-label" for="settings-license-phone-input">📱 Nomor WhatsApp Aktif (Wajib):</label>
+            <input 
+              type="tel" 
+              id="settings-license-phone-input" 
+              class="form-input" 
+              placeholder="Contoh: 081234567890"
+              value="${license.phone || ''}"
+              style="font-size:0.95rem;font-weight:600;"
+            />
+            <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.25rem;">
+              Nomor WhatsApp digunakan untuk pencatatan hak kepemilikan lisensi resmi & database pembaruan fitur.
+            </div>
+          </div>
+
+          <!-- Field Kunci Lisensi -->
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label" for="settings-license-key-input">🔑 Kunci Serial Lisensi (Lisensi Developer):</label>
             <div style="display:flex;gap:0.5rem;">
               <input 
                 type="text" 
                 id="settings-license-key-input" 
                 class="form-input" 
-                placeholder="Contoh: DKPRO-LIFETIME-2026"
+                placeholder="Contoh: DK-XXXX-YYYY-ZZZZ"
                 value="${license.key || ''}"
                 style="font-family:monospace;text-transform:uppercase;font-weight:700;font-size:0.95rem;"
               />
@@ -9545,7 +9638,7 @@ function renderLicenseTab() {
 
           <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;padding-top:0.5rem;">
             <a 
-              href="${LicenseService.getBuyWhatsAppUrl()}" 
+              href="${LicenseService.getBuyWhatsAppUrl('Menu Pengaturan Lisensi')}" 
               target="_blank" 
               rel="noopener noreferrer" 
               class="btn" 
@@ -10455,11 +10548,20 @@ function attachSettingsListeners() {
 
   const activateKeyBtn = document.getElementById('btn-settings-activate-key');
   const keyInput = document.getElementById('settings-license-key-input');
+  const phoneInput = document.getElementById('settings-license-phone-input');
   const keyFeedback = document.getElementById('settings-license-feedback');
 
   if (activateKeyBtn && keyInput) {
     activateKeyBtn.onclick = async () => {
       const rawKey = keyInput.value.trim();
+      const rawPhone = phoneInput ? phoneInput.value.trim() : '';
+
+      if (!rawPhone || rawPhone.length < 9) {
+        if (keyFeedback) keyFeedback.innerHTML = '<span style="color:#ef4444;font-weight:600;">Harap masukkan Nomor WhatsApp aktif Anda (minimal 9 digit).</span>';
+        if (phoneInput) phoneInput.focus();
+        return;
+      }
+
       if (!rawKey) {
         if (keyFeedback) keyFeedback.innerHTML = '<span style="color:#ef4444;font-weight:600;">Harap masukkan kode kunci lisensi.</span>';
         keyInput.focus();
@@ -10468,10 +10570,10 @@ function attachSettingsListeners() {
 
       activateKeyBtn.disabled = true;
       activateKeyBtn.innerText = 'Memverifikasi...';
-      if (keyFeedback) keyFeedback.innerHTML = '<span style="color:#0284c7;font-weight:600;">Sedang memeriksa validitas lisensi...</span>';
+      if (keyFeedback) keyFeedback.innerHTML = '<span style="color:#0284c7;font-weight:600;">Sedang memvalidasi lisensi & menyimpan nomor WhatsApp...</span>';
 
       try {
-        const res = await LicenseService.activate(rawKey);
+        const res = await LicenseService.activate(rawKey, '', rawPhone);
         if (res.success) {
           if (keyFeedback) keyFeedback.innerHTML = `<span style="color:#10b981;font-weight:700;">${res.message}</span>`;
           toast.success(res.message);

@@ -1,9 +1,10 @@
 /**
  * ============================================================================
- * DOMPETKU - LICENSE ACTIVATION MODAL (PAYWALL POPUP)
+ * DOMPETKU - LICENSE ACTIVATION MODAL (PAYWALL & LEAD CAPTURE POPUP v3.0)
  * ============================================================================
  * Menampilkan popup aktivasi lisensi PRO saat pengguna mencoba mengakses
  * fitur pencatatan transaksi jika belum memiliki lisensi resmi.
+ * Dilengkapi input Nomor WhatsApp aktif untuk database marketing & validasi lisensi unik.
  */
 import { Icons } from './icons.js';
 import { modal } from './modal.js';
@@ -13,6 +14,7 @@ import { LicenseService } from '../utils/licenseService.js';
 export function openLicenseActivationModal(featureName = 'Pencatatan Transaksi') {
   const currentLicense = LicenseService.getLicense();
   const isCurrentlyPro = LicenseService.isLicensed();
+  const session = window.AuthAccess?.getSession() || {};
 
   const contentHtml = `
     <div class="license-modal-wrap" style="text-align:center;padding:0.5rem 0.25rem;">
@@ -58,35 +60,57 @@ export function openLicenseActivationModal(featureName = 'Pencatatan Transaksi')
         </ul>
       </div>
 
-      <!-- Activation Input Area -->
+      <!-- Activation Input Area (Lead Capture + License Key) -->
       <div style="background:#ffffff;border:1.5px dashed var(--color-emerald-400,#34d399);border-radius:14px;padding:1.15rem;margin-bottom:1.25rem;text-align:left;">
-        <label for="license-key-input" style="display:block;font-size:0.85rem;font-weight:700;color:var(--color-slate-800,#1e293b);margin-bottom:0.4rem;">
-          ${isCurrentlyPro ? 'Kode Kunci Lisensi Aktif' : 'Punya Kunci Lisensi? Masukkan Disini:'}
-        </label>
-        <div style="display:flex;gap:0.5rem;">
+        
+        <!-- Nomor WhatsApp Input (Marketing & Ownership) -->
+        <div style="margin-bottom:0.85rem;">
+          <label for="license-phone-input" style="display:block;font-size:0.82rem;font-weight:700;color:var(--color-slate-800,#1e293b);margin-bottom:0.35rem;">
+            📱 Nomor WhatsApp Aktif (Wajib):
+          </label>
           <input 
-            type="text" 
-            id="license-key-input" 
-            placeholder="Contoh: DKPRO-LIFETIME-2026"
-            value="${currentLicense?.key || ''}"
-            style="flex:1;padding:0.65rem 0.85rem;border:1px solid var(--color-slate-300,#cbd5e1);border-radius:8px;font-family:monospace;font-size:0.95rem;font-weight:600;text-transform:uppercase;color:var(--color-slate-900,#0f172a);background:var(--color-slate-50,#f8fafc);"
+            type="tel" 
+            id="license-phone-input" 
+            placeholder="Contoh: 081234567890"
+            value="${currentLicense?.phone || session.phone || ''}"
+            style="width:100%;box-sizing:border-box;padding:0.65rem 0.85rem;border:1px solid var(--color-slate-300,#cbd5e1);border-radius:8px;font-size:0.95rem;font-weight:600;color:var(--color-slate-900,#0f172a);background:var(--color-slate-50,#f8fafc);"
           />
-          <button 
-            type="button" 
-            id="btn-do-activate-license" 
-            class="btn btn-primary"
-            style="background:linear-gradient(135deg, #059669 0%, #047857 100%);border:none;padding:0.65rem 1.25rem;font-weight:700;white-space:nowrap;border-radius:8px;cursor:pointer;box-shadow:0 4px 12px rgba(5, 150, 105, 0.25);"
-          >
-            Aktivasi
-          </button>
+          <div style="font-size:0.75rem;color:var(--color-slate-500,#64748b);margin-top:0.25rem;">
+            Digunakan untuk validasi hak kepemilikan lisensi resmi & info pembaruan fitur.
+          </div>
         </div>
+
+        <!-- Kode Lisensi Input -->
+        <div style="margin-bottom:0.5rem;">
+          <label for="license-key-input" style="display:block;font-size:0.82rem;font-weight:700;color:var(--color-slate-800,#1e293b);margin-bottom:0.35rem;">
+            🔑 Kode Serial Lisensi PRO:
+          </label>
+          <div style="display:flex;gap:0.5rem;">
+            <input 
+              type="text" 
+              id="license-key-input" 
+              placeholder="Contoh: DK-XXXX-YYYY-ZZZZ"
+              value="${currentLicense?.key || ''}"
+              style="flex:1;padding:0.65rem 0.85rem;border:1px solid var(--color-slate-300,#cbd5e1);border-radius:8px;font-family:monospace;font-size:0.95rem;font-weight:600;text-transform:uppercase;color:var(--color-slate-900,#0f172a);background:var(--color-slate-50,#f8fafc);"
+            />
+            <button 
+              type="button" 
+              id="btn-do-activate-license" 
+              class="btn btn-primary"
+              style="background:linear-gradient(135deg, #059669 0%, #047857 100%);border:none;padding:0.65rem 1.25rem;font-weight:700;white-space:nowrap;border-radius:8px;cursor:pointer;box-shadow:0 4px 12px rgba(5, 150, 105, 0.25);"
+            >
+              Aktivasi
+            </button>
+          </div>
+        </div>
+
         <div id="license-msg-box" style="margin-top:0.5rem;font-size:0.82rem;line-height:1.4;"></div>
       </div>
 
       <!-- Purchase WhatsApp CTA -->
       <div style="display:flex;flex-direction:column;gap:0.6rem;">
         <a 
-          href="${LicenseService.getBuyWhatsAppUrl()}" 
+          href="${LicenseService.getBuyWhatsAppUrl(featureName)}" 
           target="_blank" 
           rel="noopener noreferrer"
           class="btn"
@@ -95,7 +119,7 @@ export function openLicenseActivationModal(featureName = 'Pencatatan Transaksi')
           onmouseout="this.style.transform='translateY(0)'"
         >
           <span>${Icons.send ? Icons.send(18) : '💬'}</span>
-          <span>Dapatkan Kunci Lisensi via WhatsApp</span>
+          <span>Beli / Minta Kunci Lisensi via WhatsApp</span>
         </a>
 
         ${isCurrentlyPro ? `
@@ -127,6 +151,7 @@ export function openLicenseActivationModal(featureName = 'Pencatatan Transaksi')
   // Attach event handlers
   setTimeout(() => {
     const keyInput = document.getElementById('license-key-input');
+    const phoneInput = document.getElementById('license-phone-input');
     const btnActivate = document.getElementById('btn-do-activate-license');
     const msgBox = document.getElementById('license-msg-box');
     const btnDeactivate = document.getElementById('btn-deactivate-license');
@@ -134,6 +159,14 @@ export function openLicenseActivationModal(featureName = 'Pencatatan Transaksi')
     if (btnActivate && keyInput) {
       btnActivate.onclick = async () => {
         const rawKey = keyInput.value.trim();
+        const rawPhone = phoneInput ? phoneInput.value.trim() : '';
+
+        if (!rawPhone || rawPhone.length < 9) {
+          msgBox.innerHTML = '<span style="color:#ef4444;font-weight:600;">Harap masukkan Nomor WhatsApp aktif Anda (minimal 9 digit).</span>';
+          if (phoneInput) phoneInput.focus();
+          return;
+        }
+
         if (!rawKey) {
           msgBox.innerHTML = '<span style="color:#ef4444;font-weight:600;">Harap ketik kode kunci lisensi terlebih dahulu.</span>';
           keyInput.focus();
@@ -142,16 +175,15 @@ export function openLicenseActivationModal(featureName = 'Pencatatan Transaksi')
 
         btnActivate.disabled = true;
         btnActivate.innerText = 'Memverifikasi...';
-        msgBox.innerHTML = '<span style="color:#0284c7;font-weight:600;">Sedang memeriksa validitas lisensi...</span>';
+        msgBox.innerHTML = '<span style="color:#0284c7;font-weight:600;">Sedang memvalidasi lisensi & menyimpan nomor WhatsApp...</span>';
 
         try {
-          const res = await LicenseService.activate(rawKey);
+          const res = await LicenseService.activate(rawKey, '', rawPhone);
           if (res.success) {
             msgBox.innerHTML = `<span style="color:#10b981;font-weight:700;">${res.message}</span>`;
             toast.show(res.message, 'success');
             setTimeout(() => {
               modal.close();
-              // Trigger app reload or settings update if needed
               if (window.dispatchEvent) {
                 window.dispatchEvent(new CustomEvent('license-updated', { detail: res.license }));
               }

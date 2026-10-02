@@ -1,8 +1,9 @@
 /**
  * ============================================================================
- * DOMPETKU - COMMERCIAL LICENSE & PAYWALL SERVICE
+ * DOMPETKU - COMMERCIAL LICENSE & PAYWALL SERVICE (v3.0)
  * ============================================================================
- * Mengatur hak akses fitur PRO, validasi kunci lisensi pelanggan, dan proteksi paywall.
+ * Mengatur hak akses fitur PRO, validasi kunci lisensi pelanggan, pengumpulan database
+ * nomor WhatsApp pelanggan, dan proteksi paywall komersial.
  */
 
 const LICENSE_STORAGE_KEY = 'dk_app_license_v1';
@@ -26,6 +27,7 @@ export class LicenseService {
       plan: 'Mode Uji Coba (Fitur Input Terkunci)',
       key: '',
       email: '',
+      phone: '',
       activatedAt: null,
       validUntil: null
     };
@@ -49,16 +51,30 @@ export class LicenseService {
   }
 
   /**
-   * Verifikasi dan Aktivasi Kunci Lisensi
+   * Format & Standarisasi Nomor Telepon / WhatsApp
+   */
+  static formatPhoneNumber(rawPhone) {
+    if (!rawPhone) return '';
+    let str = String(rawPhone).replace(/[^0-9+]/g, '');
+    if (str.startsWith('08')) str = '628' + str.slice(2);
+    if (str.startsWith('+62')) str = '62' + str.slice(3);
+    return str;
+  }
+
+  /**
+   * Verifikasi dan Aktivasi Kunci Lisensi Unik + Simpan Nomor WhatsApp
    * Mendukung validasi online via Backend Developer & Master Key Offline
    */
-  static async activate(rawKey, userEmail = '') {
+  static async activate(rawKey, userEmail = '', userPhone = '') {
     const key = (rawKey || '').trim().toUpperCase();
     if (!key) {
       return { success: false, message: 'Harap masukkan kode kunci lisensi.' };
     }
 
-    const email = userEmail || (window.AuthAccess?.getSession()?.email) || 'pelanggan@email.com';
+    const session = window.AuthAccess?.getSession() || {};
+    const email = userEmail || session.email || 'pelanggan@email.com';
+    const fullName = session.fullName || 'Pelanggan';
+    const phone = this.formatPhoneNumber(userPhone || session.phone || '');
 
     // 1. Cek Offline Master Keys (Untuk kemudahan aktivasi developer langsung)
     const masterKeys = [
@@ -68,12 +84,14 @@ export class LicenseService {
       'DK-SUPER-ACCESS'
     ];
 
-    if (masterKeys.includes(key) || key.startsWith('DKPRO-') && key.length >= 12) {
+    if (masterKeys.includes(key) || (key.startsWith('DKPRO-') && key.length >= 12)) {
       const license = {
         status: 'active',
         plan: 'Dompetku PRO (Akses Penuh Selamanya)',
         key: key,
         email: email,
+        phone: phone,
+        fullName: fullName,
         activatedAt: new Date().toISOString(),
         validUntil: 'Selamanya (Lifetime)'
       };
@@ -86,7 +104,7 @@ export class LicenseService {
       };
     }
 
-    // 2. Cek Online Verification ke Spreadsheet Backend Developer (jika ada)
+    // 2. Cek Online Verification ke Spreadsheet Backend Developer
     const apiUrl = window.AuthAccess?.getApiUrl?.() || 'https://script.google.com/macros/s/AKfycbxYmS0CU2kekjbOvAnRHB2axnojysBvGHbA30fUoRWiRAsNflhBnucN5XWHUU_j78DqJg/exec';
     
     try {
@@ -96,9 +114,13 @@ export class LicenseService {
           mode: 'cors',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify({
-            action: 'verify_license',
+            action: 'activate_license',
             key: key,
+            licenseKey: key,
             email: email,
+            phone: phone,
+            fullName: fullName,
+            userAgent: navigator.userAgent || '-',
             timestamp: new Date().toISOString()
           })
         });
@@ -107,9 +129,11 @@ export class LicenseService {
         if (data && data.success) {
           const license = {
             status: 'active',
-            plan: data.plan || 'Dompetku PRO Lifetime',
+            plan: data.license?.plan || data.plan || 'Dompetku PRO Lifetime',
             key: key,
             email: email,
+            phone: phone,
+            fullName: fullName,
             activatedAt: new Date().toISOString(),
             validUntil: data.validUntil || 'Selamanya (Lifetime)'
           };
@@ -127,13 +151,15 @@ export class LicenseService {
       console.warn('Online license check fallback to pattern:', err);
     }
 
-    // 3. Fallback Pattern Validation: Jika format kode memenuhi standar serial (DK-XXXX-XXXX-XXXX)
+    // 3. Fallback Pattern Validation: Jika format kode memenuhi standar serial unik (DK-XXXX-YYYY-ZZZZ)
     if (/^DK-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(key)) {
       const license = {
         status: 'active',
         plan: 'Dompetku PRO (Serial Terverifikasi)',
         key: key,
         email: email,
+        phone: phone,
+        fullName: fullName,
         activatedAt: new Date().toISOString(),
         validUntil: 'Selamanya (Lifetime)'
       };
@@ -148,7 +174,7 @@ export class LicenseService {
 
     return {
       success: false,
-      message: 'Kunci lisensi tidak valid atau belum terdaftar. Silakan hubungi admin untuk mendapatkan kunci lisensi resmi.'
+      message: 'Kunci lisensi tidak valid atau belum terdaftar. Silakan hubungi admin di WhatsApp untuk mendapatkan kunci lisensi resmi.'
     };
   }
 
@@ -160,18 +186,20 @@ export class LicenseService {
   }
 
   /**
-   * Kirim catatan aktivasi ke spreadsheet developer
+   * Kirim catatan aktivasi & data nomor WhatsApp ke spreadsheet developer
    */
   static notifyServerOfActivation(license) {
     try {
       const session = window.AuthAccess?.getSession() || {};
       const payload = {
-        action: 'record_login',
+        action: 'activate_license',
         email: session.email || license.email,
-        fullName: session.fullName || 'Pengguna PRO',
+        fullName: session.fullName || license.fullName || 'Pengguna PRO',
+        phone: license.phone || '',
         licenseKey: license.key,
         licensePlan: license.plan,
         licenseStatus: 'PRO Aktif',
+        userAgent: navigator.userAgent || '-',
         timestamp: new Date().toISOString()
       };
       const apiUrl = window.AuthAccess?.getApiUrl?.();
@@ -187,10 +215,20 @@ export class LicenseService {
   }
 
   /**
-   * Link WhatsApp Pembelian Lisensi
+   * Link WhatsApp Pembelian Lisensi (Dilengkapi Pesan Otomatis Nama & Email)
    */
-  static getBuyWhatsAppUrl() {
-    const text = encodeURIComponent('Halo Admin Dompetku, saya ingin membeli Kunci Lisensi Dompetku PRO untuk membuka akses pencatatan keuangan.');
-    return `https://wa.me/${DEFAULT_DEVELOPER_WA}?text=${text}`;
+  static getBuyWhatsAppUrl(featureReason = 'Akses Penuh Dompetku PRO') {
+    const session = window.AuthAccess?.getSession() || {};
+    const userName = session.fullName || 'Pelanggan Dompetku';
+    const userEmail = session.email || '';
+
+    let messageText = `Halo Admin Dompetku, saya *${userName}*`;
+    if (userEmail) {
+      messageText += ` (Email: *${userEmail}*)`;
+    }
+    messageText += ` ingin membeli/mengaktifkan *Kunci Lisensi Dompetku PRO Resmi* untuk ${featureReason}.\n\nMohon info rekening pembayaran dan nomor lisensi saya. Terima kasih!`;
+
+    const encoded = encodeURIComponent(messageText);
+    return `https://wa.me/${DEFAULT_DEVELOPER_WA}?text=${encoded}`;
   }
 }
