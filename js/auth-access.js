@@ -73,7 +73,7 @@
               <!-- Tab Navigation -->
               <div style="display:flex;background:#f1f5f9;padding:4px;border-radius:12px;margin-bottom:1.25rem;">
                 <button type="button" id="tab-btn-register" style="flex:1;padding:0.6rem 0.5rem;border:none;border-radius:9px;font-weight:700;font-size:0.875rem;cursor:pointer;background:${hasRegistered ? 'transparent' : '#ffffff'};color:${hasRegistered ? '#64748b' : '#0f172a'};box-shadow:${hasRegistered ? 'none' : '0 2px 6px rgba(0,0,0,0.06)'};transition:all 0.15s ease;">
-                  🔑 Daftar & Aktivasi
+                  📝 Daftar Akun Baru
                 </button>
                 <button type="button" id="tab-btn-login" style="flex:1;padding:0.6rem 0.5rem;border:none;border-radius:9px;font-weight:700;font-size:0.875rem;cursor:pointer;background:${hasRegistered ? '#ffffff' : 'transparent'};color:${hasRegistered ? '#0f172a' : '#64748b'};box-shadow:${hasRegistered ? '0 2px 6px rgba(0,0,0,0.06)' : 'none'};transition:all 0.15s ease;">
                   🚪 Masuk Akun
@@ -82,10 +82,10 @@
 
               <div id="auth-alert-box" style="margin-bottom:1rem;"></div>
 
-              <!-- ================= REGISTRATION & ACTIVATION FORM ================= -->
+              <!-- ================= REGISTRATION FORM ================= -->
               <form id="form-register-activation" style="display:${hasRegistered ? 'none' : 'block'};">
                 <div style="font-size:0.82rem;color:#64748b;margin-bottom:1rem;line-height:1.45;">
-                  Masukkan data diri Anda dan <strong>Kode Lisensi PRO</strong> yang Anda dapatkan setelah melakukan pembayaran.
+                  Daftarkan diri Anda untuk mulai mengelola keuangan keluarga secara privat dan terhubung.
                 </div>
 
                 <!-- Nama Lengkap -->
@@ -112,14 +112,6 @@
                   <input type="email" id="reg-email" required placeholder="nama@email.com" value="${existingAccount?.email || existingLicense?.email || ''}" style="width:100%;box-sizing:border-box;padding:0.65rem 0.85rem;border:1px solid #cbd5e1;border-radius:8px;font-size:0.9rem;font-weight:600;color:#0f172a;background:#f8fafc;" />
                 </div>
 
-                <!-- Kode Lisensi PRO -->
-                <div style="margin-bottom:0.75rem;">
-                  <label style="display:block;font-size:0.8rem;font-weight:700;color:#1e293b;margin-bottom:0.3rem;">
-                    🔑 Kode Serial Lisensi PRO:
-                  </label>
-                  <input type="text" id="reg-license-key" required placeholder="Contoh: DK-XXXX-YYYY-ZZZZ" value="${existingLicense?.key || ''}" style="width:100%;box-sizing:border-box;padding:0.65rem 0.85rem;border:1.5px solid #059669;border-radius:8px;font-family:monospace;font-size:0.95rem;font-weight:700;text-transform:uppercase;color:#047857;background:#ecfdf5;" />
-                </div>
-
                 <!-- Password / PIN -->
                 <div style="margin-bottom:1.15rem;">
                   <label style="display:block;font-size:0.8rem;font-weight:700;color:#1e293b;margin-bottom:0.3rem;">
@@ -131,7 +123,7 @@
                 <!-- Submit Button -->
                 <button type="submit" id="btn-submit-register" style="width:100%;min-height:46px;background:linear-gradient(135deg, #059669 0%, #047857 100%);color:#fff;border:none;border-radius:10px;font-weight:800;font-size:0.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.5rem;box-shadow:0 4px 14px rgba(5, 150, 105, 0.3);transition:all 0.15s ease;">
                   <span>🚀</span>
-                  <span>Aktifkan & Buka Dompetku PRO</span>
+                  <span>Daftar & Buka Dashboard</span>
                 </button>
               </form>
 
@@ -222,16 +214,15 @@
         alertBox.innerHTML = '';
       };
 
-      // Form Registration & Activation Handler
+      // Form Registration Handler (Frictionless Onboarding)
       formReg.onsubmit = async (e) => {
         e.preventDefault();
         const name = document.getElementById('reg-name').value.trim();
         const phone = document.getElementById('reg-phone').value.trim();
         const email = document.getElementById('reg-email').value.trim().toLowerCase();
-        const key = document.getElementById('reg-license-key').value.trim().toUpperCase();
         const password = document.getElementById('reg-password').value;
 
-        if (!name || !phone || !email || !key || !password) {
+        if (!name || !phone || !email || !password) {
           showAlert('Semua kolom wajib diisi dengan lengkap.');
           return;
         }
@@ -243,48 +234,59 @@
 
         const submitBtn = document.getElementById('btn-submit-register');
         submitBtn.disabled = true;
-        submitBtn.innerText = 'Memverifikasi Lisensi...';
-        showAlert('Sedang memvalidasi kode lisensi ke server...', 'success');
+        submitBtn.innerText = 'Mendaftarkan Akun...';
 
         try {
-          const res = await window.LicenseService?.activate?.(key, email, phone);
+          // 1. Simpan Akun Pengguna Lokal
+          const userAccount = {
+            name,
+            phone,
+            email,
+            password,
+            registeredAt: new Date().toISOString()
+          };
+          localStorage.setItem(USER_ACCOUNT_KEY, JSON.stringify(userAccount));
+          localStorage.removeItem('dk_logged_out');
+
+          // 2. Buat Sesi Pengguna
+          const session = {
+            accountId: 'usr_' + Date.now(),
+            email: email,
+            fullName: name,
+            phone: phone,
+            idToken: 'auth_token_' + Date.now(),
+            access: { authorized: true, status: 'active', role: 'owner', plan: 'Dompet Keluarga' }
+          };
+          sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+
+          // 3. Rekam Lead Telemetri ke Google Spreadsheet Developer (Background)
+          try {
+            fetch(ACCESS_API_URL, {
+              method: 'POST',
+              mode: 'cors',
+              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify({
+                action: 'record_login',
+                name: name,
+                fullName: name,
+                phone: phone,
+                email: email,
+                status: 'registered',
+                device: navigator.userAgent || 'Web Browser',
+                registeredAt: new Date().toISOString()
+              })
+            }).catch(() => {});
+          } catch (_) {}
+
+          showAlert('🎉 Pendaftaran Berhasil! Membuka Dashboard...', 'success');
           
-          if (res && res.success) {
-            // Simpan akun pengguna
-            const userAccount = {
-              name,
-              phone,
-              email,
-              password,
-              registeredAt: new Date().toISOString()
-            };
-            localStorage.setItem(USER_ACCOUNT_KEY, JSON.stringify(userAccount));
-            localStorage.removeItem('dk_logged_out');
-
-            const session = {
-              accountId: 'usr_' + Date.now(),
-              email: email,
-              fullName: name,
-              phone: phone,
-              idToken: 'auth_token_' + Date.now(),
-              access: { authorized: true, status: 'active', role: 'owner', plan: 'Dompetku PRO Lifetime' }
-            };
-            sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
-
-            showAlert('🎉 Aktivasi Sukses! Membuka Dashboard Dompetku PRO...', 'success');
-            
-            setTimeout(() => {
-              onAuthenticated(session);
-            }, 800);
-          } else {
-            showAlert(res?.message || 'Kode lisensi tidak valid atau belum terdaftar. Silakan periksa kembali.');
-            submitBtn.disabled = false;
-            submitBtn.innerText = 'Aktifkan & Buka Dompetku PRO';
-          }
+          setTimeout(() => {
+            onAuthenticated(session);
+          }, 600);
         } catch (err) {
-          showAlert('Terjadi kendala koneksi: ' + (err.message || err));
+          showAlert('Terjadi kesalahan: ' + (err.message || err));
           submitBtn.disabled = false;
-          submitBtn.innerText = 'Aktifkan & Buka Dompetku PRO';
+          submitBtn.innerText = 'Daftar & Buka Dashboard';
         }
       };
 
