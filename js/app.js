@@ -16,52 +16,11 @@ import { CloudSyncService } from './utils/cloudSync.js';
 class DompetKeluargaApp {
   constructor() {
     this.appShell = document.getElementById('app-shell');
-    this.authenticatedInitialized = false;
     this.init();
   }
 
   init() {
-    const session = window.AuthAccess?.getSession();
-    this.startAuthenticatedApp(session);
-  }
-
-  startAuthenticatedApp(session) {
-    if (session) {
-      const member = appState.members.find(m => (m.email || '').toLowerCase() === session.email.toLowerCase());
-      if (member) {
-        if (member.id !== appState.currentUser.id || !appState.currentUser.roleLabel) {
-          appState.setCurrentUser(member.id);
-        }
-      } else {
-        const initials = session.fullName.split(' ').map(v => v[0]).join('').slice(0, 2).toUpperCase() || 'DK';
-        appState.currentUser = {
-          ...appState.currentUser,
-          name: session.fullName,
-          email: session.email,
-          role: 'owner',
-          roleLabel: 'Kepala Keluarga',
-          avatarText: initials
-        };
-        // Perbarui anggota pertama jika masih demo atau tambahkan anggota baru
-        if (appState.members.length > 0 && appState.members[0].email === 'budi@keluarga.id') {
-          appState.members[0].name = session.fullName;
-          appState.members[0].email = session.email;
-          appState.members[0].avatarText = initials;
-        } else if (!appState.members.some(m => (m.email || '').toLowerCase() === session.email.toLowerCase())) {
-          appState.members.push({
-            id: `mem-${Date.now()}`,
-            name: session.fullName,
-            email: session.email,
-            role: 'owner',
-            roleLabel: 'Kepala Keluarga',
-            avatarText: initials
-          });
-        }
-        appState.saveState();
-      }
-    }
-
-    // Auto-sync data dari Cloud Google Sheets saat login / aplikasi dibuka (jika URL terhubung)
+    // Auto-sync data dari Cloud Google Sheets saat aplikasi dibuka (jika URL terhubung)
     const cloudConfig = CloudSyncService.getConfig();
     if (cloudConfig.gasUrl && cloudConfig.autoSync) {
       CloudSyncService.pullFullState(cloudConfig.gasUrl).then(() => {
@@ -70,12 +29,6 @@ class DompetKeluargaApp {
         console.warn('ℹ️ Cloud sync background notice:', err);
       });
     }
-
-    if (this.authenticatedInitialized) {
-      this.render();
-      return;
-    }
-    this.authenticatedInitialized = true;
 
     // Listen to auto-sync transactions
     if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
@@ -98,21 +51,6 @@ class DompetKeluargaApp {
 
     // Initial render
     this.render();
-
-    // Check Onboarding Wizard for new user (only on fresh first-time install)
-    const onboardingDone = localStorage.getItem('dk_onboarding_completed');
-    const hasCustomData = localStorage.getItem('dompet_keluarga_db_v1');
-
-    if (!onboardingDone && !hasCustomData) {
-      setTimeout(() => {
-        if (typeof openOnboardingWizardModal === 'function') {
-          openOnboardingWizardModal(false);
-        }
-      }, 400);
-    } else if (!onboardingDone && hasCustomData) {
-      // User already has existing configured state, mark completed silently
-      localStorage.setItem('dk_onboarding_completed', 'true');
-    }
   }
 
   navigate(tabName) {

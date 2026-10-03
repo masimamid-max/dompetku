@@ -1,18 +1,18 @@
 /**
  * Dompet Keluarga Service Worker (PWA Offline First)
  */
-const CACHE_NAME = 'dompetku-v3.17.8';
+const CACHE_NAME = 'dompetku-v3.18.2';
 
 const STATIC_ASSETS = [
   './',
   './index.html',
   './manifest.json',
-  './css/tokens.css',
-  './css/layout.css',
-  './css/components.css',
-  './css/pages.css',
-  './js/auth-access.js',
-  './js/app.js',
+  './css/tokens.css?v=3.18.2',
+  './css/layout.css?v=3.18.2',
+  './css/components.css?v=3.18.2',
+  './css/pages.css?v=3.18.2',
+  './js/bundle.js?v=3.18.2',
+  './bundle.js?v=3.18.2',
   './icons/icon-192.svg',
   './icons/icon-512.svg'
 ];

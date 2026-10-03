@@ -29,7 +29,6 @@ files_order = [
     "js/pages/bills.js",
     "js/pages/reports.js",
     "js/pages/settings.js",
-    "js/auth-access.js",
     "js/app.js"
 ]
 
@@ -57,9 +56,8 @@ def clean_file_content(path):
     return f"\n// ==================== [MODULE: {path}] ====================\n" + content
 
 def build():
-    output = "/**\n * Dompet Keluarga V2.2.1 - Production Bundle\n * Complete Unified Client-Side Application with Cloud Sync & OCR\n */\n"
+    output = "/**\n * Dompet Keluarga V3.18.2 - Production Bundle\n * Complete Unified Client-Side Application with Cloud Sync & OCR\n */\n"
     
-    # Handle duplicate declarations if any across files
     for path in files_order:
         if os.path.exists(path):
             output += clean_file_content(path) + "\n"
