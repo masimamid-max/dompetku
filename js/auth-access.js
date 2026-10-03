@@ -24,19 +24,50 @@
             <div class="access-brand-mark">▣</div>
             <div class="access-brand-copy"><span>DOMPET KELUARGA</span>
               <h1>Keuangan keluarga lebih tertata, aman, dan terhubung.</h1>
-              <p>Masuk dengan akun Google dan langsung gunakan dashboard Dompetku.</p>
+              <p>Masuk dengan akun Google atau coba langsung dashboard Dompetku.</p>
             </div>
-            <div class="access-trust-list"><div>✓ Login Google yang praktis</div><div>✓ Langsung masuk dashboard</div><div>✓ Kata sandi tidak disimpan aplikasi</div></div>
+            <div class="access-trust-list"><div>✓ Login Google yang praktis</div><div>✓ Langsung masuk dashboard</div><div>✓ Data aman & privat di perangkat Anda</div></div>
           </section>
           <main class="access-card-wrap"><div class="access-card">
             <div class="access-mobile-brand"><span>▣</span> Dompet Keluarga</div>
-            <div class="access-heading"><h2>Masuk ke akun</h2><p>Gunakan akun Google untuk mencoba Dompetku.</p></div>
+            <div class="access-heading"><h2>Masuk ke akun</h2><p>Gunakan akun Google atau masuk langsung.</p></div>
             <div id="access-notice"></div>
-            <div id="google-signin-button" class="access-google-host" aria-label="Masuk dengan Google"></div>
-            <div class="access-security-note">Dompet Keluarga tidak menyimpan kata sandi Google Anda.</div>
-            <p class="access-switch">Mode uji coba: aktivasi pelanggan dan lisensi akan diterapkan pada tahap berikutnya.</p>
+            <div id="google-signin-button" class="access-google-host" aria-label="Masuk dengan Google" style="min-height:44px;display:flex;align-items:center;justify-content:center;">
+              <div style="font-size:0.85rem;color:#64748b;">Memuat tombol Google...</div>
+            </div>
+            
+            <div style="margin:1rem 0 0.5rem;display:flex;align-items:center;gap:0.75rem;">
+              <div style="flex:1;height:1px;background:#e2e8f0;"></div>
+              <span style="font-size:0.75rem;color:#94a3b8;text-transform:uppercase;font-weight:700;">Atau</span>
+              <div style="flex:1;height:1px;background:#e2e8f0;"></div>
+            </div>
+
+            <button type="button" id="btn-guest-login" style="width:100%;min-height:44px;border:1.5px solid #059669;border-radius:8px;background:#ecfdf5;color:#059669;font-weight:700;font-size:0.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.5rem;transition:all 0.15s ease;">
+              <span>🚀</span>
+              <span>Masuk Langsung ke Dashboard</span>
+            </button>
+
+            <div class="access-security-note" style="margin-top:1rem;">Dompet Keluarga tidak menyimpan kata sandi Google Anda.</div>
           </div></main>
         </div>`;
+      
+      const guestBtn = document.getElementById('btn-guest-login');
+      if (guestBtn) {
+        guestBtn.onclick = () => {
+          const isPro = window.LicenseService?.isLicensed?.() || !!localStorage.getItem('dk_app_license_v1');
+          const guestSession = {
+            accountId: 'guest_' + Date.now(),
+            email: 'pengguna@dompetku.local',
+            fullName: 'Pengguna Dompetku',
+            picture: '',
+            idToken: 'guest_token',
+            access: { authorized: true, status: isPro ? 'active' : 'trial', role: 'owner', plan: isPro ? 'Dompetku PRO' : 'Uji Coba' }
+          };
+          sessionStorage.setItem(SESSION_KEY, JSON.stringify(guestSession));
+          onAuthenticated(guestSession);
+        };
+      }
+
       this.mountGoogleButton(onAuthenticated);
     }
     showNotice(message) {
