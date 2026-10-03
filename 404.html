@@ -38,48 +38,25 @@
   <!-- Toast Notification Container -->
   <div id="toast-container"></div>
 
-  <!-- Global Diagnostic & Self-Healing Script Loader -->
+  <!-- Core Scripts -->
+  <script src="js/auth-access.js?v=3.17.2"></script>
+  <script src="js/bundle.js?v=3.17.2"></script>
   <script>
-    window.addEventListener('error', function(e) {
-      console.error('Captured Global Error:', e);
+    // Fallback watchdog: If app hasn't rendered within 2.5s, auto initialize
+    setTimeout(function() {
       var shell = document.getElementById('app-shell');
-      if (shell && !document.querySelector('.app-main')) {
-        shell.innerHTML = `
-          <div style="padding:2.5rem 1.5rem;max-width:560px;margin:2rem auto;background:#fff;border:1px solid #fca5a5;border-radius:12px;box-shadow:0 10px 25px rgba(0,0,0,0.1);font-family:'Plus Jakarta Sans',sans-serif;text-align:center;">
-            <div style="width:48px;height:48px;border-radius:50%;background:#fee2e2;color:#dc2626;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem auto;font-size:24px;font-weight:bold;">!</div>
-            <h2 style="color:#991b1b;font-size:1.25rem;font-weight:800;margin-bottom:0.5rem;">Pemberitahuan Sistem</h2>
-            <p style="color:#64748b;font-size:0.875rem;line-height:1.5;margin-bottom:1.25rem;">
-              Sedang memuat ulang data terbaru: <strong>${e.message || 'Memperbarui cache'}</strong>
-            </p>
-            <div style="display:flex;gap:0.75rem;justify-content:center;">
-              <button onclick="localStorage.clear();location.href=location.pathname+'?reset='+Date.now();" style="padding:0.625rem 1.25rem;background:#059669;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;">
-                Buka Aplikasi Sekarang
-              </button>
-            </div>
-          </div>
-        `;
+      if (shell && !document.querySelector('.app-main') && !document.querySelector('.access-page')) {
+        console.warn('⚡ Watchdog auto-initializing application...');
+        if (window.app && typeof window.app.render === 'function') {
+          window.app.render();
+        } else if (typeof startApp === 'function') {
+          startApp();
+        } else {
+          // Direct fallback to guest / dashboard
+          location.reload();
+        }
       }
-    });
-
-    // Access prototype loads before the main application.
-    var accessScript = document.createElement('script');
-    accessScript.src = 'js/auth-access.js?v=3.16.1';
-    document.body.appendChild(accessScript);
-
-    // Dynamic Script Loader (canonical bundle in js/, root copy as legacy fallback)
-    function loadBundleScript() {
-      var s = document.createElement('script');
-      s.src = 'js/bundle.js?v=3.16.1';
-      s.onerror = function() {
-        console.log('Fallback loading legacy root bundle.js');
-        var s2 = document.createElement('script');
-        s2.src = 'bundle.js?v=3.16.1';
-        document.body.appendChild(s2);
-      };
-      document.body.appendChild(s);
-    }
-    accessScript.onload = loadBundleScript;
-    accessScript.onerror = loadBundleScript;
+    }, 2500);
   </script>
 
   <!-- PWA Service Worker Registration -->
