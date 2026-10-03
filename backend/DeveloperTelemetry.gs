@@ -224,14 +224,19 @@ function handleActivateLicense(payload) {
     if (sheetKey === rawKey) {
       foundLicIndex = i + 1;
       const assignedEmail = String(licData[i][3]).toLowerCase().trim();
+      const assignedPhone = cleanPhoneNumber(licData[i][4]);
       const status = String(licData[i][5]).trim();
       licPlan = String(licData[i][2]).trim() || licPlan;
 
-      // Jika kunci sudah terikat ke email lain
-      if (assignedEmail && assignedEmail !== email && assignedEmail !== '-') {
+      // Cek apakah pemilik lisensi cocok (berdasarkan Email ATAU Nomor WhatsApp)
+      const isEmailMatch = email && assignedEmail && (assignedEmail === email);
+      const isPhoneMatch = phone && assignedPhone && (assignedPhone === phone);
+      const isUnbound = !assignedEmail || assignedEmail === '-' || assignedEmail === 'pelanggan@email.com';
+
+      if (!isUnbound && !isEmailMatch && !isPhoneMatch) {
         return handleResponse({
           success: false,
-          message: 'Kode lisensi ini sudah digunakan oleh akun email lain (' + assignedEmail + ').'
+          message: 'Kode lisensi ini sudah digunakan oleh akun email lain (' + (assignedEmail || 'pemilik lain') + ').'
         });
       }
 

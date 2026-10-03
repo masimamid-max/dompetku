@@ -71,10 +71,13 @@ export class LicenseService {
       return { success: false, message: 'Harap masukkan kode kunci lisensi.' };
     }
 
+    let userAccount = null;
+    try { userAccount = JSON.parse(localStorage.getItem('dk_user_account_v1') || 'null'); } catch (_) {}
+
     const session = window.AuthAccess?.getSession() || {};
-    const email = userEmail || session.email || 'pelanggan@email.com';
-    const fullName = session.fullName || 'Pelanggan';
-    const phone = this.formatPhoneNumber(userPhone || session.phone || '');
+    const email = (userEmail || session.email || userAccount?.email || '').trim().toLowerCase();
+    const fullName = session.fullName || userAccount?.name || 'Pelanggan';
+    const phone = this.formatPhoneNumber(userPhone || session.phone || userAccount?.phone || '');
 
     // 1. Cek Offline Master Keys (Untuk kemudahan aktivasi developer langsung)
     const masterKeys = [

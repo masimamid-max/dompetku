@@ -178,7 +178,9 @@ export function openLicenseActivationModal(featureName = 'Pencatatan Transaksi')
         msgBox.innerHTML = '<span style="color:#0284c7;font-weight:600;">Sedang memvalidasi lisensi & menyimpan nomor WhatsApp...</span>';
 
         try {
-          const res = await LicenseService.activate(rawKey, '', rawPhone);
+          const userAccount = JSON.parse(localStorage.getItem('dk_user_account_v1') || 'null') || {};
+          const currentEmail = session.email || userAccount.email || '';
+          const res = await LicenseService.activate(rawKey, currentEmail, rawPhone);
           if (res.success) {
             msgBox.innerHTML = `<span style="color:#10b981;font-weight:700;">${res.message}</span>`;
             toast.show(res.message, 'success');

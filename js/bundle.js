@@ -3047,10 +3047,13 @@ class LicenseService {
       return { success: false, message: 'Harap masukkan kode kunci lisensi.' };
     }
 
+    let userAccount = null;
+    try { userAccount = JSON.parse(localStorage.getItem('dk_user_account_v1') || 'null'); } catch (_) {}
+
     const session = window.AuthAccess?.getSession() || {};
-    const email = userEmail || session.email || 'pelanggan@email.com';
-    const fullName = session.fullName || 'Pelanggan';
-    const phone = this.formatPhoneNumber(userPhone || session.phone || '');
+    const email = (userEmail || session.email || userAccount?.email || '').trim().toLowerCase();
+    const fullName = session.fullName || userAccount?.name || 'Pelanggan';
+    const phone = this.formatPhoneNumber(userPhone || session.phone || userAccount?.phone || '');
 
     // 1. Cek Offline Master Keys (Untuk kemudahan aktivasi developer langsung)
     const masterKeys = [
@@ -3895,7 +3898,9 @@ function openLicenseActivationModal(featureName = 'Pencatatan Transaksi') {
         msgBox.innerHTML = '<span style="color:#0284c7;font-weight:600;">Sedang memvalidasi lisensi & menyimpan nomor WhatsApp...</span>';
 
         try {
-          const res = await LicenseService.activate(rawKey, '', rawPhone);
+          const userAccount = JSON.parse(localStorage.getItem('dk_user_account_v1') || 'null') || {};
+          const currentEmail = session.email || userAccount.email || '';
+          const res = await LicenseService.activate(rawKey, currentEmail, rawPhone);
           if (res.success) {
             msgBox.innerHTML = `<span style="color:#10b981;font-weight:700;">${res.message}</span>`;
             toast.show(res.message, 'success');
