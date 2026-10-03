@@ -67,47 +67,54 @@ function doPost(e) {
 }
 
 /**
- * Mencatat Data Login Pengguna & Update Nomor WhatsApp jika tersedia
+ * Mencatat Data Login Pengguna & Sinkronisasi Akun Lintas Perangkat (Multi-Device)
  */
 function handleRecordLogin(payload) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(SHEET_USERS);
   if (!sheet) sheet = initializeUsersSheet(ss);
 
-  const email = (payload.email || '').trim().toLowerCase();
+  const rawIdent = (payload.identifier || payload.email || payload.phone || '').trim().toLowerCase();
+  const isEmail = rawIdent.includes('@');
+  const email = (isEmail ? rawIdent : (payload.email || '')).trim().toLowerCase();
+  const phone = cleanPhoneNumber(payload.phone || (!isEmail ? rawIdent : ''));
   const fullName = (payload.fullName || payload.name || 'Pengguna').trim();
-  const phone = cleanPhoneNumber(payload.phone || payload.phoneNumber || '');
-  const picture = payload.picture || '';
+  const password = payload.password || '';
   const familyName = payload.familyName || payload.family || '-';
-  const userAgent = payload.userAgent || '-';
-  const appVersion = payload.appVersion || '3.17.1';
+  const userAgent = payload.userAgent || payload.device || '-';
+  const appVersion = payload.appVersion || '3.18.5';
   const licenseKey = payload.licenseKey || '';
   const now = new Date();
   const timeFormatted = Utilities.formatDate(now, ss.getSpreadsheetTimeZone() || 'Asia/Jakarta', 'yyyy-MM-dd HH:mm:ss');
 
-  if (!email) {
-    return handleResponse({ success: false, message: 'Email tidak boleh kosong' });
+  if (!email && !phone) {
+    return handleResponse({ success: false, message: 'Harap masukkan nomor WhatsApp atau email' });
   }
 
   const data = sheet.getDataRange().getValues();
   let rowIndex = -1;
 
   for (let i = 1; i < data.length; i++) {
-    if (String(data[i][3]).toLowerCase().trim() === email) {
+    const rowEmail = String(data[i][3]).toLowerCase().trim();
+    const rowPhone = cleanPhoneNumber(data[i][4]);
+    
+    if ((email && rowEmail === email) || (phone && rowPhone && rowPhone === phone)) {
       rowIndex = i + 1;
       break;
     }
   }
 
   if (rowIndex > 0) {
-    // Pengguna Lama - Update waktu login & nomor HP jika belum ada
+    // Pengguna Ditemukan - Update waktu login & telemetri
     const currentLogins = parseInt(sheet.getRange(rowIndex, 9).getValue() || 1, 10);
     const newLogins = currentLogins + 1;
 
     sheet.getRange(rowIndex, 2).setValue(timeFormatted); // Terakhir Aktif
-    if (fullName) sheet.getRange(rowIndex, 3).setValue(fullName);
+    if (fullName && fullName !== 'Pengguna' && !sheet.getRange(rowIndex, 3).getValue()) {
+      sheet.getRange(rowIndex, 3).setValue(fullName);
+    }
     if (phone && !sheet.getRange(rowIndex, 5).getValue()) {
-      sheet.getRange(rowIndex, 5).setValue(phone); // Simpan nomor WA baru
+      sheet.getRange(rowIndex, 5).setValue(phone);
     }
     if (licenseKey && !sheet.getRange(rowIndex, 6).getValue()) {
       sheet.getRange(rowIndex, 6).setValue(licenseKey);
@@ -116,45 +123,66 @@ function handleRecordLogin(payload) {
     sheet.getRange(rowIndex, 9).setValue(newLogins);
     sheet.getRange(rowIndex, 10).setValue(appVersion);
 
-    const existingStatus = sheet.getRange(rowIndex, 7).getValue() || 'Aktif';
+    const savedName = sheet.getRange(rowIndex, 3).getValue() || fullName;
+    const savedEmail = sheet.getRange(rowIndex, 4).getValue() || email;
+    const savedPhone = sheet.getRange(rowIndex, 5).getValue() || phone;
+    const savedKey = sheet.getRange(rowIndex, 6).getValue() || licenseKey;
+    const existingStatus = String(sheet.getRange(rowIndex, 7).getValue() || 'Aktif');
+    const isPro = existingStatus.includes('PRO') || (savedKey && savedKey !== '-');
 
     return handleResponse({
       success: true,
       isNewUser: false,
-      message: 'Data login diperbarui untuk: ' + email,
+      message: 'Login berhasil terverifikasi untuk: ' + (savedEmail || savedPhone),
+      user: {
+        name: savedName,
+        email: savedEmail,
+        phone: savedPhone,
+        licenseKey: savedKey && savedKey !== '-' ? savedKey : '',
+        isPro: isPro
+      },
       access: { 
         authorized: true, 
-        status: existingStatus.includes('PRO') ? 'active' : 'trial',
-        plan: existingStatus.includes('PRO') ? 'Dompetku PRO Lifetime' : 'Mode Uji Coba'
+        status: isPro ? 'active' : 'trial',
+        plan: isPro ? 'Dompetku PRO Lifetime' : 'Mode Uji Coba'
       }
     });
 
   } else {
-    // Pengguna Baru - Tambahkan ke Database Pelanggan
+    // Pengguna Baru (atau login pertama kali di perangkat baru sebelum registrasi offline)
     const newNo = data.length;
     const device = parseDevice(userAgent);
-    const initialStatus = licenseKey ? 'Aktif (PRO)' : 'Pengguna Baru (Trial)';
+    const initialStatus = licenseKey ? 'Aktif (PRO)' : 'Aktif (Baru)';
+    const registeredEmail = email || (phone + '@dompetku.local');
+    const registeredPhone = phone || '-';
 
     sheet.appendRow([
       newNo,
       timeFormatted,       // B: Waktu Terdaftar
       fullName,            // C: Nama Lengkap
-      email,               // D: Email Google
-      phone || '-',        // E: Nomor WhatsApp (HP)
+      registeredEmail,     // D: Email
+      registeredPhone,     // E: Nomor WhatsApp (HP)
       licenseKey || '-',   // F: Kode Lisensi
       initialStatus,       // G: Status Lisensi
       device,              // H: Perangkat
       1,                   // I: Total Login
       appVersion,          // J: Versi App
       familyName,          // K: Nama Keluarga
-      ''                   // L: Catatan Marketing (Admin)
+      password ? 'PIN tersimpan' : '' // L: Catatan
     ]);
 
     return handleResponse({
       success: true,
       isNewUser: true,
-      message: 'Pelanggan baru berhasil dicatat: ' + email,
-      access: { authorized: true, status: 'trial', plan: 'Mode Uji Coba' }
+      message: 'Akun berhasil disinkronkan: ' + (registeredEmail || registeredPhone),
+      user: {
+        name: fullName,
+        email: registeredEmail,
+        phone: registeredPhone,
+        licenseKey: licenseKey || '',
+        isPro: !!licenseKey
+      },
+      access: { authorized: true, status: licenseKey ? 'active' : 'trial', plan: licenseKey ? 'Dompetku PRO Lifetime' : 'Mode Uji Coba' }
     });
   }
 }

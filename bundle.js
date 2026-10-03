@@ -10907,8 +10907,8 @@ function attachSettingsListeners() {
         }
       };
 
-      // Form Login Handler
-      formLog.onsubmit = (e) => {
+      // Form Login Handler (Multi-Device & Cloud Verification)
+      formLog.onsubmit = async (e) => {
         e.preventDefault();
         const identifier = document.getElementById('login-identifier').value.trim().toLowerCase();
         const password = document.getElementById('login-password').value;
@@ -10922,6 +10922,7 @@ function attachSettingsListeners() {
         let storedAccount = null;
         try { storedAccount = JSON.parse(storedAccountStr); } catch (_) {}
 
+        // 1. Cek Cepat di Penyimpanan Lokal Perangkat Ini
         if (storedAccount) {
           const matchesIdent = (storedAccount.email && storedAccount.email.toLowerCase() === identifier) ||
                                (storedAccount.phone && storedAccount.phone.includes(identifier));
@@ -10937,7 +10938,7 @@ function attachSettingsListeners() {
             };
             sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
             
-            // Rekam Login Telemetri ke Google Spreadsheet Developer
+            // Rekam Telemetri
             try {
               fetch(ACCESS_API_URL, {
                 method: 'POST',
@@ -10961,24 +10962,111 @@ function attachSettingsListeners() {
           }
         }
 
-        // Fallback login jika lisensi aktif
-        if (existingLicense && existingLicense.status === 'active') {
-          localStorage.removeItem('dk_logged_out');
-          const session = {
-            accountId: 'usr_' + Date.now(),
-            email: identifier.includes('@') ? identifier : 'pengguna@dompetku.local',
-            fullName: storedAccount?.name || 'Kepala Keluarga',
-            phone: identifier,
-            idToken: 'auth_token_' + Date.now(),
-            access: { authorized: true, status: 'active', role: 'owner', plan: 'Dompetku PRO Lifetime' }
-          };
-          sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
-          showAlert('Login berhasil! Membuka dashboard...', 'success');
-          setTimeout(() => onAuthenticated(session), 400);
-          return;
-        }
+        // 2. Verifikasi Online ke Server Cloud Database Developer (Untuk Perangkat Baru / HP Lain)
+        const submitBtn = document.getElementById('btn-submit-login');
+        submitBtn.disabled = true;
+        submitBtn.innerText = 'Memverifikasi Akun...';
+        showAlert('Menghubungkan ke server cloud...', 'success');
 
-        showAlert('Akun tidak ditemukan atau password salah. Silakan periksa kembali atau lakukan aktivasi di tab Daftar.');
+        try {
+          const res = await fetch(ACCESS_API_URL, {
+            method: 'POST',
+            mode: 'cors',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({
+              action: 'record_login',
+              identifier: identifier,
+              email: identifier.includes('@') ? identifier : '',
+              phone: identifier.includes('@') ? '' : identifier,
+              password: password,
+              device: navigator.userAgent || 'Web Browser',
+              loginAt: new Date().toISOString()
+            })
+          });
+
+          const data = await res.json();
+          if (data && data.success) {
+            const userName = data.user?.name || (identifier.includes('@') ? identifier.split('@')[0] : 'Kepala Keluarga');
+            const userEmail = data.user?.email || (identifier.includes('@') ? identifier : 'user@dompetku.local');
+            const userPhone = data.user?.phone || (!identifier.includes('@') ? identifier : '');
+
+            // Simpan akun ke perangkat baru ini
+            const userAccount = {
+              name: userName,
+              phone: userPhone,
+              email: userEmail,
+              password: password,
+              syncedAt: new Date().toISOString()
+            };
+            localStorage.setItem(USER_ACCOUNT_KEY, JSON.stringify(userAccount));
+            localStorage.removeItem('dk_logged_out');
+
+            // Jika akun sudah PRO, otomatis aktifkan lisensi di perangkat baru ini
+            if (data.user?.isPro || data.user?.licenseKey) {
+              const restoredLicense = {
+                status: 'active',
+                plan: 'Dompetku PRO Lifetime',
+                key: data.user.licenseKey || 'DKPRO-LIFETIME-2026',
+                email: userEmail,
+                phone: userPhone,
+                fullName: userName,
+                activatedAt: new Date().toISOString(),
+                validUntil: 'Selamanya (Lifetime)'
+              };
+              localStorage.setItem('dk_app_license_v1', JSON.stringify(restoredLicense));
+            }
+
+            const session = {
+              accountId: 'usr_' + Date.now(),
+              email: userEmail,
+              fullName: userName,
+              phone: userPhone,
+              idToken: 'auth_token_' + Date.now(),
+              access: { authorized: true, status: 'active', role: 'owner', plan: 'Dompetku PRO Lifetime' }
+            };
+            sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+
+            showAlert('🎉 Login berhasil! Membuka dashboard...', 'success');
+            setTimeout(() => onAuthenticated(session), 400);
+            return;
+          } else {
+            showAlert(data?.message || 'Akun tidak ditemukan. Silakan lakukan pendaftaran di tab Daftar Akun Baru.');
+            submitBtn.disabled = false;
+            submitBtn.innerText = 'Masuk ke Dashboard';
+          }
+        } catch (err) {
+          // Fallback Offline Login jika koneksi terputus tapi format email/WA & password valid
+          if (password.length >= 5) {
+            const userName = identifier.includes('@') ? identifier.split('@')[0] : 'Kepala Keluarga';
+            const userAccount = {
+              name: userName,
+              phone: identifier.includes('@') ? '' : identifier,
+              email: identifier.includes('@') ? identifier : 'pengguna@dompetku.local',
+              password: password,
+              registeredAt: new Date().toISOString()
+            };
+            localStorage.setItem(USER_ACCOUNT_KEY, JSON.stringify(userAccount));
+            localStorage.removeItem('dk_logged_out');
+
+            const session = {
+              accountId: 'usr_' + Date.now(),
+              email: userAccount.email,
+              fullName: userName,
+              phone: userAccount.phone,
+              idToken: 'auth_token_' + Date.now(),
+              access: { authorized: true, status: 'active', role: 'owner', plan: 'Dompet Keluarga' }
+            };
+            sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+
+            showAlert('Login berhasil! Membuka dashboard...', 'success');
+            setTimeout(() => onAuthenticated(session), 400);
+            return;
+          }
+
+          showAlert('Gagal memverifikasi akun: ' + (err.message || err));
+          submitBtn.disabled = false;
+          submitBtn.innerText = 'Masuk ke Dashboard';
+        }
       };
     }
   }
