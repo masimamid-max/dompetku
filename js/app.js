@@ -21,9 +21,22 @@ class DompetKeluargaApp {
 
   init() {
     const isLoggedOut = localStorage.getItem('dk_logged_out') === 'true';
-    if (isLoggedOut && window.AuthAccess) {
+    const hasAccount = !!localStorage.getItem('dk_user_account_v1');
+    const license = window.LicenseService?.getLicense?.();
+    const isLicensed = license && license.status === 'active';
+
+    if ((isLoggedOut || (!hasAccount && !isLicensed)) && window.AuthAccess) {
       window.AuthAccess.render(this.appShell, (session) => {
         localStorage.removeItem('dk_logged_out');
+        if (session && session.fullName && appState.currentUser) {
+          appState.currentUser.name = session.fullName;
+          if (session.email) appState.currentUser.email = session.email;
+          if (appState.members.length > 0) {
+            appState.members[0].name = session.fullName;
+            if (session.email) appState.members[0].email = session.email;
+          }
+          appState.saveState();
+        }
         this.init();
       });
       return;
