@@ -19,11 +19,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
-  <!-- Core & Component Stylesheets -->
-  <link rel="stylesheet" href="css/tokens.css?v=3.18.2">
-  <link rel="stylesheet" href="css/layout.css?v=3.18.2">
-  <link rel="stylesheet" href="css/components.css?v=3.18.2">
-  <link rel="stylesheet" href="css/pages.css?v=3.18.2">
+  <!-- Core & Component Stylesheets with Cache Buster -->
+  <link rel="stylesheet" href="css/tokens.css?v=20261003_0817">
+  <link rel="stylesheet" href="css/layout.css?v=20261003_0817">
+  <link rel="stylesheet" href="css/components.css?v=20261003_0817">
+  <link rel="stylesheet" href="css/pages.css?v=20261003_0817">
 </head>
 <body>
   <!-- App Root Shell -->
@@ -48,11 +48,11 @@
             <div style="width:48px;height:48px;border-radius:50%;background:#fee2e2;color:#dc2626;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem auto;font-size:24px;font-weight:bold;">!</div>
             <h2 style="color:#991b1b;font-size:1.25rem;font-weight:800;margin-bottom:0.5rem;">Pemberitahuan Sistem</h2>
             <p style="color:#64748b;font-size:0.875rem;line-height:1.5;margin-bottom:1.25rem;">
-              Terjadi penyesuaian cache browser: <strong>${e.message || 'Memuat ulang data'}</strong>
+              Sedang memuat versi terbaru: <strong>${e.message || 'Memperbarui cache'}</strong>
             </p>
             <div style="display:flex;gap:0.75rem;justify-content:center;">
               <button onclick="localStorage.clear();location.href=location.pathname+'?reset='+Date.now();" style="padding:0.625rem 1.25rem;background:#059669;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;">
-                Bersihkan Cache & Buka Aplikasi
+                Buka Aplikasi Sekarang
               </button>
             </div>
           </div>
@@ -61,8 +61,8 @@
     });
   </script>
 
-  <!-- Single Unified Production Bundle -->
-  <script src="js/bundle.js?v=3.18.2" onerror="this.onerror=null;this.src='bundle.js?v=3.18.2';"></script>
+  <!-- Single Unified Production Bundle with Cache Buster -->
+  <script src="js/bundle.js?v=20261003_0817" onerror="this.onerror=null;this.src='bundle.js?v=20261003_0817';"></script>
 
   <!-- PWA Service Worker Registration -->
   <script>
