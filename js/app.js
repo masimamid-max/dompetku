@@ -20,6 +20,15 @@ class DompetKeluargaApp {
   }
 
   init() {
+    const isLoggedOut = localStorage.getItem('dk_logged_out') === 'true';
+    if (isLoggedOut && window.AuthAccess) {
+      window.AuthAccess.render(this.appShell, (session) => {
+        localStorage.removeItem('dk_logged_out');
+        this.init();
+      });
+      return;
+    }
+
     // Auto-sync data dari Cloud Google Sheets saat aplikasi dibuka (jika URL terhubung)
     const cloudConfig = CloudSyncService.getConfig();
     if (cloudConfig.gasUrl && cloudConfig.autoSync) {

@@ -14,51 +14,86 @@
     getIdToken() { return this.getSession()?.idToken || ''; }
     logout() {
       sessionStorage.removeItem(SESSION_KEY);
+      localStorage.setItem('dk_logged_out', 'true');
       if (window.google?.accounts?.id) window.google.accounts.id.disableAutoSelect();
-      location.reload();
+      const shell = document.getElementById('app-shell');
+      if (shell) {
+        this.render(shell, (session) => {
+          localStorage.removeItem('dk_logged_out');
+          if (window.app && typeof window.app.init === 'function') {
+            window.app.init();
+          } else {
+            location.reload();
+          }
+        });
+      } else {
+        location.reload();
+      }
     }
     render(shell, onAuthenticated) {
+      const members = window.appState?.members || [
+        { id: 'mem-1', name: 'Budi Santoso', roleLabel: 'Kepala Keluarga', avatarText: 'BS' },
+        { id: 'mem-2', name: 'Siti Rahma', roleLabel: 'Ibu Rumah Tangga', avatarText: 'SR' }
+      ];
+
+      const membersHtml = members.map(m => `
+        <button type="button" class="btn-select-member" data-member-id="${m.id}" data-member-name="${m.name}" style="width:100%;padding:0.6rem 0.75rem;margin-bottom:0.4rem;border:1px solid #e2e8f0;background:#f8fafc;border-radius:10px;display:flex;align-items:center;gap:0.75rem;cursor:pointer;text-align:left;transition:all 0.15s ease;">
+          <div style="width:36px;height:36px;border-radius:50%;background:#059669;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem;">
+            ${m.avatarText || m.name.slice(0, 2).toUpperCase()}
+          </div>
+          <div style="flex:1;">
+            <div style="font-weight:700;font-size:0.875rem;color:#0f172a;">${m.name}</div>
+            <div style="font-size:0.75rem;color:#64748b;">${m.roleLabel || 'Anggota'}</div>
+          </div>
+          <span style="color:#059669;font-weight:700;font-size:0.85rem;">Masuk &rarr;</span>
+        </button>
+      `).join('');
+
       shell.innerHTML = `
         <div class="access-page">
           <section class="access-brand-panel">
             <div class="access-brand-mark">▣</div>
             <div class="access-brand-copy"><span>DOMPET KELUARGA</span>
               <h1>Keuangan keluarga lebih tertata, aman, dan terhubung.</h1>
-              <p>Masuk dengan akun Google atau coba langsung dashboard Dompetku.</p>
+              <p>Pilih akun anggota keluarga atau masuk langsung ke dashboard.</p>
             </div>
-            <div class="access-trust-list"><div>✓ Login Google yang praktis</div><div>✓ Langsung masuk dashboard</div><div>✓ Data aman & privat di perangkat Anda</div></div>
+            <div class="access-trust-list"><div>✓ Login cepat & privat</div><div>✓ Terhubung antar anggota keluarga</div><div>✓ Data aman di perangkat Anda</div></div>
           </section>
-          <main class="access-card-wrap"><div class="access-card">
+          <main class="access-card-wrap"><div class="access-card" style="max-width:440px;">
             <div class="access-mobile-brand"><span>▣</span> Dompet Keluarga</div>
-            <div class="access-heading"><h2>Masuk ke akun</h2><p>Gunakan akun Google atau masuk langsung.</p></div>
+            <div class="access-heading"><h2>Pilih Akun</h2><p>Pilih profil anggota keluarga atau masuk langsung.</p></div>
             <div id="access-notice"></div>
-            <div id="google-signin-button" class="access-google-host" aria-label="Masuk dengan Google" style="min-height:44px;display:flex;align-items:center;justify-content:center;">
-              <div style="font-size:0.85rem;color:#64748b;">Memuat tombol Google...</div>
+
+            <div style="margin-bottom:1rem;">
+              <div style="font-size:0.75rem;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:0.5rem;letter-spacing:0.05em;">Masuk sebagai Anggota:</div>
+              ${membersHtml}
             </div>
-            
-            <div style="margin:1rem 0 0.5rem;display:flex;align-items:center;gap:0.75rem;">
+
+            <div style="margin:0.75rem 0;display:flex;align-items:center;gap:0.75rem;">
               <div style="flex:1;height:1px;background:#e2e8f0;"></div>
               <span style="font-size:0.75rem;color:#94a3b8;text-transform:uppercase;font-weight:700;">Atau</span>
               <div style="flex:1;height:1px;background:#e2e8f0;"></div>
             </div>
 
-            <button type="button" id="btn-guest-login" style="width:100%;min-height:44px;border:1.5px solid #059669;border-radius:8px;background:#ecfdf5;color:#059669;font-weight:700;font-size:0.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.5rem;transition:all 0.15s ease;">
+            <button type="button" id="btn-guest-login" style="width:100%;min-height:44px;border:1.5px solid #059669;border-radius:10px;background:#ecfdf5;color:#059669;font-weight:700;font-size:0.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.5rem;transition:all 0.15s ease;">
               <span>🚀</span>
-              <span>Masuk Langsung ke Dashboard</span>
+              <span>Buka Dashboard Utama Langsung</span>
             </button>
 
-            <div class="access-security-note" style="margin-top:1rem;">Dompet Keluarga tidak menyimpan kata sandi Google Anda.</div>
+            <div id="google-signin-button" class="access-google-host" aria-label="Masuk dengan Google" style="min-height:36px;margin-top:0.75rem;display:flex;align-items:center;justify-content:center;"></div>
+            <div class="access-security-note" style="margin-top:0.75rem;">Data keuangan tersimpan privat di perangkat Anda.</div>
           </div></main>
         </div>`;
       
       const guestBtn = document.getElementById('btn-guest-login');
       if (guestBtn) {
         guestBtn.onclick = () => {
+          localStorage.removeItem('dk_logged_out');
           const isPro = window.LicenseService?.isLicensed?.() || !!localStorage.getItem('dk_app_license_v1');
           const guestSession = {
             accountId: 'guest_' + Date.now(),
             email: 'pengguna@dompetku.local',
-            fullName: 'Pengguna Dompetku',
+            fullName: 'Kepala Keluarga',
             picture: '',
             idToken: 'guest_token',
             access: { authorized: true, status: isPro ? 'active' : 'trial', role: 'owner', plan: isPro ? 'Dompetku PRO' : 'Uji Coba' }
@@ -67,6 +102,28 @@
           onAuthenticated(guestSession);
         };
       }
+
+      document.querySelectorAll('.btn-select-member').forEach(btn => {
+        btn.onclick = () => {
+          const mId = btn.dataset.memberId;
+          const mName = btn.dataset.memberName;
+          if (window.appState) {
+            window.appState.setCurrentUser(mId);
+          }
+          localStorage.removeItem('dk_logged_out');
+          const isPro = window.LicenseService?.isLicensed?.() || !!localStorage.getItem('dk_app_license_v1');
+          const memberSession = {
+            accountId: mId,
+            email: `${mId}@dompetku.local`,
+            fullName: mName,
+            picture: '',
+            idToken: 'member_token',
+            access: { authorized: true, status: isPro ? 'active' : 'trial', role: 'member', plan: isPro ? 'Dompetku PRO' : 'Uji Coba' }
+          };
+          sessionStorage.setItem(SESSION_KEY, JSON.stringify(memberSession));
+          onAuthenticated(memberSession);
+        };
+      });
 
       this.mountGoogleButton(onAuthenticated);
     }

@@ -29,6 +29,7 @@ files_order = [
     "js/pages/bills.js",
     "js/pages/reports.js",
     "js/pages/settings.js",
+    "js/auth-access.js",
     "js/app.js"
 ]
 
