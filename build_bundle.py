@@ -47,12 +47,10 @@ def clean_file_content(path):
     content = re.sub(r'export\s+function\s+', 'function ', content)
     # Replace 'export class' with 'class'
     content = re.sub(r'export\s+class\s+', 'class ', content)
-    # Replace 'export const' with 'const'
-    content = re.sub(r'export\s+const\s+', 'const ', content)
-    # Replace 'export let' with 'let'
-    content = re.sub(r'export\s+let\s+', 'let ', content)
-    # Replace 'export var' with 'var'
-    content = re.sub(r'export\s+var\s+', 'var ', content)
+    # Replace 'export const' and 'export let' with 'var'
+    content = re.sub(r'export\s+(const|let|var)\s+', 'var ', content)
+    # Replace top-level const and let with var to avoid duplicate declaration SyntaxError
+    content = re.sub(r'^(const|let)\s+', 'var ', content, flags=re.MULTILINE)
     # Remove export { ... };
     content = re.sub(r'export\s*\{[^}]*\};?\n?', '', content)
 

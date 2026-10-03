@@ -57,6 +57,26 @@
 
   <!-- Instant Self-Healing Fallback -->
   <script>
+    window.launchEmergencyDashboard = function() {
+      var isPro = !!localStorage.getItem('dk_app_license_v1');
+      var guestSession = {
+        accountId: 'user_' + Date.now(),
+        email: 'pengguna@dompetku.local',
+        fullName: 'Pengguna Dompetku',
+        picture: '',
+        idToken: 'direct_token',
+        access: { authorized: true, status: isPro ? 'active' : 'trial', role: 'owner', plan: isPro ? 'Dompetku PRO' : 'Uji Coba' }
+      };
+      sessionStorage.setItem('dk_google_session_v2', JSON.stringify(guestSession));
+      if (window.app && typeof window.app.startAuthenticatedApp === 'function') {
+        window.app.startAuthenticatedApp(guestSession);
+      } else if (typeof startApp === 'function') {
+        startApp();
+      } else {
+        location.reload();
+      }
+    };
+
     setTimeout(function() {
       var shell = document.getElementById('app-shell');
       if (shell && !document.querySelector('.app-main') && !document.querySelector('.access-page')) {
@@ -73,14 +93,14 @@
               <p style="color:#64748b;font-size:0.9rem;line-height:1.5;margin-bottom:1.5rem;">
                 Aplikasi siap digunakan. Klik tombol di bawah untuk langsung membuka dashboard.
               </p>
-              <button onclick="localStorage.removeItem('dk_onboarding_completed');location.reload();" style="width:100%;padding:0.75rem 1.25rem;background:#059669;color:#fff;border:none;border-radius:10px;font-weight:700;font-size:0.95rem;cursor:pointer;">
+              <button onclick="window.launchEmergencyDashboard()" style="width:100%;padding:0.75rem 1.25rem;background:#059669;color:#fff;border:none;border-radius:10px;font-weight:700;font-size:0.95rem;cursor:pointer;transition:all 0.2s ease;">
                 🚀 Buka Dashboard Sekarang
               </button>
             </div>
           `;
         }
       }
-    }, 1500);
+    }, 2000);
 
     // Capture install prompt for PWA
     window.deferredInstallPrompt = null;

@@ -8,7 +8,7 @@
  * Mock initial data for Indonesian family financial management MVP
  */
 
-const INITIAL_DATA = {
+var INITIAL_DATA = {
   currentUser: {
     id: 'user-1',
     name: 'Budi Santoso',
@@ -650,7 +650,7 @@ const INITIAL_DATA = {
  * State Management & Data Store for Dompet Keluarga
  */
 
-const STORAGE_KEY = 'dompet_keluarga_db_v1';
+var STORAGE_KEY = 'dompet_keluarga_db_v1';
 
 class AppState {
   constructor() {
@@ -1642,7 +1642,7 @@ class AppState {
   }
 }
 
-const appState = new AppState();
+var appState = new AppState();
 
 
 // ==================== [MODULE: js/utils.js] ====================
@@ -2135,7 +2135,7 @@ function parseNaturalLanguageTransaction(text) {
  * Analyzes receipt / invoice images and extracts structured financial data
  */
 
-const SAMPLE_RECEIPTS = [
+var SAMPLE_RECEIPTS = [
   {
     id: 'sample_supermarket',
     name: '🛒 Superindo Supermarket',
@@ -2275,7 +2275,7 @@ async function analyzeReceiptImage(dataUrl, fileName = '') {
  * Google Apps Script Cloud Sync Utility for Dompet Keluarga
  */
 
-const CLOUD_CONFIG_KEY = 'dompet_keluarga_cloud_config';
+var CLOUD_CONFIG_KEY = 'dompet_keluarga_cloud_config';
 
 class CloudSyncService {
   static getConfig() {
@@ -2982,8 +2982,8 @@ class ReportExporter {
  * nomor WhatsApp pelanggan, dan proteksi paywall komersial.
  */
 
-const LICENSE_STORAGE_KEY = 'dk_app_license_v1';
-const DEFAULT_DEVELOPER_WA = '6281234567890'; // Dapat disesuaikan pemilik produk
+var LICENSE_STORAGE_KEY = 'dk_app_license_v1';
+var DEFAULT_DEVELOPER_WA = '6281234567890'; // Dapat disesuaikan pemilik produk
 
 class LicenseService {
   /**
@@ -3214,7 +3214,7 @@ class LicenseService {
 /**
  * Lucide-inspired SVG Icon helper
  */
-const Icons = {
+var Icons = {
   wallet: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"></path>
@@ -3596,7 +3596,7 @@ class ToastManager {
   }
 }
 
-const toast = new ToastManager();
+var toast = new ToastManager();
 
 
 // ==================== [MODULE: js/components/modal.js] ====================
@@ -3715,7 +3715,7 @@ class ModalManager {
   }
 }
 
-const modal = new ModalManager();
+var modal = new ModalManager();
 
 
 // ==================== [MODULE: js/components/licenseModal.js] ====================
@@ -4390,7 +4390,7 @@ function openReceiptScanModal() {
   updateModal();
 }
 
-const openReceiptScanner = openReceiptScanModal;
+var openReceiptScanner = openReceiptScanModal;
 
 
 // ==================== [MODULE: js/components/aiModal.js] ====================
@@ -7036,7 +7036,7 @@ function attachDashboardListeners(navigateToTab) {
  * Transactions List & Search Page Module
  */
 
-let filterState = {
+var filterState = {
   search: '',
   type: 'all',
   categoryId: 'all',
@@ -9080,7 +9080,7 @@ function attachReportsListeners() {
 
 // ==================== [MODULE: js/pages/settings.js] ====================
 
-let settingsSubTab = 'family'; // 'family' | 'accounts' | 'categories' | 'cloud' | 'license' | 'system'
+var settingsSubTab = 'family'; // 'family' | 'accounts' | 'categories' | 'cloud' | 'license' | 'system'
 
 function renderSettingsPage() {
   const family = appState.family;
