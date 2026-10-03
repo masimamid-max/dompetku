@@ -38,38 +38,49 @@
   <!-- Toast Notification Container -->
   <div id="toast-container"></div>
 
-  <!-- Core Scripts -->
-  <script src="js/auth-access.js?v=3.17.2"></script>
-  <script src="js/bundle.js?v=3.17.2"></script>
+  <!-- Clear Legacy Service Worker Cache if needed -->
   <script>
-    // Fallback watchdog: If app hasn't rendered within 2.5s, auto initialize
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(regs) {
+        regs.forEach(function(r) {
+          // If legacy service worker, unregister to ensure fresh load
+          if (r.scope && !r.scope.includes('v3.17')) {
+            r.unregister();
+          }
+        });
+      });
+    }
+  </script>
+
+  <!-- Unified Self-Contained Production Bundle -->
+  <script src="js/bundle.js?v=3.17.6" onerror="this.onerror=null;this.src='bundle.js?v=3.17.6';"></script>
+
+  <!-- Instant Self-Healing Fallback -->
+  <script>
     setTimeout(function() {
       var shell = document.getElementById('app-shell');
       if (shell && !document.querySelector('.app-main') && !document.querySelector('.access-page')) {
-        console.warn('⚡ Watchdog auto-initializing application...');
+        console.warn('⚡ Triggering emergency direct render...');
         if (window.app && typeof window.app.render === 'function') {
           window.app.render();
         } else if (typeof startApp === 'function') {
           startApp();
         } else {
-          // Direct fallback to guest / dashboard
-          location.reload();
+          shell.innerHTML = `
+            <div style="padding:2.5rem 1.5rem;max-width:480px;margin:3rem auto;background:#ffffff;border:1.5px solid #059669;border-radius:16px;box-shadow:0 15px 35px rgba(0,0,0,0.08);font-family:'Plus Jakarta Sans',sans-serif;text-align:center;">
+              <div style="width:54px;height:54px;border-radius:16px;background:#ecfdf5;color:#059669;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem auto;font-size:28px;">▣</div>
+              <h2 style="color:#0f172a;font-size:1.35rem;font-weight:800;margin-bottom:0.5rem;">Dompet Keluarga</h2>
+              <p style="color:#64748b;font-size:0.9rem;line-height:1.5;margin-bottom:1.5rem;">
+                Aplikasi siap digunakan. Klik tombol di bawah untuk langsung membuka dashboard.
+              </p>
+              <button onclick="localStorage.removeItem('dk_onboarding_completed');location.reload();" style="width:100%;padding:0.75rem 1.25rem;background:#059669;color:#fff;border:none;border-radius:10px;font-weight:700;font-size:0.95rem;cursor:pointer;">
+                🚀 Buka Dashboard Sekarang
+              </button>
+            </div>
+          `;
         }
       }
-    }, 2500);
-  </script>
-
-  <!-- PWA Service Worker Registration -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function() {
-        navigator.serviceWorker.register('./sw.js').then(function(reg) {
-          console.log('⚡ [PWA] Service Worker aktif:', reg.scope);
-        }).catch(function(err) {
-          console.log('[PWA] Service worker notice:', err);
-        });
-      });
-    }
+    }, 1500);
 
     // Capture install prompt for PWA
     window.deferredInstallPrompt = null;
