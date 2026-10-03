@@ -10847,10 +10847,6 @@ class DompetKeluargaApp {
 
   init() {
     const session = window.AuthAccess?.getSession();
-    if (window.AuthAccess && !session) {
-      window.AuthAccess.render(this.appShell, authenticatedSession => this.startAuthenticatedApp(authenticatedSession));
-      return;
-    }
     this.startAuthenticatedApp(session);
   }
 
