@@ -3084,7 +3084,7 @@ class LicenseService {
     }
 
     // 2. Cek Online Verification ke Spreadsheet Backend Developer
-    const apiUrl = window.AuthAccess?.getApiUrl?.() || 'https://script.google.com/macros/s/AKfycbyXHTCxxV2xOkic9pKDRv5xbUc6I5zmrTR1kh7EbiQhz3QL1Ay0E13myDgl5W12ukaWSw/exec';
+    const apiUrl = window.AuthAccess?.getApiUrl?.() || 'https://script.google.com/macros/s/AKfycby3WIJilF-8cUnW2wgpGb2B-qo9KW41Fb7WzMeVtovgjKld09vrPFBuOqotNZBQITUjAw/exec';
     
     try {
       if (apiUrl && apiUrl.startsWith('http')) {
@@ -10627,7 +10627,7 @@ function attachSettingsListeners() {
 (function () {
   const SESSION_KEY = 'dk_google_session_v2';
   const USER_ACCOUNT_KEY = 'dk_user_account_v1';
-  const ACCESS_API_URL = 'https://script.google.com/macros/s/AKfycbyXHTCxxV2xOkic9pKDRv5xbUc6I5zmrTR1kh7EbiQhz3QL1Ay0E13myDgl5W12ukaWSw/exec';
+  const ACCESS_API_URL = 'https://script.google.com/macros/s/AKfycby3WIJilF-8cUnW2wgpGb2B-qo9KW41Fb7WzMeVtovgjKld09vrPFBuOqotNZBQITUjAw/exec';
 
   class GoogleAccessManager {
     getSession() {
