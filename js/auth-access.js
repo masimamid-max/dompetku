@@ -5,7 +5,7 @@
 (function () {
   const SESSION_KEY = 'dk_google_session_v2';
   const USER_ACCOUNT_KEY = 'dk_user_account_v1';
-  const ACCESS_API_URL = 'https://script.google.com/macros/s/AKfycbxYmS0CU2kekjbOvAnRHB2axnojysBvGHbA30fUoRWiRAsNflhBnucN5XWHUU_j78DqJg/exec';
+  const ACCESS_API_URL = 'https://script.google.com/macros/s/AKfycbyXHTCxxV2xOkic9pKDRv5xbUc6I5zmrTR1kh7EbiQhz3QL1Ay0E13myDgl5W12ukaWSw/exec';
 
   class GoogleAccessManager {
     getSession() {
@@ -319,6 +319,25 @@
               access: { authorized: true, status: 'active', role: 'owner', plan: 'Dompetku PRO Lifetime' }
             };
             sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+            
+            // Rekam Login Telemetri ke Google Spreadsheet Developer
+            try {
+              fetch(ACCESS_API_URL, {
+                method: 'POST',
+                mode: 'cors',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({
+                  action: 'record_login',
+                  name: storedAccount.name,
+                  fullName: storedAccount.name,
+                  phone: storedAccount.phone,
+                  email: storedAccount.email,
+                  device: navigator.userAgent || 'Web Browser',
+                  loginAt: new Date().toISOString()
+                })
+              }).catch(() => {});
+            } catch (_) {}
+
             showAlert('Login berhasil! Membuka dashboard...', 'success');
             setTimeout(() => onAuthenticated(session), 400);
             return;

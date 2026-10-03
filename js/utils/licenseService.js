@@ -105,7 +105,7 @@ export class LicenseService {
     }
 
     // 2. Cek Online Verification ke Spreadsheet Backend Developer
-    const apiUrl = window.AuthAccess?.getApiUrl?.() || 'https://script.google.com/macros/s/AKfycbxYmS0CU2kekjbOvAnRHB2axnojysBvGHbA30fUoRWiRAsNflhBnucN5XWHUU_j78DqJg/exec';
+    const apiUrl = window.AuthAccess?.getApiUrl?.() || 'https://script.google.com/macros/s/AKfycbyXHTCxxV2xOkic9pKDRv5xbUc6I5zmrTR1kh7EbiQhz3QL1Ay0E13myDgl5W12ukaWSw/exec';
     
     try {
       if (apiUrl && apiUrl.startsWith('http')) {
