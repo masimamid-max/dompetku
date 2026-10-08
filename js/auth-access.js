@@ -156,14 +156,15 @@
                 </button>
               </form>
 
-              <!-- Footer WhatsApp Help -->
-              <div style="margin-top:1.25rem;padding-top:1rem;border-top:1px solid #e2e8f0;text-align:center;">
-                <div style="font-size:0.78rem;color:#64748b;margin-bottom:0.5rem;">
-                  Belum memiliki Kode Lisensi PRO atau butuh bantuan?
-                </div>
-                <a href="https://wa.me/6281234567890?text=Halo%20Admin%20Dompetku%2C%20saya%20ingin%20membeli%20atau%20memeriksa%20Kode%20Lisensi%20PRO%20saya." target="_blank" rel="noopener noreferrer" style="color:#059669;font-weight:700;font-size:0.85rem;text-decoration:none;display:inline-flex;align-items:center;gap:0.35rem;">
+              <!-- Footer Links -->
+              <div style="margin-top:1.25rem;padding-top:1rem;border-top:1px solid #e2e8f0;text-align:center;display:flex;flex-direction:column;gap:0.4rem;align-items:center;">
+                <a href="landing.html" style="color:#047857;font-weight:700;font-size:0.84rem;text-decoration:none;display:inline-flex;align-items:center;gap:0.35rem;background:#ecfdf5;padding:0.45rem 0.9rem;border-radius:8px;border:1px solid #a7f3d0;">
+                  <span>🌟</span>
+                  <span>Pelajari Fitur Lengkap & Promo Lisensi PRO</span>
+                </a>
+                <a href="https://wa.me/6281234567890?text=Halo%20Admin%20Dompetku%2C%20saya%20ingin%20membeli%20atau%20memeriksa%20Kode%20Lisensi%20PRO%20saya." target="_blank" rel="noopener noreferrer" style="color:#64748b;font-weight:600;font-size:0.8rem;text-decoration:none;display:inline-flex;align-items:center;gap:0.3rem;">
                   <span>💬</span>
-                  <span>Hubungi Admin via WhatsApp</span>
+                  <span>Butuh Bantuan? Chat Admin via WhatsApp</span>
                 </a>
               </div>
 
