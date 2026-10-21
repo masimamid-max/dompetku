@@ -10511,28 +10511,217 @@ function attachSettingsListeners() {
 
   const guideModalBtn = document.getElementById('btn-cloud-guide-modal');
   if (guideModalBtn) {
+    const GAS_BACKEND_CODE = `/**
+ * Dompet Keluarga - Private Google Sheets Backend (Zero-Knowledge)
+ * Skrip ini dipasang langsung pada Google Spreadsheet milik pelanggan (Extensions > Apps Script).
+ * 100% PRIVATE: Hanya akun Google Anda yang memiliki akses.
+ */
+
+var DK_VERSION = '2.0.0';
+
+var DK_SHEETS = {
+  family: ['id', 'name', 'currency', 'currencySymbol', 'inviteCode', 'ownerId', 'createdAt'],
+  members: ['id', 'familyId', 'name', 'email', 'phone', 'role', 'roleLabel', 'membershipStatus', 'avatarText', 'joinedAt'],
+  accounts: ['id', 'familyId', 'name', 'type', 'typeLabel', 'initialBalance', 'color', 'icon', 'isArchived'],
+  categories: ['id', 'familyId', 'name', 'type', 'color', 'icon', 'isArchived'],
+  transactions: ['id', 'familyId', 'type', 'amount', 'description', 'categoryId', 'subcategory', 'accountId', 'targetAccountId', 'memberId', 'recordedBy', 'date', 'notes', 'status', 'createdAt'],
+  budgets: ['id', 'familyId', 'categoryId', 'amount', 'month', 'year'],
+  goals: ['id', 'familyId', 'name', 'targetAmount', 'currentAmount', 'deadline', 'categoryId', 'accountId', 'color', 'icon', 'notes', 'createdAt'],
+  recurringBills: ['id', 'familyId', 'name', 'amount', 'dueDay', 'categoryId', 'accountId', 'isPaidThisMonth', 'lastPaidDate', 'notes']
+};
+
+function doGet(e) {
+  try {
+    const action = String((e && e.parameter && e.parameter.action) || 'ping');
+    if (action === 'ping') {
+      return json_({ success: true, service: 'Dompetku Private Sheets DB', version: DK_VERSION, status: 'online' });
+    }
+    return json_({ success: false, message: 'Endpoint aktif. Gunakan aplikasi Dompetku untuk sinkronisasi.' });
+  } catch (error) {
+    return json_({ success: false, message: error.message });
+  }
+}
+
+function doPost(e) {
+  try {
+    const body = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+
+    switch (body.action) {
+      case 'ping':
+      case 'testConnection':
+        return json_({ success: true, message: 'Koneksi ke Google Sheets pribadi Anda berhasil!', version: DK_VERSION });
+
+      case 'initDatabase':
+        ensureDatabase_(spreadsheet);
+        if (body.defaultData) {
+          writeFullState_(body.defaultData, spreadsheet);
+        }
+        return json_({ success: true, message: 'Database Google Sheets berhasil dibuat dan diinisialisasi!' });
+
+      case 'getFullState':
+        ensureDatabase_(spreadsheet);
+        return json_({ success: true, data: readFullState_(spreadsheet) });
+
+      case 'syncFullState':
+        ensureDatabase_(spreadsheet);
+        writeFullState_(body.data || {}, spreadsheet);
+        return json_({ success: true, message: 'Data berhasil disinkronkan ke Google Sheets Anda.' });
+
+      case 'addTransaction':
+        ensureDatabase_(spreadsheet);
+        if (body.transaction) {
+          upsertRows_('transactions', [body.transaction], spreadsheet);
+        }
+        return json_({ success: true, message: 'Transaksi berhasil dicatat ke Google Sheets.' });
+
+      default:
+        return json_({ success: false, message: 'Aksi POST tidak dikenal.' });
+    }
+  } catch (error) {
+    return json_({ success: false, message: error.message });
+  }
+}
+
+function ensureDatabase_(spreadsheet) {
+  Object.keys(DK_SHEETS).forEach(sheetName => {
+    let sheet = spreadsheet.getSheetByName(sheetName);
+    const headers = DK_SHEETS[sheetName];
+    if (!sheet) {
+      sheet = spreadsheet.insertSheet(sheetName);
+    }
+    const currentHeaders = sheet.getLastColumn() > 0 ? sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0] : [];
+    if (currentHeaders.length === 0 || currentHeaders[0] !== headers[0]) {
+      sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+      sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#059669').setFontColor('#ffffff');
+      sheet.setFrozenRows(1);
+    }
+  });
+
+  const defaultSheet = spreadsheet.getSheetByName('Sheet1') || spreadsheet.getSheetByName('Sheet 1');
+  if (defaultSheet && spreadsheet.getSheets().length > 1) {
+    try { spreadsheet.deleteSheet(defaultSheet); } catch (_) {}
+  }
+}
+
+function readFullState_(spreadsheet) {
+  const state = {};
+  Object.keys(DK_SHEETS).forEach(name => {
+    state[name] = readSheetObjects_(spreadsheet, name);
+  });
+  return state;
+}
+
+function writeFullState_(data, spreadsheet) {
+  Object.keys(DK_SHEETS).forEach(name => {
+    if (Array.isArray(data[name])) {
+      replaceSheetData_(name, data[name], spreadsheet);
+    } else if (data[name] && typeof data[name] === 'object') {
+      replaceSheetData_(name, [data[name]], spreadsheet);
+    }
+  });
+}
+
+function readSheetObjects_(spreadsheet, sheetName) {
+  const sheet = spreadsheet.getSheetByName(sheetName);
+  if (!sheet || sheet.getLastRow() < 2) return [];
+  const values = sheet.getDataRange().getValues();
+  const headers = values[0].map(h => String(h || '').trim());
+  return values.slice(1).map(row => {
+    const obj = {};
+    headers.forEach((header, i) => {
+      let val = row[i];
+      if (val instanceof Date) {
+        val = Utilities.formatDate(val, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+      }
+      obj[header] = val;
+    });
+    return obj;
+  });
+}
+
+function replaceSheetData_(sheetName, rows, spreadsheet) {
+  const sheet = spreadsheet.getSheetByName(sheetName);
+  if (!sheet) return;
+  const headers = DK_SHEETS[sheetName];
+  sheet.clearContents();
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#059669').setFontColor('#ffffff');
+  sheet.setFrozenRows(1);
+
+  if (rows && rows.length > 0) {
+    const matrix = rows.map(item => headers.map(h => {
+      let val = item[h];
+      if (val === undefined || val === null) return '';
+      if (typeof val === 'object') return JSON.stringify(val);
+      return val;
+    }));
+    sheet.getRange(2, 1, matrix.length, headers.length).setValues(matrix);
+  }
+}
+
+function upsertRows_(sheetName, rows, spreadsheet) {
+  const sheet = spreadsheet.getSheetByName(sheetName);
+  if (!sheet) return;
+  const headers = DK_SHEETS[sheetName];
+  const matrix = rows.map(item => headers.map(h => {
+    let val = item[h];
+    if (val === undefined || val === null) return '';
+    if (typeof val === 'object') return JSON.stringify(val);
+    return val;
+  }));
+  sheet.getRange(sheet.getLastRow() + 1, 1, matrix.length, headers.length).setValues(matrix);
+}
+
+function json_(payload) {
+  return ContentService.createTextOutput(JSON.stringify(payload))
+    .setMimeType(ContentService.MimeType.JSON);
+}`;
+
     guideModalBtn.onclick = () => {
       modal.open({
         title: '📖 Panduan Setup Backend Google Apps Script',
+        maxWidth: '560px',
         content: `
           <div style="font-size:0.875rem;line-height:1.6;color:var(--color-slate-700);">
             <p style="margin-bottom:0.75rem;">Ikuti 4 langkah mudah berikut untuk mengaktifkan database gratis di Google Sheets Anda:</p>
             
-            <ol style="padding-left:1.25rem;display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1rem;">
-              <li>Buka <a href="https://sheets.new" target="_blank" style="color:var(--color-primary-600);font-weight:700;">Google Sheets Baru (sheets.new)</a></li>
-              <li>Klik menu <strong>Extensions</strong> > <strong>Apps Script</strong>.</li>
-              <li>Salin kode dari file <code>backend/Code.gs</code> dan paste ke editor Apps Script.</li>
-              <li>Klik tombol biru <strong>Deploy</strong> > <strong>New deployment</strong> > Pilih tipe <strong>Web app</strong>:
+            <ol style="padding-left:1.25rem;display:flex;flex-direction:column;gap:0.65rem;margin-bottom:1rem;">
+              <li>
+                Buka <a href="https://sheets.new" target="_blank" rel="noopener noreferrer" style="color:var(--color-primary-600);font-weight:700;">Google Sheets Baru (sheets.new) ↗</a>
+              </li>
+              <li>
+                Klik menu <strong>Extensions</strong> > <strong>Apps Script</strong>.
+              </li>
+              <li>
+                Salin skrip <strong>Code.gs</strong> berikut lalu paste ke editor Apps Script:
+                <div style="margin-top:0.4rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+                  <button type="button" class="btn btn-primary" id="btn-copy-gas-code" style="padding:0.45rem 0.9rem;font-size:0.8125rem;display:inline-flex;align-items:center;gap:0.35rem;">
+                    📋 Salin Kode Script (1-Klik)
+                  </button>
+                  <a href="/backend/Code.gs" download="Code.gs" target="_blank" class="btn btn-secondary" style="padding:0.45rem 0.9rem;font-size:0.8125rem;text-decoration:none;display:inline-flex;align-items:center;gap:0.35rem;">
+                    ⬇️ Download Code.gs
+                  </a>
+                </div>
+                <details style="margin-top:0.5rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:0.5rem;">
+                  <summary style="cursor:pointer;font-weight:600;font-size:0.8rem;color:var(--color-primary-700);">👁️ Lihat / Salin Kode Manual</summary>
+                  <textarea id="gas-script-preview" readonly style="width:100%;height:180px;margin-top:0.5rem;font-family:monospace;font-size:0.75rem;padding:0.5rem;border:1px solid #cbd5e1;border-radius:4px;background:#ffffff;"></textarea>
+                </details>
+              </li>
+              <li>
+                Klik tombol biru <strong>Deploy</strong> > <strong>New deployment</strong> > Pilih tipe <strong>Web app</strong>:
                 <ul style="margin-top:0.25rem;font-size:0.8125rem;">
                   <li>Execute as: <strong>Me</strong></li>
-                  <li>Who has access: <strong>Anyone</strong> (Wajib)</li>
+                  <li>Who has access: <strong>Anyone</strong> (Wajib agar dapat diakses)</li>
                 </ul>
               </li>
-              <li>Salin <strong>Web App URL</strong> yang diberikan lalu tempelkan ke kolom URL di tab ini.</li>
+              <li>
+                Salin <strong>Web App URL</strong> yang diberikan lalu tempelkan ke kolom URL di pengaturan ini.
+              </li>
             </ol>
 
             <div style="background:var(--color-slate-100);padding:0.75rem;border-radius:6px;font-size:0.8125rem;">
-              📁 File panduan lengkap dan skrip tersedia di folder: <code>backend/Code.gs</code> dan <code>backend/README_GOOGLE_APPS_SCRIPT.md</code>
+              📁 File asli juga tersedia di folder proyek: <code>backend/Code.gs</code>
             </div>
           </div>
         `,
@@ -10540,6 +10729,33 @@ function attachSettingsListeners() {
           { label: 'Tutup', className: 'btn-secondary', onClick: () => modal.close() }
         ]
       });
+
+      // Populate textarea and attach copy event
+      const previewArea = document.getElementById('gas-script-preview');
+      if (previewArea) {
+        previewArea.value = GAS_BACKEND_CODE;
+      }
+
+      const copyBtn = document.getElementById('btn-copy-gas-code');
+      if (copyBtn) {
+        copyBtn.onclick = () => {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(GAS_BACKEND_CODE).then(() => {
+              toast.success('Kode Google Apps Script berhasil disalin!');
+            }).catch(() => {
+              if (previewArea) {
+                previewArea.select();
+                document.execCommand('copy');
+                toast.success('Kode Google Apps Script berhasil disalin!');
+              }
+            });
+          } else if (previewArea) {
+            previewArea.select();
+            document.execCommand('copy');
+            toast.success('Kode Google Apps Script berhasil disalin!');
+          }
+        };
+      }
     };
   }
 
