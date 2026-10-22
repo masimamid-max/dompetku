@@ -56,6 +56,15 @@ function doPost(e) {
       return handleActivateLicense(payload);
     }
 
+    if (action === 'save_gas_url' || action === 'delete_gas_url') {
+      if (action === 'delete_gas_url') payload.gasUrl = '';
+      return handleSaveGasUrl(payload);
+    }
+
+    if (action === 'get_user_gas_url') {
+      return handleGetUserGasUrl(payload);
+    }
+
     if (action === 'get_stats') {
       return handleGetStats();
     }
@@ -123,6 +132,12 @@ function handleRecordLogin(payload) {
     sheet.getRange(rowIndex, 9).setValue(newLogins);
     sheet.getRange(rowIndex, 10).setValue(appVersion);
 
+    ensureUsersSheetGasUrlHeader(sheet);
+    if (payload.gasUrl) {
+      sheet.getRange(rowIndex, 13).setValue(payload.gasUrl);
+    }
+    const savedGasUrl = sheet.getRange(rowIndex, 13).getValue() || (payload.gasUrl || '');
+
     const savedName = sheet.getRange(rowIndex, 3).getValue() || fullName;
     const savedEmail = sheet.getRange(rowIndex, 4).getValue() || email;
     const savedPhone = sheet.getRange(rowIndex, 5).getValue() || phone;
@@ -139,7 +154,8 @@ function handleRecordLogin(payload) {
         email: savedEmail,
         phone: savedPhone,
         licenseKey: savedKey && savedKey !== '-' ? savedKey : '',
-        isPro: isPro
+        isPro: isPro,
+        gasUrl: savedGasUrl ? String(savedGasUrl).trim() : ''
       },
       access: { 
         authorized: true, 
@@ -150,11 +166,13 @@ function handleRecordLogin(payload) {
 
   } else {
     // Pengguna Baru (atau login pertama kali di perangkat baru sebelum registrasi offline)
+    ensureUsersSheetGasUrlHeader(sheet);
     const newNo = data.length;
     const device = parseDevice(userAgent);
     const initialStatus = licenseKey ? 'Aktif (PRO)' : 'Aktif (Baru)';
     const registeredEmail = email || (phone + '@dompetku.local');
     const registeredPhone = phone || '-';
+    const initGasUrl = payload.gasUrl || '';
 
     sheet.appendRow([
       newNo,
@@ -168,7 +186,8 @@ function handleRecordLogin(payload) {
       1,                   // I: Total Login
       appVersion,          // J: Versi App
       familyName,          // K: Nama Keluarga
-      password ? 'PIN tersimpan' : '' // L: Catatan
+      password ? 'PIN tersimpan' : '', // L: Catatan
+      initGasUrl           // M: URL Spreadsheet Pengguna
     ]);
 
     return handleResponse({
@@ -180,7 +199,8 @@ function handleRecordLogin(payload) {
         email: registeredEmail,
         phone: registeredPhone,
         licenseKey: licenseKey || '',
-        isPro: !!licenseKey
+        isPro: !!licenseKey,
+        gasUrl: initGasUrl
       },
       access: { authorized: true, status: licenseKey ? 'active' : 'trial', plan: licenseKey ? 'Dompetku PRO Lifetime' : 'Mode Uji Coba' }
     });
@@ -373,7 +393,8 @@ function initializeUsersSheet(ss) {
     'Total Login',
     'Versi App',
     'Nama Buku Kas',
-    'Catatan Marketing'
+    'Catatan Marketing',
+    'URL Spreadsheet Pengguna (GasUrl)'
   ];
 
   sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
@@ -397,8 +418,123 @@ function initializeUsersSheet(ss) {
   sheet.setColumnWidth(10, 80);  // Versi
   sheet.setColumnWidth(11, 150); // Nama Keluarga
   sheet.setColumnWidth(12, 200); // Catatan
+  sheet.setColumnWidth(13, 280); // URL Spreadsheet
 
   return sheet;
+}
+
+/**
+ * Menautkan dan Menyimpan URL Google Spreadsheet Pelanggan ke Akun Cloud
+ */
+function handleSaveGasUrl(payload) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SHEET_USERS);
+  if (!sheet) sheet = initializeUsersSheet(ss);
+
+  const email = (payload.email || '').trim().toLowerCase();
+  const phone = cleanPhoneNumber(payload.phone || '');
+  const licenseKey = (payload.licenseKey || payload.key || '').trim().toUpperCase();
+  const gasUrl = (payload.gasUrl || '').trim();
+
+  if (!email && !phone && !licenseKey) {
+    return handleResponse({ success: false, message: 'Harap sertakan email, nomor HP, atau kode lisensi.' });
+  }
+
+  ensureUsersSheetGasUrlHeader(sheet);
+
+  const data = sheet.getDataRange().getValues();
+  let rowIndex = -1;
+
+  for (let i = 1; i < data.length; i++) {
+    const rowEmail = String(data[i][3]).toLowerCase().trim();
+    const rowPhone = cleanPhoneNumber(data[i][4]);
+    const rowKey = String(data[i][5]).toUpperCase().trim();
+
+    if ((email && rowEmail === email) || (phone && rowPhone && rowPhone === phone) || (licenseKey && rowKey === licenseKey)) {
+      rowIndex = i + 1;
+      break;
+    }
+  }
+
+  if (rowIndex > 0) {
+    sheet.getRange(rowIndex, 13).setValue(gasUrl);
+    return handleResponse({
+      success: true,
+      message: gasUrl 
+        ? 'URL Google Spreadsheet berhasil ditautkan ke akun Anda (otomatis aktif di semua HP & PC).' 
+        : 'Tautan URL Google Spreadsheet berhasil dilepas/dihapus dari akun cloud.',
+      gasUrl: gasUrl
+    });
+  } else {
+    const newNo = data.length;
+    const now = new Date();
+    const timeFormatted = Utilities.formatDate(now, ss.getSpreadsheetTimeZone() || 'Asia/Jakarta', 'yyyy-MM-dd HH:mm:ss');
+    sheet.appendRow([
+      newNo,
+      timeFormatted,
+      payload.name || payload.fullName || 'Pengguna',
+      email || (phone + '@dompetku.local'),
+      phone || '-',
+      licenseKey || '-',
+      'Aktif',
+      'Web Browser',
+      1,
+      '3.18.5',
+      '-',
+      'Saved gasUrl',
+      gasUrl
+    ]);
+    return handleResponse({
+      success: true,
+      message: 'Akun dan URL Google Spreadsheet berhasil ditautkan.',
+      gasUrl: gasUrl
+    });
+  }
+}
+
+/**
+ * Mengambil URL Google Spreadsheet Pelanggan Berdasarkan Akun
+ */
+function handleGetUserGasUrl(payload) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SHEET_USERS);
+  if (!sheet) return handleResponse({ success: false, message: 'Sheet pengguna belum dibuat.', gasUrl: '' });
+
+  const email = (payload.email || '').trim().toLowerCase();
+  const phone = cleanPhoneNumber(payload.phone || '');
+  const licenseKey = (payload.licenseKey || payload.key || '').trim().toUpperCase();
+
+  ensureUsersSheetGasUrlHeader(sheet);
+
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    const rowEmail = String(data[i][3]).toLowerCase().trim();
+    const rowPhone = cleanPhoneNumber(data[i][4]);
+    const rowKey = String(data[i][5]).toUpperCase().trim();
+
+    if ((email && rowEmail === email) || (phone && rowPhone && rowPhone === phone) || (licenseKey && rowKey === licenseKey)) {
+      const gasUrl = data[i].length >= 13 ? String(data[i][12] || '').trim() : '';
+      return handleResponse({
+        success: true,
+        gasUrl: gasUrl,
+        email: rowEmail,
+        name: data[i][2] || ''
+      });
+    }
+  }
+
+  return handleResponse({ success: false, message: 'Akun belum memiliki URL spreadsheet tersimpan.', gasUrl: '' });
+}
+
+function ensureUsersSheetGasUrlHeader(sheet) {
+  const headers = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), 13)).getValues()[0];
+  if (!headers[12] || headers[12] !== 'URL Spreadsheet Pengguna (GasUrl)') {
+    sheet.getRange(1, 13).setValue('URL Spreadsheet Pengguna (GasUrl)')
+      .setBackground('#047857')
+      .setFontColor('#ffffff')
+      .setFontWeight('bold');
+    sheet.setColumnWidth(13, 280);
+  }
 }
 
 /**

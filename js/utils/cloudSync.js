@@ -26,6 +26,145 @@ export class CloudSyncService {
 
   static saveConfig(config) {
     localStorage.setItem(CLOUD_CONFIG_KEY, JSON.stringify(config));
+    if (config && config.gasUrl) {
+      this.syncGasUrlToAccount(config.gasUrl);
+    }
+  }
+
+  /**
+   * Menautkan URL Spreadsheet pribadi ke Akun Developer agar otomatis terpasang di HP/PC lain
+   */
+  static async syncGasUrlToAccount(gasUrl) {
+    if (!gasUrl) return;
+    try {
+      const session = (window.AuthAccess && typeof window.AuthAccess.getSession === 'function') 
+        ? window.AuthAccess.getSession() 
+        : null;
+      let userAccount = null;
+      try { userAccount = JSON.parse(localStorage.getItem('dk_user_account_v1') || 'null'); } catch (_) {}
+      let license = null;
+      try { license = JSON.parse(localStorage.getItem('dk_app_license_v1') || 'null'); } catch (_) {}
+
+      const email = session?.email || userAccount?.email || license?.email || '';
+      const phone = session?.phone || userAccount?.phone || license?.phone || '';
+      const licenseKey = license?.key || '';
+
+      if (!email && !phone && !licenseKey) return;
+
+      const apiUrl = (window.AuthAccess && typeof window.AuthAccess.getApiUrl === 'function')
+        ? window.AuthAccess.getApiUrl()
+        : 'https://script.google.com/macros/s/AKfycby3WIJilF-8cUnW2wgpGb2B-qo9KW41Fb7WzMeVtovgjKld09vrPFBuOqotNZBQITUjAw/exec';
+
+      fetch(apiUrl, {
+        method: 'POST',
+        mode: 'cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'save_gas_url',
+          email,
+          phone,
+          licenseKey,
+          gasUrl: gasUrl.trim()
+        })
+      }).then(r => r.json()).then(res => {
+        if (res && res.success) {
+          console.log('✅ URL Spreadsheet berhasil ditautkan ke akun cloud developer');
+        }
+      }).catch(err => console.warn('Sync gasUrl to account notice:', err));
+    } catch (e) {}
+  }
+
+  /**
+   * Mengambil URL Spreadsheet dari Akun Developer jika perangkat baru belum memilikinya
+   */
+  static async fetchRemoteGasUrl() {
+    const config = this.getConfig();
+    if (config.gasUrl) return config.gasUrl;
+
+    try {
+      const session = (window.AuthAccess && typeof window.AuthAccess.getSession === 'function') 
+        ? window.AuthAccess.getSession() 
+        : null;
+      let userAccount = null;
+      try { userAccount = JSON.parse(localStorage.getItem('dk_user_account_v1') || 'null'); } catch (_) {}
+      let license = null;
+      try { license = JSON.parse(localStorage.getItem('dk_app_license_v1') || 'null'); } catch (_) {}
+
+      const email = session?.email || userAccount?.email || license?.email || '';
+      const phone = session?.phone || userAccount?.phone || license?.phone || '';
+      const licenseKey = license?.key || '';
+
+      if (!email && !phone && !licenseKey) return null;
+
+      const apiUrl = (window.AuthAccess && typeof window.AuthAccess.getApiUrl === 'function')
+        ? window.AuthAccess.getApiUrl()
+        : 'https://script.google.com/macros/s/AKfycby3WIJilF-8cUnW2wgpGb2B-qo9KW41Fb7WzMeVtovgjKld09vrPFBuOqotNZBQITUjAw/exec';
+
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        mode: 'cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'get_user_gas_url',
+          email,
+          phone,
+          licenseKey
+        })
+      });
+
+      const data = await res.json();
+      if (data && data.success && data.gasUrl) {
+        config.gasUrl = data.gasUrl;
+        config.status = 'connected';
+        localStorage.setItem(CLOUD_CONFIG_KEY, JSON.stringify(config));
+        console.log('✅ URL Spreadsheet berhasil dipulihkan dari akun cloud:', data.gasUrl);
+        return data.gasUrl;
+      }
+    } catch (e) {
+      console.warn('fetchRemoteGasUrl error:', e);
+    }
+    return null;
+  }
+
+  /**
+   * Menghapus tautan URL Spreadsheet dari Akun Developer (Reset / Ganti Spreadsheet)
+   */
+  static async clearRemoteGasUrl() {
+    try {
+      const session = (window.AuthAccess && typeof window.AuthAccess.getSession === 'function') 
+        ? window.AuthAccess.getSession() 
+        : null;
+      let userAccount = null;
+      try { userAccount = JSON.parse(localStorage.getItem('dk_user_account_v1') || 'null'); } catch (_) {}
+      let license = null;
+      try { license = JSON.parse(localStorage.getItem('dk_app_license_v1') || 'null'); } catch (_) {}
+
+      const email = session?.email || userAccount?.email || license?.email || '';
+      const phone = session?.phone || userAccount?.phone || license?.phone || '';
+      const licenseKey = license?.key || '';
+
+      const apiUrl = (window.AuthAccess && typeof window.AuthAccess.getApiUrl === 'function')
+        ? window.AuthAccess.getApiUrl()
+        : 'https://script.google.com/macros/s/AKfycby3WIJilF-8cUnW2wgpGb2B-qo9KW41Fb7WzMeVtovgjKld09vrPFBuOqotNZBQITUjAw/exec';
+
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        mode: 'cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'delete_gas_url',
+          email,
+          phone,
+          licenseKey,
+          gasUrl: ''
+        })
+      });
+      const data = await res.json();
+      return data;
+    } catch (e) {
+      console.warn('clearRemoteGasUrl notice:', e);
+      return { success: false, message: e.message };
+    }
   }
 
   /**

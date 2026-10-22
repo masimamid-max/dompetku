@@ -17,6 +17,7 @@ Panduan ini digunakan oleh Anda sebagai **Pemilik Produk / Pengembang** untuk me
 10. **Status Lisensi** (*Aktif (Baru)*, *VIP / Pembeli*, *Trial*, *Expired*)
 11. **Login Terakhir** (Tanggal & jam aktivitas terakhir pengguna)
 12. **Catatan Pengembang (Admin)** (Kolom bebas untuk Anda memberi catatan, misal: *Sudah transfer via BCA*)
+13. **URL Spreadsheet Pengguna (GasUrl)** (Menyimpan URL Apps Script pribadi pengguna agar otomatis melekat pada akun dan langsung aktif di HP/PC lain tanpa perlu setting ulang)
 
 ---
 

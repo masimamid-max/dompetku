@@ -15,6 +15,7 @@
       } catch (_) { return null; }
     }
     getIdToken() { return this.getSession()?.idToken || ''; }
+    getApiUrl() { return ACCESS_API_URL; }
     
     logout() {
       sessionStorage.removeItem(SESSION_KEY);
@@ -262,6 +263,9 @@
 
           // 3. Rekam Lead Telemetri ke Google Spreadsheet Developer (Background)
           try {
+            let existingGasUrl = '';
+            try { existingGasUrl = JSON.parse(localStorage.getItem('dompet_keluarga_cloud_config') || '{}').gasUrl || ''; } catch (_) {}
+
             fetch(ACCESS_API_URL, {
               method: 'POST',
               mode: 'cors',
@@ -272,6 +276,7 @@
                 fullName: name,
                 phone: phone,
                 email: email,
+                gasUrl: existingGasUrl,
                 status: 'registered',
                 device: navigator.userAgent || 'Web Browser',
                 registeredAt: new Date().toISOString()
@@ -322,8 +327,11 @@
             };
             sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
             
-            // Rekam Telemetri
+            // Rekam Telemetri & Sinkronkan URL Spreadsheet
             try {
+              let curGasUrl = '';
+              try { curGasUrl = JSON.parse(localStorage.getItem('dompet_keluarga_cloud_config') || '{}').gasUrl || ''; } catch (_) {}
+
               fetch(ACCESS_API_URL, {
                 method: 'POST',
                 mode: 'cors',
@@ -334,9 +342,21 @@
                   fullName: storedAccount.name,
                   phone: storedAccount.phone,
                   email: storedAccount.email,
+                  gasUrl: curGasUrl,
                   device: navigator.userAgent || 'Web Browser',
                   loginAt: new Date().toISOString()
                 })
+              }).then(r => r.json()).then(res => {
+                if (res && res.user && res.user.gasUrl) {
+                  const cloudConf = JSON.parse(localStorage.getItem('dompet_keluarga_cloud_config') || '{}');
+                  if (!cloudConf.gasUrl) {
+                    cloudConf.gasUrl = res.user.gasUrl;
+                    cloudConf.status = 'connected';
+                    cloudConf.autoSync = true;
+                    localStorage.setItem('dompet_keluarga_cloud_config', JSON.stringify(cloudConf));
+                    console.log('✅ URL spreadsheet berhasil dipulihkan dari akun cloud:', res.user.gasUrl);
+                  }
+                }
               }).catch(() => {});
             } catch (_) {}
 
@@ -384,6 +404,16 @@
             };
             localStorage.setItem(USER_ACCOUNT_KEY, JSON.stringify(userAccount));
             localStorage.removeItem('dk_logged_out');
+
+            // Otomatis pasang URL Spreadsheet pribadi pelanggan jika sudah melekat di akun cloud developer
+            if (data.user?.gasUrl) {
+              const cloudConf = JSON.parse(localStorage.getItem('dompet_keluarga_cloud_config') || '{}');
+              cloudConf.gasUrl = data.user.gasUrl;
+              cloudConf.status = 'connected';
+              cloudConf.autoSync = true;
+              localStorage.setItem('dompet_keluarga_cloud_config', JSON.stringify(cloudConf));
+              console.log('✅ URL spreadsheet otomatis terpasang di perangkat ini dari cloud:', data.user.gasUrl);
+            }
 
             // Jika akun sudah PRO, otomatis aktifkan lisensi di perangkat baru ini
             if (data.user?.isPro || data.user?.licenseKey) {

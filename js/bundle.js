@@ -2312,6 +2312,145 @@ class CloudSyncService {
 
   static saveConfig(config) {
     localStorage.setItem(CLOUD_CONFIG_KEY, JSON.stringify(config));
+    if (config && config.gasUrl) {
+      this.syncGasUrlToAccount(config.gasUrl);
+    }
+  }
+
+  /**
+   * Menautkan URL Spreadsheet pribadi ke Akun Developer agar otomatis terpasang di HP/PC lain
+   */
+  static async syncGasUrlToAccount(gasUrl) {
+    if (!gasUrl) return;
+    try {
+      const session = (window.AuthAccess && typeof window.AuthAccess.getSession === 'function') 
+        ? window.AuthAccess.getSession() 
+        : null;
+      let userAccount = null;
+      try { userAccount = JSON.parse(localStorage.getItem('dk_user_account_v1') || 'null'); } catch (_) {}
+      let license = null;
+      try { license = JSON.parse(localStorage.getItem('dk_app_license_v1') || 'null'); } catch (_) {}
+
+      const email = session?.email || userAccount?.email || license?.email || '';
+      const phone = session?.phone || userAccount?.phone || license?.phone || '';
+      const licenseKey = license?.key || '';
+
+      if (!email && !phone && !licenseKey) return;
+
+      const apiUrl = (window.AuthAccess && typeof window.AuthAccess.getApiUrl === 'function')
+        ? window.AuthAccess.getApiUrl()
+        : 'https://script.google.com/macros/s/AKfycby3WIJilF-8cUnW2wgpGb2B-qo9KW41Fb7WzMeVtovgjKld09vrPFBuOqotNZBQITUjAw/exec';
+
+      fetch(apiUrl, {
+        method: 'POST',
+        mode: 'cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'save_gas_url',
+          email,
+          phone,
+          licenseKey,
+          gasUrl: gasUrl.trim()
+        })
+      }).then(r => r.json()).then(res => {
+        if (res && res.success) {
+          console.log('✅ URL Spreadsheet berhasil ditautkan ke akun cloud developer');
+        }
+      }).catch(err => console.warn('Sync gasUrl to account notice:', err));
+    } catch (e) {}
+  }
+
+  /**
+   * Mengambil URL Spreadsheet dari Akun Developer jika perangkat baru belum memilikinya
+   */
+  static async fetchRemoteGasUrl() {
+    const config = this.getConfig();
+    if (config.gasUrl) return config.gasUrl;
+
+    try {
+      const session = (window.AuthAccess && typeof window.AuthAccess.getSession === 'function') 
+        ? window.AuthAccess.getSession() 
+        : null;
+      let userAccount = null;
+      try { userAccount = JSON.parse(localStorage.getItem('dk_user_account_v1') || 'null'); } catch (_) {}
+      let license = null;
+      try { license = JSON.parse(localStorage.getItem('dk_app_license_v1') || 'null'); } catch (_) {}
+
+      const email = session?.email || userAccount?.email || license?.email || '';
+      const phone = session?.phone || userAccount?.phone || license?.phone || '';
+      const licenseKey = license?.key || '';
+
+      if (!email && !phone && !licenseKey) return null;
+
+      const apiUrl = (window.AuthAccess && typeof window.AuthAccess.getApiUrl === 'function')
+        ? window.AuthAccess.getApiUrl()
+        : 'https://script.google.com/macros/s/AKfycby3WIJilF-8cUnW2wgpGb2B-qo9KW41Fb7WzMeVtovgjKld09vrPFBuOqotNZBQITUjAw/exec';
+
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        mode: 'cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'get_user_gas_url',
+          email,
+          phone,
+          licenseKey
+        })
+      });
+
+      const data = await res.json();
+      if (data && data.success && data.gasUrl) {
+        config.gasUrl = data.gasUrl;
+        config.status = 'connected';
+        localStorage.setItem(CLOUD_CONFIG_KEY, JSON.stringify(config));
+        console.log('✅ URL Spreadsheet berhasil dipulihkan dari akun cloud:', data.gasUrl);
+        return data.gasUrl;
+      }
+    } catch (e) {
+      console.warn('fetchRemoteGasUrl error:', e);
+    }
+    return null;
+  }
+
+  /**
+   * Menghapus tautan URL Spreadsheet dari Akun Developer (Reset / Ganti Spreadsheet)
+   */
+  static async clearRemoteGasUrl() {
+    try {
+      const session = (window.AuthAccess && typeof window.AuthAccess.getSession === 'function') 
+        ? window.AuthAccess.getSession() 
+        : null;
+      let userAccount = null;
+      try { userAccount = JSON.parse(localStorage.getItem('dk_user_account_v1') || 'null'); } catch (_) {}
+      let license = null;
+      try { license = JSON.parse(localStorage.getItem('dk_app_license_v1') || 'null'); } catch (_) {}
+
+      const email = session?.email || userAccount?.email || license?.email || '';
+      const phone = session?.phone || userAccount?.phone || license?.phone || '';
+      const licenseKey = license?.key || '';
+
+      const apiUrl = (window.AuthAccess && typeof window.AuthAccess.getApiUrl === 'function')
+        ? window.AuthAccess.getApiUrl()
+        : 'https://script.google.com/macros/s/AKfycby3WIJilF-8cUnW2wgpGb2B-qo9KW41Fb7WzMeVtovgjKld09vrPFBuOqotNZBQITUjAw/exec';
+
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        mode: 'cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'delete_gas_url',
+          email,
+          phone,
+          licenseKey,
+          gasUrl: ''
+        })
+      });
+      const data = await res.json();
+      return data;
+    } catch (e) {
+      console.warn('clearRemoteGasUrl notice:', e);
+      return { success: false, message: e.message };
+    }
   }
 
   /**
@@ -9707,13 +9846,27 @@ function renderCloudTab() {
             </label>
           </div>
 
-          <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+          ${isConnected ? `
+            <div style="padding:0.75rem 1rem;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:var(--radius-md);display:flex;align-items:flex-start;gap:0.75rem;">
+              <div style="font-size:1.25rem;line-height:1;">🔗</div>
+              <div style="font-size:0.8125rem;color:#065f46;line-height:1.45;">
+                <strong>URL Melekat pada Akun Cloud:</strong> Spreadsheet ini otomatis tersimpan bersama akun email/HP Anda. Saat Anda login di HP lain, tablet, atau PC lain, data otomatis terhubung tanpa perlu memasukkan URL lagi ("Sekali pasang").
+              </div>
+            </div>
+          ` : ''}
+
+          <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;">
             <button class="btn btn-primary" id="btn-save-cloud-config">
-              💾 Simpan URL Konfigurasi
+              💾 Simpan URL & Tautkan ke Akun
             </button>
             <button class="btn btn-secondary" id="btn-init-sheets-db">
               ✨ Inisialisasi Otomatis Tabel Sheets
             </button>
+            ${config.gasUrl ? `
+              <button class="btn btn-secondary btn-sm" id="btn-unlink-cloud-gas" style="color:#ef4444;border-color:#fca5a5;margin-left:auto;" title="Lepas tautan spreadsheet dari akun">
+                🗑️ Lepas Tautan Akun
+              </button>
+            ` : ''}
           </div>
         </div>
       </div>
@@ -10655,8 +10808,36 @@ function attachSettingsListeners() {
       const config = CloudSyncService.getConfig();
       config.gasUrl = url;
       config.autoSync = autoSync;
+      config.status = url ? 'connected' : 'offline';
       CloudSyncService.saveConfig(config);
-      toast.success('Konfigurasi URL Google Apps Script disimpan!');
+      if (url) {
+        toast.success('✅ URL disimpan & melekat pada akun! Otomatis aktif di HP & PC lain.');
+      } else {
+        toast.info('Konfigurasi URL Google Apps Script disimpan');
+      }
+      appState.notify();
+    };
+  }
+
+  const unlinkCloudBtn = document.getElementById('btn-unlink-cloud-gas');
+  if (unlinkCloudBtn) {
+    unlinkCloudBtn.onclick = () => {
+      modal.confirm({
+        title: 'Lepas Tautan Spreadsheet?',
+        message: 'Apakah Anda yakin ingin melepas tautan Google Apps Script ini dari akun Anda? Setelah dilepas, spreadsheet tidak lagi otomatis sinkron di HP/PC lain sampai Anda menautkannya kembali.',
+        confirmText: 'Ya, Lepas Tautan',
+        confirmType: 'btn-danger',
+        onConfirm: async () => {
+          toast.info('Melepas tautan dari server cloud...');
+          await CloudSyncService.clearRemoteGasUrl();
+          const conf = CloudSyncService.getConfig();
+          conf.gasUrl = '';
+          conf.status = 'offline';
+          CloudSyncService.saveConfig(conf);
+          toast.success('Tautan Google Apps Script berhasil dilepas!');
+          appState.notify();
+        }
+      });
     };
   }
 
@@ -11097,6 +11278,7 @@ function json_(payload) {
       } catch (_) { return null; }
     }
     getIdToken() { return this.getSession()?.idToken || ''; }
+    getApiUrl() { return ACCESS_API_URL; }
     
     logout() {
       sessionStorage.removeItem(SESSION_KEY);
@@ -11344,6 +11526,9 @@ function json_(payload) {
 
           // 3. Rekam Lead Telemetri ke Google Spreadsheet Developer (Background)
           try {
+            let existingGasUrl = '';
+            try { existingGasUrl = JSON.parse(localStorage.getItem('dompet_keluarga_cloud_config') || '{}').gasUrl || ''; } catch (_) {}
+
             fetch(ACCESS_API_URL, {
               method: 'POST',
               mode: 'cors',
@@ -11354,6 +11539,7 @@ function json_(payload) {
                 fullName: name,
                 phone: phone,
                 email: email,
+                gasUrl: existingGasUrl,
                 status: 'registered',
                 device: navigator.userAgent || 'Web Browser',
                 registeredAt: new Date().toISOString()
@@ -11404,8 +11590,11 @@ function json_(payload) {
             };
             sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
             
-            // Rekam Telemetri
+            // Rekam Telemetri & Sinkronkan URL Spreadsheet
             try {
+              let curGasUrl = '';
+              try { curGasUrl = JSON.parse(localStorage.getItem('dompet_keluarga_cloud_config') || '{}').gasUrl || ''; } catch (_) {}
+
               fetch(ACCESS_API_URL, {
                 method: 'POST',
                 mode: 'cors',
@@ -11416,9 +11605,21 @@ function json_(payload) {
                   fullName: storedAccount.name,
                   phone: storedAccount.phone,
                   email: storedAccount.email,
+                  gasUrl: curGasUrl,
                   device: navigator.userAgent || 'Web Browser',
                   loginAt: new Date().toISOString()
                 })
+              }).then(r => r.json()).then(res => {
+                if (res && res.user && res.user.gasUrl) {
+                  const cloudConf = JSON.parse(localStorage.getItem('dompet_keluarga_cloud_config') || '{}');
+                  if (!cloudConf.gasUrl) {
+                    cloudConf.gasUrl = res.user.gasUrl;
+                    cloudConf.status = 'connected';
+                    cloudConf.autoSync = true;
+                    localStorage.setItem('dompet_keluarga_cloud_config', JSON.stringify(cloudConf));
+                    console.log('✅ URL spreadsheet berhasil dipulihkan dari akun cloud:', res.user.gasUrl);
+                  }
+                }
               }).catch(() => {});
             } catch (_) {}
 
@@ -11466,6 +11667,16 @@ function json_(payload) {
             };
             localStorage.setItem(USER_ACCOUNT_KEY, JSON.stringify(userAccount));
             localStorage.removeItem('dk_logged_out');
+
+            // Otomatis pasang URL Spreadsheet pribadi pelanggan jika sudah melekat di akun cloud developer
+            if (data.user?.gasUrl) {
+              const cloudConf = JSON.parse(localStorage.getItem('dompet_keluarga_cloud_config') || '{}');
+              cloudConf.gasUrl = data.user.gasUrl;
+              cloudConf.status = 'connected';
+              cloudConf.autoSync = true;
+              localStorage.setItem('dompet_keluarga_cloud_config', JSON.stringify(cloudConf));
+              console.log('✅ URL spreadsheet otomatis terpasang di perangkat ini dari cloud:', data.user.gasUrl);
+            }
 
             // Jika akun sudah PRO, otomatis aktifkan lisensi di perangkat baru ini
             if (data.user?.isPro || data.user?.licenseKey) {
@@ -11589,6 +11800,19 @@ class DompetKeluargaApp {
 
       // Jalankan background poller cerdas & focus sync (setiap 15 detik)
       CloudSyncService.startAutoSyncPoller(15000);
+    } else {
+      // Jika perangkat baru belum memiliki URL, otomatis periksa apakah sudah melekat di akun cloud developer
+      CloudSyncService.fetchRemoteGasUrl().then((remoteUrl) => {
+        if (remoteUrl) {
+          console.log('✅ URL spreadsheet otomatis ditemukan dari Akun Cloud:', remoteUrl);
+          CloudSyncService.pullFullState(remoteUrl).then((res) => {
+            if (res && res.hasChanges) {
+              this.render();
+            }
+          });
+          CloudSyncService.startAutoSyncPoller(15000);
+        }
+      }).catch(() => {});
     }
 
     // Listen to auto-sync transactions

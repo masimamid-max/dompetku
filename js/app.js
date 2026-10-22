@@ -56,6 +56,19 @@ class DompetKeluargaApp {
 
       // Jalankan background poller cerdas & focus sync (setiap 15 detik)
       CloudSyncService.startAutoSyncPoller(15000);
+    } else {
+      // Jika perangkat baru belum memiliki URL, otomatis periksa apakah sudah melekat di akun cloud developer
+      CloudSyncService.fetchRemoteGasUrl().then((remoteUrl) => {
+        if (remoteUrl) {
+          console.log('✅ URL spreadsheet otomatis ditemukan dari Akun Cloud:', remoteUrl);
+          CloudSyncService.pullFullState(remoteUrl).then((res) => {
+            if (res && res.hasChanges) {
+              this.render();
+            }
+          });
+          CloudSyncService.startAutoSyncPoller(15000);
+        }
+      }).catch(() => {});
     }
 
     // Listen to auto-sync transactions

@@ -390,13 +390,27 @@ function renderCloudTab() {
             </label>
           </div>
 
-          <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+          ${isConnected ? `
+            <div style="padding:0.75rem 1rem;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:var(--radius-md);display:flex;align-items:flex-start;gap:0.75rem;">
+              <div style="font-size:1.25rem;line-height:1;">🔗</div>
+              <div style="font-size:0.8125rem;color:#065f46;line-height:1.45;">
+                <strong>URL Melekat pada Akun Cloud:</strong> Spreadsheet ini otomatis tersimpan bersama akun email/HP Anda. Saat Anda login di HP lain, tablet, atau PC lain, data otomatis terhubung tanpa perlu memasukkan URL lagi ("Sekali pasang").
+              </div>
+            </div>
+          ` : ''}
+
+          <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;">
             <button class="btn btn-primary" id="btn-save-cloud-config">
-              💾 Simpan URL Konfigurasi
+              💾 Simpan URL & Tautkan ke Akun
             </button>
             <button class="btn btn-secondary" id="btn-init-sheets-db">
               ✨ Inisialisasi Otomatis Tabel Sheets
             </button>
+            ${config.gasUrl ? `
+              <button class="btn btn-secondary btn-sm" id="btn-unlink-cloud-gas" style="color:#ef4444;border-color:#fca5a5;margin-left:auto;" title="Lepas tautan spreadsheet dari akun">
+                🗑️ Lepas Tautan Akun
+              </button>
+            ` : ''}
           </div>
         </div>
       </div>
@@ -1338,8 +1352,36 @@ export function attachSettingsListeners() {
       const config = CloudSyncService.getConfig();
       config.gasUrl = url;
       config.autoSync = autoSync;
+      config.status = url ? 'connected' : 'offline';
       CloudSyncService.saveConfig(config);
-      toast.success('Konfigurasi URL Google Apps Script disimpan!');
+      if (url) {
+        toast.success('✅ URL disimpan & melekat pada akun! Otomatis aktif di HP & PC lain.');
+      } else {
+        toast.info('Konfigurasi URL Google Apps Script disimpan');
+      }
+      appState.notify();
+    };
+  }
+
+  const unlinkCloudBtn = document.getElementById('btn-unlink-cloud-gas');
+  if (unlinkCloudBtn) {
+    unlinkCloudBtn.onclick = () => {
+      modal.confirm({
+        title: 'Lepas Tautan Spreadsheet?',
+        message: 'Apakah Anda yakin ingin melepas tautan Google Apps Script ini dari akun Anda? Setelah dilepas, spreadsheet tidak lagi otomatis sinkron di HP/PC lain sampai Anda menautkannya kembali.',
+        confirmText: 'Ya, Lepas Tautan',
+        confirmType: 'btn-danger',
+        onConfirm: async () => {
+          toast.info('Melepas tautan dari server cloud...');
+          await CloudSyncService.clearRemoteGasUrl();
+          const conf = CloudSyncService.getConfig();
+          conf.gasUrl = '';
+          conf.status = 'offline';
+          CloudSyncService.saveConfig(conf);
+          toast.success('Tautan Google Apps Script berhasil dilepas!');
+          appState.notify();
+        }
+      });
     };
   }
 
