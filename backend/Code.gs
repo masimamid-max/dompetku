@@ -23,6 +23,11 @@ function doGet(e) {
     if (action === 'ping') {
       return json_({ success: true, service: 'Dompetku Private Sheets DB', version: DK_VERSION, status: 'online' });
     }
+    if (action === 'getFullState') {
+      const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+      ensureDatabase_(spreadsheet);
+      return json_({ success: true, data: readFullState_(spreadsheet) });
+    }
     return json_({ success: false, message: 'Endpoint aktif. Gunakan aplikasi Dompetku untuk sinkronisasi.' });
   } catch (error) {
     return json_({ success: false, message: error.message });
@@ -125,7 +130,7 @@ function readSheetObjects_(spreadsheet, sheetName) {
       obj[header] = val;
     });
     return obj;
-  });
+  }).filter(obj => obj.id && String(obj.id).trim() !== '');
 }
 
 function replaceSheetData_(sheetName, rows, spreadsheet) {

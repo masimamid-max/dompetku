@@ -3,6 +3,7 @@
  */
 import { appState } from '../state.js';
 import { Icons } from './icons.js';
+import { CloudSyncService } from '../utils/cloudSync.js';
 import { openTransactionModal } from './transactionModal.js';
 import { openAiModal } from './aiModal.js';
 import { openTelegramModal } from './telegramSimulator.js';
@@ -52,6 +53,12 @@ export function renderNavbar() {
           </select>
         </div>
 
+        <!-- Quick Cloud Sync Button -->
+        <button class="btn btn-secondary btn-sm" id="btn-header-sync" style="display:inline-flex;align-items:center;gap:0.35rem;padding:0.4rem 0.65rem;font-weight:700;font-size:0.75rem;border-radius:8px;background:#f0fdf4;color:#15803d;border-color:#bbf7d0;" title="Sinkronkan dengan Google Spreadsheet Sekarang">
+          <span id="nav-sync-icon" style="display:inline-block;transition:transform 0.4s ease;">🔄</span>
+          <span class="hide-on-mobile">Sinkron</span>
+        </button>
+
         <button class="btn-header-add" id="header-btn-add-tx">
           ${Icons.plus(18)} <span class="hide-on-mobile">Catat Transaksi</span>
         </button>
@@ -71,6 +78,31 @@ export function renderNavbar() {
 }
 
 export function attachNavbarListeners() {
+  const syncBtn = document.getElementById('btn-header-sync');
+  if (syncBtn) {
+    syncBtn.onclick = async () => {
+      const config = CloudSyncService.getConfig();
+      if (!config.gasUrl) {
+        toast.error('URL Google Apps Script belum dipasang di menu Pengaturan.');
+        return;
+      }
+      const icon = document.getElementById('nav-sync-icon');
+      if (icon) icon.style.animation = 'spin 1s linear infinite';
+      syncBtn.disabled = true;
+      try {
+        const res = await CloudSyncService.pullFullState(config.gasUrl);
+        toast.success(res.hasChanges 
+          ? '✅ Data berhasil disinkronkan dengan Google Sheets!' 
+          : '✅ Data lokal sudah sama dengan Google Sheets.');
+      } catch (err) {
+        toast.error('Gagal sinkron: ' + err.message);
+      } finally {
+        if (icon) icon.style.animation = '';
+        syncBtn.disabled = false;
+      }
+    };
+  }
+
   const navbarLogoutBtn = document.getElementById('navbar-btn-logout');
   if (navbarLogoutBtn) {
     navbarLogoutBtn.onclick = () => {

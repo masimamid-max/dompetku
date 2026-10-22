@@ -376,6 +376,11 @@ class AppState {
         updatedAt: new Date().toISOString()
       };
       this.saveState();
+      try {
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('transaction:changed', { detail: this.transactions[index] }));
+        }
+      } catch (e) {}
       return this.transactions[index];
     }
     return null;
@@ -398,12 +403,22 @@ class AppState {
 
     this.transactions.unshift(copy);
     this.saveState();
+    try {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('transaction:added', { detail: copy }));
+      }
+    } catch (e) {}
     return copy;
   }
 
   deleteTransaction(id) {
     this.transactions = this.transactions.filter(t => t.id !== id);
     this.saveState();
+    try {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('transaction:changed', { detail: { id, deleted: true } }));
+      }
+    } catch (e) {}
   }
 
   // Monthly Metrics & Analytics

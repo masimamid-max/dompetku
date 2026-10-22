@@ -45,11 +45,17 @@ class DompetKeluargaApp {
     // Auto-sync data dari Cloud Google Sheets saat aplikasi dibuka (jika URL terhubung)
     const cloudConfig = CloudSyncService.getConfig();
     if (cloudConfig.gasUrl && cloudConfig.autoSync) {
-      CloudSyncService.pullFullState(cloudConfig.gasUrl).then(() => {
-        console.log('✅ Catatan transaksi berhasil disinkronkan dari Google Sheets');
+      CloudSyncService.pullFullState(cloudConfig.gasUrl).then((res) => {
+        if (res && res.hasChanges) {
+          console.log('✅ Catatan transaksi berhasil disinkronkan dari Google Sheets');
+          this.render();
+        }
       }).catch(err => {
         console.warn('ℹ️ Cloud sync background notice:', err);
       });
+
+      // Jalankan background poller cerdas & focus sync (setiap 15 detik)
+      CloudSyncService.startAutoSyncPoller(15000);
     }
 
     // Listen to auto-sync transactions
@@ -58,6 +64,10 @@ class DompetKeluargaApp {
         if (e.detail) {
           CloudSyncService.syncTransactionAsync(e.detail);
         }
+      });
+
+      window.addEventListener('transaction:changed', () => {
+        CloudSyncService.pushFullStateDebounced();
       });
 
       // Listen to license updates across the app

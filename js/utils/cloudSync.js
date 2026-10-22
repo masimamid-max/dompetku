@@ -7,6 +7,10 @@ import { ToastManager } from '../components/toast.js';
 const CLOUD_CONFIG_KEY = 'dompet_keluarga_cloud_config';
 
 export class CloudSyncService {
+  static _pollerInterval = null;
+  static _isSyncing = false;
+  static _debounceTimer = null;
+
   static getConfig() {
     try {
       const saved = localStorage.getItem(CLOUD_CONFIG_KEY);
@@ -33,7 +37,7 @@ export class CloudSyncService {
       throw new Error('URL Web App Google Apps Script belum diisi');
     }
 
-    const testEndpoint = `${targetUrl}?action=ping&_t=${Date.now()}`;
+    const testEndpoint = `${targetUrl}${targetUrl.includes('?') ? '&' : '?'}action=ping&_t=${Date.now()}`;
     const response = await fetch(testEndpoint, {
       method: 'GET',
       mode: 'cors',
@@ -81,7 +85,7 @@ export class CloudSyncService {
     const response = await fetch(targetUrl, {
       method: 'POST',
       mode: 'cors',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // Avoid complex preflight on GAS
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(payload),
       redirect: 'follow'
     });
@@ -140,55 +144,241 @@ export class CloudSyncService {
   }
 
   /**
+   * Debounced push for state mutations (e.g. edit / delete)
+   */
+  static pushFullStateDebounced(delay = 1500) {
+    if (this._debounceTimer) clearTimeout(this._debounceTimer);
+    this._debounceTimer = setTimeout(() => {
+      const config = this.getConfig();
+      if (config.gasUrl && config.autoSync) {
+        this.pushFullState(config.gasUrl).catch(e => console.warn('Debounced push notice:', e));
+      }
+    }, delay);
+  }
+
+  /**
    * Download / Pull full state from Google Sheets
+   * Supports both POST (preferred, bypasses browser caching & uses existing doPost handler)
+   * and GET fallback.
    */
   static async pullFullState(url) {
     const targetUrl = url || this.getConfig().gasUrl;
     if (!targetUrl) throw new Error('URL Web App belum diisi');
 
-    const endpoint = `${targetUrl}?action=getFullState&_t=${Date.now()}`;
-    const response = await fetch(endpoint, {
-      method: 'GET',
-      mode: 'cors',
-      redirect: 'follow'
-    });
+    let json = null;
 
-    const json = await response.json();
-    if (!json.success || !json.data) {
-      throw new Error(json.message || 'Gagal mengunduh data dari cloud');
+    // 1. Coba POST terlebih dahulu
+    try {
+      const response = await fetch(targetUrl, {
+        method: 'POST',
+        mode: 'cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'getFullState' }),
+        redirect: 'follow'
+      });
+      if (response.ok) {
+        json = await response.json();
+      }
+    } catch (postErr) {
+      console.warn('POST pullFullState failed, attempting GET fallback:', postErr);
+    }
+
+    // 2. Fallback GET jika POST gagal
+    if (!json || !json.success) {
+      try {
+        const endpoint = `${targetUrl}${targetUrl.includes('?') ? '&' : '?'}action=getFullState&_t=${Date.now()}`;
+        const response = await fetch(endpoint, {
+          method: 'GET',
+          mode: 'cors',
+          redirect: 'follow'
+        });
+        if (response.ok) {
+          json = await response.json();
+        }
+      } catch (getErr) {
+        console.warn('GET pullFullState failed:', getErr);
+      }
+    }
+
+    if (!json || !json.success || !json.data) {
+      throw new Error((json && json.message) || 'Gagal mengunduh data dari Google Sheets');
     }
 
     const data = json.data;
-    if (data.transactions && Array.isArray(data.transactions) && data.transactions.length > 0) {
-      appState.transactions = data.transactions;
-    }
-    if (data.accounts && Array.isArray(data.accounts) && data.accounts.length > 0) {
-      appState.accounts = data.accounts;
-    }
-    if (data.categories && Array.isArray(data.categories) && data.categories.length > 0) {
-      appState.categories = data.categories;
-    }
-    if (data.members && Array.isArray(data.members) && data.members.length > 0) {
-      appState.members = data.members;
-    }
-    if (data.budgets && Array.isArray(data.budgets) && data.budgets.length > 0) {
-      appState.budgets = data.budgets;
-    }
-    if (data.goals && Array.isArray(data.goals) && data.goals.length > 0) {
-      appState.goals = data.goals;
-    }
-    if (data.recurringBills && Array.isArray(data.recurringBills) && data.recurringBills.length > 0) {
-      appState.recurringBills = data.recurringBills;
+    let hasChanges = false;
+
+    // 1. Transactions
+    if (data.transactions && Array.isArray(data.transactions)) {
+      const parsedTransactions = data.transactions
+        .filter(t => t && t.id && String(t.id).trim() !== '')
+        .map(t => ({
+          ...t,
+          amount: typeof t.amount === 'number' ? t.amount : (parseFloat(String(t.amount).replace(/[^0-9.-]+/g, '')) || 0),
+          status: t.status || 'verified',
+          date: t.date ? String(t.date).slice(0, 10) : new Date().toISOString().slice(0, 10)
+        }));
+
+      // Sort descending (newest first)
+      parsedTransactions.sort((a, b) => {
+        const da = new Date(a.date || a.createdAt || 0).getTime();
+        const db = new Date(b.date || b.createdAt || 0).getTime();
+        return db - da;
+      });
+
+      const currentIds = (appState.transactions || []).map(t => `${t.id}-${t.amount}-${t.date}`).join('|');
+      const newIds = parsedTransactions.map(t => `${t.id}-${t.amount}-${t.date}`).join('|');
+      if (currentIds !== newIds) {
+        appState.transactions = parsedTransactions;
+        hasChanges = true;
+      }
     }
 
-    appState.saveState();
+    // 2. Accounts
+    if (data.accounts && Array.isArray(data.accounts) && data.accounts.length > 0) {
+      const parsedAccounts = data.accounts
+        .filter(a => a && a.id)
+        .map(a => ({
+          ...a,
+          initialBalance: typeof a.initialBalance === 'number' ? a.initialBalance : (parseFloat(String(a.initialBalance).replace(/[^0-9.-]+/g, '')) || 0),
+          isArchived: String(a.isArchived) === 'true' || a.isArchived === true
+        }));
+      if (JSON.stringify(parsedAccounts) !== JSON.stringify(appState.accounts)) {
+        appState.accounts = parsedAccounts;
+        hasChanges = true;
+      }
+    }
+
+    // 3. Categories
+    if (data.categories && Array.isArray(data.categories) && data.categories.length > 0) {
+      const parsedCategories = data.categories
+        .filter(c => c && c.id)
+        .map(c => ({
+          ...c,
+          isArchived: String(c.isArchived) === 'true' || c.isArchived === true
+        }));
+      if (JSON.stringify(parsedCategories) !== JSON.stringify(appState.categories)) {
+        appState.categories = parsedCategories;
+        hasChanges = true;
+      }
+    }
+
+    // 4. Members
+    if (data.members && Array.isArray(data.members) && data.members.length > 0) {
+      const validMembers = data.members.filter(m => m && m.id);
+      if (JSON.stringify(validMembers) !== JSON.stringify(appState.members)) {
+        appState.members = validMembers;
+        hasChanges = true;
+      }
+    }
+
+    // 5. Budgets
+    if (data.budgets && Array.isArray(data.budgets)) {
+      const parsedBudgets = data.budgets
+        .filter(b => b && b.id)
+        .map(b => ({
+          ...b,
+          amount: typeof b.amount === 'number' ? b.amount : (parseFloat(String(b.amount).replace(/[^0-9.-]+/g, '')) || 0),
+          month: Number(b.month) || 1,
+          year: Number(b.year) || new Date().getFullYear()
+        }));
+      if (JSON.stringify(parsedBudgets) !== JSON.stringify(appState.budgets)) {
+        appState.budgets = parsedBudgets;
+        hasChanges = true;
+      }
+    }
+
+    // 6. Goals
+    if (data.goals && Array.isArray(data.goals)) {
+      const parsedGoals = data.goals
+        .filter(g => g && g.id)
+        .map(g => ({
+          ...g,
+          targetAmount: typeof g.targetAmount === 'number' ? g.targetAmount : (parseFloat(String(g.targetAmount).replace(/[^0-9.-]+/g, '')) || 0),
+          currentAmount: typeof g.currentAmount === 'number' ? g.currentAmount : (parseFloat(String(g.currentAmount).replace(/[^0-9.-]+/g, '')) || 0)
+        }));
+      if (JSON.stringify(parsedGoals) !== JSON.stringify(appState.goals)) {
+        appState.goals = parsedGoals;
+        hasChanges = true;
+      }
+    }
+
+    // 7. Recurring Bills
+    if (data.recurringBills && Array.isArray(data.recurringBills)) {
+      const parsedBills = data.recurringBills
+        .filter(r => r && r.id)
+        .map(r => ({
+          ...r,
+          amount: typeof r.amount === 'number' ? r.amount : (parseFloat(String(r.amount).replace(/[^0-9.-]+/g, '')) || 0),
+          dueDay: Number(r.dueDay) || 1,
+          isPaidThisMonth: String(r.isPaidThisMonth) === 'true' || r.isPaidThisMonth === true
+        }));
+      if (JSON.stringify(parsedBills) !== JSON.stringify(appState.recurringBills)) {
+        appState.recurringBills = parsedBills;
+        hasChanges = true;
+      }
+    }
+
+    if (hasChanges) {
+      appState.saveState();
+    }
 
     const config = this.getConfig();
     config.lastSynced = new Date().toISOString();
     config.status = 'connected';
     this.saveConfig(config);
 
-    return json;
+    return { success: true, hasChanges, data: json.data };
+  }
+
+  /**
+   * Start intelligent auto-sync poller (background & on-focus)
+   */
+  static startAutoSyncPoller(intervalMs = 15000) {
+    if (this._pollerInterval) {
+      clearInterval(this._pollerInterval);
+    }
+
+    const runSync = async () => {
+      const config = this.getConfig();
+      if (!config.gasUrl || !config.autoSync || this._isSyncing) return;
+      if (typeof document !== 'undefined' && document.hidden) return;
+
+      this._isSyncing = true;
+      this.updateSyncUI(true);
+
+      try {
+        await this.pullFullState(config.gasUrl);
+      } catch (err) {
+        console.warn('Auto-sync poller notice:', err);
+      } finally {
+        this._isSyncing = false;
+        this.updateSyncUI(false);
+      }
+    };
+
+    this._pollerInterval = setInterval(runSync, intervalMs);
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('focus', runSync);
+    }
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          runSync();
+        }
+      });
+    }
+  }
+
+  static updateSyncUI(isSyncing) {
+    const icon = document.getElementById('nav-sync-icon');
+    if (icon) {
+      if (isSyncing) {
+        icon.style.animation = 'spin 1s linear infinite';
+      } else {
+        icon.style.animation = '';
+      }
+    }
   }
 
   /**
@@ -211,6 +401,9 @@ export class CloudSyncService {
       }).then(r => r.json()).then(res => {
         if (res.success) {
           console.log('✅ Auto-synced transaction to Google Sheets:', tx.id);
+          const current = this.getConfig();
+          current.lastSynced = new Date().toISOString();
+          this.saveConfig(current);
         }
       }).catch(err => {
         console.warn('⚠️ Auto-sync background notice:', err);
