@@ -5,7 +5,7 @@
 (function () {
   const SESSION_KEY = 'dk_google_session_v2';
   const USER_ACCOUNT_KEY = 'dk_user_account_v1';
-  const ACCESS_API_URL = 'https://script.google.com/macros/s/AKfycby3WIJilF-8cUnW2wgpGb2B-qo9KW41Fb7WzMeVtovgjKld09vrPFBuOqotNZBQITUjAw/exec';
+  const ACCESS_API_URL = 'https://script.google.com/macros/s/AKfycbwywRn2AgS94Qsh1VEFijrexDroXrb1zDhnvgQwqn6YsEcw24gNk89Yrts-DFSTb5p5HQ/exec';
 
   class GoogleAccessManager {
     getSession() {
