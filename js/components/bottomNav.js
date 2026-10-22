@@ -8,6 +8,7 @@ import { openAiModal } from './aiModal.js';
 import { openReceiptScanModal } from './receiptScanModal.js';
 import { openTelegramModal } from './telegramSimulator.js';
 import { modal } from './modal.js';
+import { toast } from './toast.js';
 
 export function renderSidebar() {
   const current = appState.currentUser;
@@ -118,78 +119,129 @@ export function renderBottomNav() {
 }
 
 export function openMobileMenuSheet(onTabChange) {
+  const current = appState.currentUser || { name: 'Kepala Keluarga', role: 'owner' };
+  const license = window.LicenseService?.getLicense?.();
+  const isPro = license && license.status === 'active';
+  const activeTab = appState.activeTab;
+
+  const initials = (current.name || 'U').split(' ').map(n => n[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'DK';
+
   modal.open({
-    title: 'Menu & Fitur Lengkap',
+    title: 'Menu & Navigasi',
+    maxWidth: '480px',
     content: `
-      <div class="mobile-nav-sheet-grid">
-        <div class="mobile-nav-sheet-item" data-sheet-tab="dashboard">
-          <div class="mobile-nav-sheet-icon" style="background:#ecfdf5;color:#059669;">
-            ${Icons.pieChart(24)}
+      <div class="mobile-nav-sheet-wrapper">
+        <!-- Profile Header Card -->
+        <div class="mobile-nav-sheet-profile">
+          <div class="mobile-sheet-avatar">
+            ${initials}
           </div>
-          <div class="mobile-nav-sheet-label">Dashboard</div>
+          <div class="mobile-sheet-user-info">
+            <div class="mobile-sheet-user-name">${current.name || 'Pengguna Dompetku'}</div>
+            <div class="mobile-sheet-user-sub">
+              <span>${current.email || (appState.familySettings?.name ? 'Keluarga ' + appState.familySettings.name : 'Buku Kas Keluarga')}</span>
+              <span class="mobile-sheet-badge-pro">${isPro ? '👑 PRO Lifetime' : '✨ Aktif'}</span>
+            </div>
+          </div>
+          <button type="button" class="btn btn-secondary btn-icon btn-sm" id="sheet-btn-quick-settings" title="Pengaturan" style="width:34px;height:34px;border-radius:10px;flex-shrink:0;">
+            ${Icons.settings(16)}
+          </button>
         </div>
 
-        <div class="mobile-nav-sheet-item" data-sheet-tab="transactions">
-          <div class="mobile-nav-sheet-icon" style="background:#eff6ff;color:#2563eb;">
-            ${Icons.arrowRightLeft(24)}
+        <!-- Section 1: Fitur Unggulan (AI & OCR) -->
+        <div>
+          <div class="mobile-nav-sheet-section-title">Fitur Cerdas</div>
+          <div class="mobile-sheet-features-grid">
+            <div class="mobile-sheet-feature-card card-ai" id="sheet-btn-ai">
+              <div class="mobile-sheet-feature-icon" style="background:#ede9fe;color:#7c3aed;">
+                ${Icons.sparkles(20)}
+              </div>
+              <div class="mobile-sheet-feature-info">
+                <div class="mobile-sheet-feature-title">Catat AI</div>
+                <div class="mobile-sheet-feature-desc">Teks bebas / Voice</div>
+              </div>
+            </div>
+
+            <div class="mobile-sheet-feature-card card-scan" id="sheet-btn-scan">
+              <div class="mobile-sheet-feature-icon" style="background:#dbeafe;color:#2563eb;">
+                ${Icons.camera(20)}
+              </div>
+              <div class="mobile-sheet-feature-info">
+                <div class="mobile-sheet-feature-title">Scan Struk</div>
+                <div class="mobile-sheet-feature-desc">Deteksi Foto OCR</div>
+              </div>
+            </div>
           </div>
-          <div class="mobile-nav-sheet-label">Transaksi</div>
         </div>
 
-        <div class="mobile-nav-sheet-item" data-sheet-tab="budgets">
-          <div class="mobile-nav-sheet-icon" style="background:#fef3c7;color:#d97706;">
-            ${Icons.target(24)}
+        <!-- Section 2: Navigasi Menu Lengkap -->
+        <div>
+          <div class="mobile-nav-sheet-section-title">Navigasi Keuangan</div>
+          <div class="mobile-nav-sheet-grid">
+            <div class="mobile-nav-sheet-item ${activeTab === 'dashboard' ? 'is-active' : ''}" data-sheet-tab="dashboard">
+              <div class="mobile-nav-sheet-icon" style="background:linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);color:#059669;">
+                ${Icons.pieChart(22)}
+              </div>
+              <div class="mobile-nav-sheet-label">Dashboard</div>
+            </div>
+
+            <div class="mobile-nav-sheet-item ${activeTab === 'transactions' ? 'is-active' : ''}" data-sheet-tab="transactions">
+              <div class="mobile-nav-sheet-icon" style="background:linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);color:#2563eb;">
+                ${Icons.arrowRightLeft(22)}
+              </div>
+              <div class="mobile-nav-sheet-label">Transaksi</div>
+            </div>
+
+            <div class="mobile-nav-sheet-item ${activeTab === 'budgets' ? 'is-active' : ''}" data-sheet-tab="budgets">
+              <div class="mobile-nav-sheet-icon" style="background:linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);color:#d97706;">
+                ${Icons.target(22)}
+              </div>
+              <div class="mobile-nav-sheet-label">Anggaran</div>
+            </div>
+
+            <div class="mobile-nav-sheet-item ${activeTab === 'goals' ? 'is-active' : ''}" data-sheet-tab="goals">
+              <div class="mobile-nav-sheet-icon" style="background:linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);color:#7c3aed;">
+                ${Icons.sparkles(22)}
+              </div>
+              <div class="mobile-nav-sheet-label">Celengan</div>
+            </div>
+
+            <div class="mobile-nav-sheet-item ${activeTab === 'bills' ? 'is-active' : ''}" data-sheet-tab="bills">
+              <div class="mobile-nav-sheet-icon" style="background:linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);color:#dc2626;">
+                ${Icons.calendar(22)}
+              </div>
+              <div class="mobile-nav-sheet-label">Tagihan</div>
+            </div>
+
+            <div class="mobile-nav-sheet-item ${activeTab === 'reports' ? 'is-active' : ''}" data-sheet-tab="reports">
+              <div class="mobile-nav-sheet-icon" style="background:linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);color:#0284c7;">
+                ${Icons.trendingUp(22)}
+              </div>
+              <div class="mobile-nav-sheet-label">Laporan</div>
+            </div>
+
+            <div class="mobile-nav-sheet-item ${activeTab === 'settings' ? 'is-active' : ''}" data-sheet-tab="settings">
+              <div class="mobile-nav-sheet-icon" style="background:linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);color:#475569;">
+                ${Icons.settings(22)}
+              </div>
+              <div class="mobile-nav-sheet-label">Pengaturan</div>
+            </div>
+
+            <div class="mobile-nav-sheet-item" id="sheet-btn-sync">
+              <div class="mobile-nav-sheet-icon" style="background:linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);color:#16a34a;">
+                ${Icons.cloud ? Icons.cloud(22) : Icons.refresh(22)}
+              </div>
+              <div class="mobile-nav-sheet-label">Sinkron Cloud</div>
+            </div>
           </div>
-          <div class="mobile-nav-sheet-label">Anggaran</div>
         </div>
 
-        <div class="mobile-nav-sheet-item" data-sheet-tab="goals">
-          <div class="mobile-nav-sheet-icon" style="background:#f5f3ff;color:#7c3aed;">
-            ${Icons.sparkles(24)}
-          </div>
-          <div class="mobile-nav-sheet-label">Celengan</div>
-        </div>
-
-        <div class="mobile-nav-sheet-item" data-sheet-tab="bills">
-          <div class="mobile-nav-sheet-icon" style="background:#fee2e2;color:#dc2626;">
-            ${Icons.calendar(24)}
-          </div>
-          <div class="mobile-nav-sheet-label">Tagihan</div>
-        </div>
-
-        <div class="mobile-nav-sheet-item" data-sheet-tab="reports">
-          <div class="mobile-nav-sheet-icon" style="background:#e0f2fe;color:#0284c7;">
-            ${Icons.trendingUp(24)}
-          </div>
-          <div class="mobile-nav-sheet-label">Laporan</div>
-        </div>
-
-        <div class="mobile-nav-sheet-item" data-sheet-tab="settings">
-          <div class="mobile-nav-sheet-icon" style="background:#f1f5f9;color:#475569;">
-            ${Icons.settings(24)}
-          </div>
-          <div class="mobile-nav-sheet-label">Pengaturan</div>
-        </div>
-
-        <div class="mobile-nav-sheet-item" id="sheet-btn-ai">
-          <div class="mobile-nav-sheet-icon" style="background:#ede9fe;color:#6d28d9;">
-            ${Icons.sparkles(24)}
-          </div>
-          <div class="mobile-nav-sheet-label">Catat AI</div>
-        </div>
-
-        <div class="mobile-nav-sheet-item" id="sheet-btn-scan">
-          <div class="mobile-nav-sheet-icon" style="background:#dbeafe;color:#1d4ed8;">
-            ${Icons.camera(24)}
-          </div>
-          <div class="mobile-nav-sheet-label">Scan Struk</div>
-        </div>
-
-        <div class="mobile-nav-sheet-item" id="sheet-btn-logout" style="color:#dc2626;">
-          <div class="mobile-nav-sheet-icon" style="background:#fee2e2;color:#dc2626;">
-            ${Icons.logOut ? Icons.logOut(24) : '🚪'}
-          </div>
-          <div class="mobile-nav-sheet-label" style="color:#dc2626;font-weight:700;">Keluar</div>
+        <!-- Section 3: Akun & Logout -->
+        <div style="padding-top:0.25rem;">
+          <button type="button" class="mobile-sheet-logout-btn" id="sheet-btn-logout">
+            ${Icons.logOut ? Icons.logOut(18) : '🚪'}
+            <span>Keluar dari Akun</span>
+          </button>
         </div>
       </div>
     `,
@@ -212,6 +264,14 @@ export function openMobileMenuSheet(onTabChange) {
     };
   });
 
+  const quickSettingsBtn = document.getElementById('sheet-btn-quick-settings');
+  if (quickSettingsBtn) {
+    quickSettingsBtn.onclick = () => {
+      modal.close();
+      if (onTabChange) onTabChange('settings');
+    };
+  }
+
   const aiBtn = document.getElementById('sheet-btn-ai');
   if (aiBtn) {
     aiBtn.onclick = () => {
@@ -225,6 +285,32 @@ export function openMobileMenuSheet(onTabChange) {
     scanBtn.onclick = () => {
       modal.close();
       openReceiptScanModal();
+    };
+  }
+
+  const syncBtn = document.getElementById('sheet-btn-sync');
+  if (syncBtn) {
+    syncBtn.onclick = async () => {
+      modal.close();
+      const navBtn = document.getElementById('btn-header-sync');
+      if (navBtn) {
+        navBtn.click();
+      } else {
+        toast.info('Menyinkronkan data...');
+        try {
+          const { CloudSyncService } = await import('../utils/cloudSync.js');
+          const conf = CloudSyncService.getConfig();
+          if (!conf.gasUrl) {
+            toast.info('URL Google Apps Script belum diisi di Pengaturan');
+            return;
+          }
+          await CloudSyncService.pullFullState(conf.gasUrl);
+          toast.success('Data berhasil disinkronkan!');
+          appState.notify();
+        } catch (e) {
+          toast.error('Sinkronisasi gagal: ' + e.message);
+        }
+      }
     };
   }
 

@@ -618,7 +618,7 @@
     overscroll-behavior: contain;
   }
 
-  .modal-body [style*="grid-template-columns"] {
+  .modal-body [style*="grid-template-columns"]:not(.mobile-nav-sheet-grid):not(.mobile-sheet-features-grid) {
     grid-template-columns: minmax(0, 1fr) !important;
   }
 

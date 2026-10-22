@@ -140,6 +140,11 @@ export const Icons = {
       <path d="M8 16H3v5"></path>
     </svg>`,
 
+  cloud: (size = 20, className = '') => `
+    <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path>
+    </svg>`,
+
   x: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M18 6 6 18"></path>
