@@ -7333,6 +7333,10 @@ function openMobileMenuSheet(onTabChange) {
 
         <!-- Section 3: Akun & Dokumen -->
         <div style="padding-top:0.25rem;display:flex;flex-direction:column;gap:0.5rem;">
+          <a href="./PANDUAN_PENGGUNA_DOMPET_KELUARGA.pdf" download="PANDUAN_PENGGUNA_DOMPET_KELUARGA.pdf" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:0.5rem;padding:0.75rem 1rem;background:#fee2e2;border:1px solid #fca5a5;border-radius:12px;font-size:0.8125rem;font-weight:700;color:#991b1b;text-decoration:none;">
+            <span>📕</span>
+            <span>Download Buku Panduan Pengguna (PDF)</span>
+          </a>
           <a href="./dokumen.html" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:0.5rem;padding:0.75rem 1rem;background:#f8fafc;border:1px solid #cbd5e1;border-radius:12px;font-size:0.8125rem;font-weight:700;color:#334155;text-decoration:none;">
             <span>💾</span>
             <span>Simpan / Unduh Dokumen Lengkap (Master Code)</span>

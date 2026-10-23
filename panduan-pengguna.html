@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Buku Panduan Pengguna - Dompet Keluarga V3.18.3</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 16mm 14mm 16mm 14mm;
+      @bottom-right {
+        content: counter(page);
+      }
+    }
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #0f172a;
+      background: #ffffff;
+      line-height: 1.55;
+      font-size: 9.75pt;
+    }
+    
+    /* Document Cover / Header */
+    .header-banner {
+      background: linear-gradient(135deg, #065f46 0%, #047857 60%, #059669 100%);
+      color: #ffffff;
+      padding: 24px 28px;
+      border-radius: 12px;
+      margin-bottom: 22px;
+      box-shadow: 0 4px 14px rgba(5, 150, 105, 0.2);
+    }
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .brand-tag {
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 8pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .url-tag {
+      font-size: 9pt;
+      color: #d1fae5;
+      font-weight: 700;
+    }
+    .header-banner h1 {
+      font-size: 20pt;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 6px;
+      letter-spacing: -0.02em;
+    }
+    .header-banner p {
+      font-size: 10pt;
+      color: #ecfdf5;
+      max-width: 620px;
+      line-height: 1.45;
+    }
+    .meta-pills {
+      display: flex;
+      gap: 12px;
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+      font-size: 8pt;
+      color: #d1fae5;
+    }
+    .meta-pills span strong {
+      color: #ffffff;
+    }
+
+    /* Section Styles */
+    .section-title {
+      font-size: 13.5pt;
+      font-weight: 800;
+      color: #065f46;
+      border-bottom: 2px solid #10b981;
+      padding-bottom: 4px;
+      margin-top: 20px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      page-break-after: avoid;
+    }
+    .section-title span.num {
+      background: #059669;
+      color: #fff;
+      font-size: 9pt;
+      padding: 2px 7px;
+      border-radius: 6px;
+    }
+
+    .subsection-title {
+      font-size: 10.5pt;
+      font-weight: 750;
+      color: #1e293b;
+      margin-top: 14px;
+      margin-bottom: 6px;
+      page-break-after: avoid;
+    }
+
+    p {
+      margin-bottom: 8px;
+      color: #334155;
+    }
+
+    /* Cards & Grids */
+    .card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 12px;
+      page-break-inside: avoid;
+    }
+    .card-emerald {
+      background: #ecfdf5;
+      border-color: #a7f3d0;
+    }
+    .card-blue {
+      background: #eff6ff;
+      border-color: #bfdbfe;
+    }
+    .card-amber {
+      background: #fffbeb;
+      border-color: #fde68a;
+    }
+
+    .step-box {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 10px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 10px 12px;
+      page-break-inside: avoid;
+    }
+    .step-num {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #059669;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9pt;
+      font-weight: 800;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .step-content {
+      flex: 1;
+    }
+    .step-title {
+      font-size: 9.5pt;
+      font-weight: 750;
+      color: #0f172a;
+      margin-bottom: 3px;
+    }
+    .step-desc {
+      font-size: 8.75pt;
+      color: #475569;
+      line-height: 1.45;
+    }
+
+    /* Grid for Features */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 12px;
+      page-break-inside: avoid;
+    }
+    .feature-item {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 10px 12px;
+      page-break-inside: avoid;
+    }
+    .feature-item h4 {
+      font-size: 9.5pt;
+      font-weight: 750;
+      color: #065f46;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .feature-item p {
+      font-size: 8.5pt;
+      color: #475569;
+      margin-bottom: 0;
+      line-height: 1.4;
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 12px;
+      font-size: 8.5pt;
+      page-break-inside: avoid;
+    }
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 6px 10px;
+      text-align: left;
+    }
+    th {
+      background: #f1f5f9;
+      font-weight: 750;
+      color: #1e293b;
+    }
+    tr:nth-child(even) td {
+      background: #f8fafc;
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 7.5pt;
+      font-weight: 750;
+    }
+    .badge-green { background: #dcfce7; color: #15803d; }
+    .badge-yellow { background: #fef3c7; color: #b45309; }
+    .badge-blue { background: #dbeafe; color: #1d4ed8; }
+
+    /* Footer */
+    .doc-footer {
+      border-top: 1px solid #e2e8f0;
+      padding-top: 10px;
+      margin-top: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 7.5pt;
+      color: #64748b;
+      page-break-inside: avoid;
+    }
+    
+    .page-break {
+      page-break-before: always;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- COVER BANNER -->
+  <div class="header-banner">
+    <div class="header-top">
+      <span class="brand-tag">Dokumentasi & Panduan Resmi</span>
+      <span class="url-tag">https://urwahdigital.space</span>
+    </div>
+    <h1>Dompet Keluarga V3.18.3</h1>
+    <p>
+      Panduan Pengguna Lengkap, Tata Cara Memulai, dan Penjelasan Seluruh Fitur Manajemen Keuangan Keluarga Mandiri, Harmonis, & Kolaboratif.
+    </p>
+    <div class="meta-pills">
+      <span>Versi: <strong>3.18.3 (Production)</strong></span>
+      <span>Platform: <strong>Web App & PWA Mobile</strong></span>
+      <span>Keamanan: <strong>100% Zero-Knowledge</strong></span>
+      <span>Database: <strong>Google Sheets Pribadi</strong></span>
+    </div>
+  </div>
+
+  <!-- BAB 1 -->
+  <h2 class="section-title"><span class="num">1</span> Sekilas Tentang Dompet Keluarga</h2>
+  <p>
+    <strong>Dompet Keluarga</strong> adalah aplikasi buku kas rumah tangga kolaboratif berbasis web yang dapat dipasang di smartphone (Android & iPhone) maupun laptop. Aplikasi ini dirancang agar setiap anggota keluarga—mulai dari Kepala Keluarga, Pasangan (Bendahara Rumah Tangga), hingga Anak—dapat mencatat dan memantau keuangan bersama secara transparan, mudah, dan aman.
+  </p>
+
+  <div class="grid-2">
+    <div class="feature-item">
+      <h4>🔒 100% Privat (Zero-Knowledge)</h4>
+      <p>Data tersimpan di perangkat lokal dan Google Spreadsheet milik akun Google Anda sendiri. Pihak luar atau server pengembang tidak memiliki akses ke angka keuangan Anda.</p>
+    </div>
+    <div class="feature-item">
+      <h4>🔄 Sinkronisasi Multi-Device (HP ⇄ PC)</h4>
+      <p>Mencatat belanja di HP saat di supermarket langsung terupdate di laptop rumah tanpa perlu kirim file manual.</p>
+    </div>
+    <div class="feature-item">
+      <h4>🤖 Dilengkapi Kecerdasan Buatan (AI)</h4>
+      <p>Cukup foto nota belanja (Scan Struk OCR) atau ketik kalimat santai, sistem otomatis mengenali nominal dan kategorinya.</p>
+    </div>
+    <div class="feature-item">
+      <h4>📅 Fleksibilitas Waktu (2010 – 2050)</h4>
+      <p>Mendukung pencatatan riwayat keuangan bertahun-tahun yang lalu hingga perencanaan anggaran masa depan hingga 2050.</p>
+    </div>
+  </div>
+
+  <!-- BAB 2 -->
+  <h2 class="section-title"><span class="num">2</span> Panduan Memulai untuk Pengguna Baru</h2>
+  <p>Ikuti 5 langkah mudah berikut untuk memulai mengelola keuangan keluarga Anda:</p>
+
+  <div class="step-box">
+    <div class="step-num">1</div>
+    <div class="step-content">
+      <div class="step-title">Pasang Aplikasi di Layar Utama HP (PWA)</div>
+      <div class="step-desc">
+        Buka <strong>https://urwahdigital.space</strong> di browser HP. Pada banner atas beranda, ketuk <strong>"📲 Install"</strong> (di Chrome Android) atau gunakan menu <strong>Share ➔ "Tambahkan ke Layar Utama"</strong> (di Safari iPhone). Ikon aplikasi langsung muncul di menu HP Anda layaknya aplikasi native Play Store.
+      </div>
+    </div>
+  </div>
+
+  <div class="step-box">
+    <div class="step-num">2</div>
+    <div class="step-content">
+      <div class="step-title">Pengaturan Nama Keluarga & Rekening Bank</div>
+      <div class="step-desc">
+        Buka menu <strong>Menu ➔ Pengaturan</strong>:
+        <ul style="margin-left: 16px; margin-top: 4px;">
+          <li>Ubah nama keluarga (contoh: <em>Keluarga Bahagia</em>).</li>
+          <li>Tambahkan rekening bank (BCA, Mandiri, BRI), dompet digital (GoPay, OVO, ShopeePay), dan Kas Tunai harian beserta saldo awalnya.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-box">
+    <div class="step-num">3</div>
+    <div class="step-content">
+      <div class="step-title">Daftarkan Anggota Keluarga & Hak Akses</div>
+      <div class="step-desc">
+        Pada tab <strong>Anggota Keluarga</strong>, masukkan nama-nama anggota:
+        <strong>Pemilik</strong> (Kepala Keluarga), <strong>Admin</strong> (Pengelola Keuangan), dan <strong>Anggota</strong> (Anak/Keluarga Lain). Setiap pengeluaran dapat dicatat atas nama anggota yang bersangkutan.
+      </div>
+    </div>
+  </div>
+
+  <div class="step-box">
+    <div class="step-num">4</div>
+    <div class="step-content">
+      <div class="step-title">Tentukan Target Anggaran Bulanan (Budgeting)</div>
+      <div class="step-desc">
+        Buka menu <strong>Anggaran</strong>, tentukan batas pagu maksimal untuk kebutuhan penting (misal: <em>Makanan & Minuman: Rp 3.000.000</em>, <em>Bensin & Transport: Rp 600.000</em>). Ini akan menjadi alarm pengingat jika pengeluaran mulai boros.
+      </div>
+    </div>
+  </div>
+
+  <div class="step-box">
+    <div class="step-num">5</div>
+    <div class="step-content">
+      <div class="step-title">Koneksikan Google Sheets Cloud DB (Auto Sync)</div>
+      <div class="step-desc">
+        Masuk ke <strong>Pengaturan ➔ Google Sheet Cloud DB</strong>, hubungkan URL Google Apps Script Anda. Setelah status berwarna hijau, data di HP dan PC Anda akan selalu sinkron otomatis dengan menekan tombol <strong>Sinkron (🔄)</strong>.
+      </div>
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- BAB 3 -->
+  <h2 class="section-title"><span class="num">3</span> Penjelasan Mendalam Seluruh Fitur</h2>
+
+  <div class="card card-emerald">
+    <h3 class="subsection-title" style="margin-top:0;">📊 1. Dashboard Keuangan (Beranda Utama)</h3>
+    <p>Pusat kendali dan ringkasan arus kas keuangan keluarga yang diperbarui secara langsung:</p>
+    <ul style="margin-left: 18px; margin-bottom: 6px; font-size: 9pt;">
+      <li><strong>4 Kartu Metrik Utama:</strong> Total Pemasukan, Total Pengeluaran, Sisa Saldo Kas Bulan Ini, dan Tabungan/Celengan Terkumpul.</li>
+      <li><strong>Banner Evaluasi Finansial (Smart Insight):</strong> Otomatis menghitung persentase kenaikan/penurunan pengeluaran dibanding bulan lalu.</li>
+      <li><strong>Pemilih Bulan & Tahun (2010 – 2050):</strong> Dropdown fleksibel untuk berpindah periode analisis keuangan secara instan.</li>
+      <li><strong>Visualisasi Grafik:</strong> Donut Chart (distribusi belanja per kategori) dan Bar Chart Pengeluaran Harian (tanggal 1 s/d 31).</li>
+      <li><strong>Ringkasan Saldo Rekening:</strong> Memantau saldo real-time di semua bank dan dompet kas.</li>
+    </ul>
+  </div>
+
+  <div class="card card-blue">
+    <h3 class="subsection-title" style="margin-top:0;">💳 2. Pencatatan Transaksi & Multi-Rekening</h3>
+    <p>Mendukung 3 jenis mutasi keuangan dengan fleksibilitas tinggi:</p>
+    <ul style="margin-left: 18px; margin-bottom: 6px; font-size: 9pt;">
+      <li><strong>Pengeluaran:</strong> Memotong saldo rekening asal dan dihitung ke target anggaran kategori terkait.</li>
+      <li><strong>Pemasukan:</strong> Menambah saldo rekening (gaji bulanan, bonus, hasil usaha, deviden).</li>
+      <li><strong>Transfer Antar Rekening:</strong> Memindahkan dana antar rekening (misal: Tarik Tunai ATM dari BCA ke Kas Dompet, atau Top-Up GoPay dari Mandiri) tanpa merusak metrik pengeluaran riil.</li>
+      <li><strong>Filter & Pencarian Pintar:</strong> Menemukan transaksi lama berdasarkan kata kunci nama toko/barang, kategori, rentang nominal, dan nama anggota pencatat.</li>
+    </ul>
+  </div>
+
+  <div class="card card-amber">
+    <h3 class="subsection-title" style="margin-top:0;">🤖 3. Fitur Pintar AI & Scan Struk Belanja</h3>
+    <ul style="margin-left: 18px; margin-bottom: 6px; font-size: 9pt;">
+      <li><strong>Scan Struk AI (OCR):</strong> Arahkan kamera atau unggah foto struk belanjaan fisik (Indomaret, Alfamart, SPBU, Restoran). Sistem membaca total rupiah, tanggal, dan nama toko secara otomatis.</li>
+      <li><strong>Catat Cerdas AI:</strong> Cukup ketik kalimat sehari-hari (contoh: <em>"Beli susu formula 120rb bayar pake bca"</em>), sistem langsung memetakan kategori belanja anak dan memotong saldo rekening BCA.</li>
+      <li><strong>Simulasi Bot Telegram:</strong> Dukungan integrasi bot pesan instan untuk pencatatan praktis tanpa perlu membuka peramban web.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3 class="subsection-title" style="margin-top:0;">🎯 4. Target Anggaran Bulanan (Budgeting)</h3>
+    <p>Mencegah terjadinya defisit dan kebocoran dana keluarga:</p>
+    <ul style="margin-left: 18px; margin-bottom: 6px; font-size: 9pt;">
+      <li><strong>Batas Pagu per Kategori:</strong> Memberikan target plafon maksimal pada setiap pos pengeluaran.</li>
+      <li><strong>Progress Bar Visual 3 Warna:</strong>
+        <span class="badge badge-green">Hijau (<70%) Aman</span>
+        <span class="badge badge-yellow">Kuning (70-90%) Peringatan</span>
+        <span class="badge" style="background:#fee2e2;color:#991b1b;">Merah (>100%) Overbudget</span>
+      </li>
+      <li><strong>Tombol Salin Bulan Lalu:</strong> Menduplikasi seluruh target kategori dari bulan sebelumnya hanya dalam 1 kali klik.</li>
+    </ul>
+  </div>
+
+  <div class="grid-2">
+    <div class="feature-item">
+      <h4>🐖 5. Celengan Impian (Goals)</h4>
+      <p>Menabung terencana untuk cita-cita keluarga (Dana Darurat, Rumah, Liburan, Qurban, Pendidikan). Dilengkapi persentase target dan alokasi saldo berkala.</p>
+    </div>
+    <div class="feature-item">
+      <h4>📅 6. Pengingat Tagihan (Bills)</h4>
+      <p>Mencatat kewajiban berulang (PLN, WiFi, BPJS, PDAM, Iuran Sekolah). Dilengkapi alarm jatuh tempo dan tombol <em>Bayar 1-Klik</em> yang otomatis mencatat mutasi pengeluaran.</p>
+    </div>
+    <div class="feature-item">
+      <h4>📑 7. Ekspor Laporan PDF & Excel</h4>
+      <p>Cetak Laporan Formal (PDF Siap Cetak lengkap kop nama keluarga, ringkasan arus kas, dan kolom tanda tangan) serta Buku Kas Excel (CSV format UTF-8 BOM rapi).</p>
+    </div>
+    <div class="feature-item">
+      <h4>☁️ 8. Cloud Sync & Backup Mandiri</h4>
+      <p>Sinkronisasi database spreadsheet otomatis, ekspor file JSON cadangan mandiri, serta fitur <em>Reset Data Bersih</em> untuk menghapus data demo awal.</p>
+    </div>
+  </div>
+
+  <!-- BAB 4 -->
+  <h2 class="section-title"><span class="num">4</span> Panduan Cepat Pemecahan Masalah (FAQ)</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 32%;">Pertanyaan / Masalah</th>
+        <th>Solusi Praktis</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Data di HP dan PC tidak sama?</strong></td>
+        <td>Pastikan Anda menekan tombol <strong>Sinkron (🔄)</strong> di header atas setelah mencatat transaksi, agar data terunggah ke Google Sheets Cloud DB.</td>
+      </tr>
+      <tr>
+        <td><strong>Bagaimana cara membersihkan data contoh/demo?</strong></td>
+        <td>Buka menu <strong>Pengaturan ➔ Data Cadangan & Reset</strong>, lalu klik tombol merah <strong>"Reset ke Data Bersih"</strong> untuk mengosongkan transaksi awal.</td>
+      </tr>
+      <tr>
+        <td><strong>Apakah aplikasi bisa dibuka saat offline?</strong></td>
+        <td>Ya, aplikasi dilengkapi Service Worker (PWA Offline First). Anda tetap dapat membuka dashboard dan mencatat mutasi meskipun internet sedang terputus.</td>
+      </tr>
+      <tr>
+        <td><strong>Cara mencadangkan data tanpa Google Sheets?</strong></td>
+        <td>Di menu <strong>Pengaturan</strong>, Anda dapat memilih <strong>Ekspor Cadangan JSON</strong> untuk mengunduh seluruh database ke file cadangan lokal.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- FOOTER -->
+  <div class="doc-footer">
+    <span>Dompet Keluarga V3.18.3 &bull; Solusi Tata Kelola Finansial Harmonis</span>
+    <span>Akses Online: <strong>https://urwahdigital.space</strong></span>
+  </div>
+
+</body>
+</html>
