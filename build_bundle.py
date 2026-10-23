@@ -13,6 +13,7 @@ files_order = [
     "js/components/icons.js",
     "js/components/toast.js",
     "js/components/modal.js",
+    "js/components/pwaInstall.js",
     "js/components/licenseModal.js",
     "js/components/receiptScanModal.js",
     "js/components/aiModal.js",

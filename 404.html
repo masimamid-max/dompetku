@@ -9,7 +9,11 @@
 
   <!-- PWA Manifest & Icons -->
   <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="icons/icon-192.svg">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
+  <link rel="icon" type="image/svg+xml" href="icons/icon-192.svg">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="DompetKeluarga">
@@ -62,7 +66,7 @@
   </script>
 
   <!-- Single Unified Production Bundle with Cache Buster -->
-  <script src="js/bundle.js?v=20261023_0745" onerror="this.onerror=null;this.src='bundle.js?v=20261023_0745';"></script>
+  <script src="js/bundle.js?v=20261023_1115" onerror="this.onerror=null;this.src='bundle.js?v=20261023_1115';"></script>
 
   <!-- PWA Service Worker Registration -->
   <script>
@@ -81,6 +85,21 @@
       window.deferredInstallPrompt = e;
       var pwaBtn = document.getElementById('btn-install-pwa');
       if (pwaBtn) pwaBtn.style.display = 'inline-flex';
+      var pwaBanner = document.getElementById('pwa-install-banner');
+      if (pwaBanner) pwaBanner.style.display = 'flex';
+      var sheetPwa = document.getElementById('sheet-pwa-wrap');
+      if (sheetPwa) sheetPwa.style.display = 'block';
+    });
+
+    window.addEventListener('appinstalled', function() {
+      console.log('✅ Dompet Keluarga PWA successfully installed!');
+      window.deferredInstallPrompt = null;
+      var pwaBtn = document.getElementById('btn-install-pwa');
+      if (pwaBtn) pwaBtn.style.display = 'none';
+      var pwaBanner = document.getElementById('pwa-install-banner');
+      if (pwaBanner) pwaBanner.style.display = 'none';
+      var sheetPwa = document.getElementById('sheet-pwa-wrap');
+      if (sheetPwa) sheetPwa.style.display = 'none';
     });
   </script>
 

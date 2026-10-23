@@ -9,6 +9,7 @@ import { openReceiptScanModal } from './receiptScanModal.js';
 import { openTelegramModal } from './telegramSimulator.js';
 import { modal } from './modal.js';
 import { toast } from './toast.js';
+import { triggerPwaInstall, isAppInstalled } from './pwaInstall.js';
 
 export function renderSidebar() {
   const current = appState.currentUser;
@@ -174,6 +175,24 @@ export function openMobileMenuSheet(onTabChange) {
           </div>
         </div>
 
+        ${!isAppInstalled() ? `
+        <!-- Section PWA: Pasang Aplikasi di HP -->
+        <div id="sheet-pwa-wrap">
+          <div class="mobile-sheet-feature-card" id="sheet-btn-install-app" style="background:linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);border:1px solid #a7f3d0;cursor:pointer;padding:0.75rem 0.875rem;">
+            <div class="mobile-sheet-feature-icon" style="background:#059669;color:#ffffff;box-shadow:0 3px 8px rgba(5,150,105,0.3);">
+              📲
+            </div>
+            <div class="mobile-sheet-feature-info" style="min-width:0;flex:1;">
+              <div class="mobile-sheet-feature-title" style="color:#065f46;display:flex;align-items:center;gap:0.4rem;">
+                <span>Pasang Aplikasi di HP</span>
+                <span class="badge" style="background:#059669;color:#fff;font-size:0.625rem;padding:0.15rem 0.35rem;border-radius:4px;">GRATIS</span>
+              </div>
+              <div class="mobile-sheet-feature-desc" style="color:#047857;">Akses instan dari layar utama & offline</div>
+            </div>
+          </div>
+        </div>
+        ` : ''}
+
         <!-- Section 2: Navigasi Menu Lengkap -->
         <div>
           <div class="mobile-nav-sheet-section-title">Navigasi Keuangan</div>
@@ -285,6 +304,16 @@ export function openMobileMenuSheet(onTabChange) {
     scanBtn.onclick = () => {
       modal.close();
       openReceiptScanModal();
+    };
+  }
+
+  const pwaInstallBtn = document.getElementById('sheet-btn-install-app');
+  if (pwaInstallBtn) {
+    pwaInstallBtn.onclick = () => {
+      modal.close();
+      setTimeout(() => {
+        triggerPwaInstall();
+      }, 250);
     };
   }
 

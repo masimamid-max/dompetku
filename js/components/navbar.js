@@ -11,6 +11,7 @@ import { openReceiptScanModal } from './receiptScanModal.js';
 import { openMobileSidebar } from './bottomNav.js';
 import { modal } from './modal.js';
 import { toast } from './toast.js';
+import { triggerPwaInstall, isAppInstalled } from './pwaInstall.js';
 
 export function renderNavbar() {
   const family = appState.family;
@@ -34,7 +35,7 @@ export function renderNavbar() {
 
       <div class="header-right">
         <!-- PWA Install App Button -->
-        <button class="btn btn-secondary btn-sm" id="btn-install-pwa" style="display:none;background:#ecfdf5;color:#059669;border-color:#a7f3d0;font-weight:700;" title="Install Aplikasi di Layar Utama">
+        <button class="btn btn-secondary btn-sm" id="btn-install-pwa" style="display:${isAppInstalled() ? 'none' : 'inline-flex'};align-items:center;gap:0.35rem;background:#ecfdf5;color:#059669;border-color:#a7f3d0;font-weight:700;" title="Install Aplikasi di Layar Utama HP / PC">
           📲 <span class="hide-on-mobile">Install App</span>
         </button>
 
@@ -131,18 +132,8 @@ export function attachNavbarListeners() {
 
   const pwaBtn = document.getElementById('btn-install-pwa');
   if (pwaBtn) {
-    pwaBtn.onclick = async () => {
-      if (window.deferredInstallPrompt) {
-        window.deferredInstallPrompt.prompt();
-        const { outcome } = await window.deferredInstallPrompt.userChoice;
-        if (outcome === 'accepted') {
-          toast.success('Aplikasi Dompet Keluarga berhasil dipasang di layar utama!');
-        }
-        window.deferredInstallPrompt = null;
-        pwaBtn.style.display = 'none';
-      } else {
-        toast.info('Untuk menginstall di HP: Buka menu browser (titik tiga atau tombol Share) lalu pilih "Tambahkan ke Layar Utama / Add to Home Screen"');
-      }
+    pwaBtn.onclick = () => {
+      triggerPwaInstall();
     };
   }
 

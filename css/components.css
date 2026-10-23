@@ -684,3 +684,23 @@
 .access-admin-list{display:grid;gap:.75rem;margin:1rem 0}.access-admin-row{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1rem;border:1px solid #e2e8f0;border-radius:12px}.access-admin-row>div:first-child{min-width:0;flex:1}.access-admin-row strong,.access-admin-row>div:first-child span{display:block;overflow-wrap:anywhere}.access-admin-row>div:first-child span{color:#64748b;margin-top:.25rem;font-size:.72rem}.access-admin-actions{display:flex;gap:.4rem;flex-wrap:wrap;justify-content:flex-end}.access-admin-actions button{border:1px solid #cbd5e1;background:#fff;border-radius:8px;padding:.45rem .65rem;font:inherit;font-size:.75rem;font-weight:750;cursor:pointer}
 .access-status{display:inline-flex;margin-top:.4rem;padding:.2rem .5rem;border-radius:999px;font-size:.65rem;font-weight:800;background:#fef3c7;color:#92400e}.access-status.active{background:#dcfce7;color:#166534}.access-status.suspended{background:#fee2e2;color:#991b1b}
 @media(max-width:760px){.access-page{display:block;background:#f8fafc;padding:max(1rem,env(safe-area-inset-top)) 1rem max(1rem,env(safe-area-inset-bottom))}.access-brand-panel{display:none}.access-card-wrap{display:block;padding:0;max-width:520px;margin:auto}.access-card{border-radius:18px;padding:1.25rem;box-shadow:0 10px 30px rgba(15,23,42,.07)}.access-mobile-brand{display:flex}.access-heading h2{font-size:1.4rem}.access-admin-row{align-items:flex-start;flex-direction:column}.access-admin-actions{justify-content:flex-start}}
+
+/* PWA Install Banner & Action Styles */
+.pwa-install-banner-wrap {
+  animation: slideInDown 0.35s ease;
+}
+@keyframes slideInDown {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.mobile-sheet-pwa-banner:hover,
+#sheet-btn-install-app:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(5, 150, 105, 0.28);
+}
+@media (max-width: 480px) {
+  .pwa-install-banner-wrap {
+    padding: 0.75rem 0.875rem !important;
+  }
+}
+
