@@ -3,6 +3,9 @@
 # ==============================================================================
 # Block all direct public downloads of sensitive source files, scripts and backups
 
+/dokumen /404 404
+/dokumen/* /404 404
+/dokumen.html /404 404
 /*.zip /404 404
 /*.tar.gz /404 404
 /*.gs /404 404
@@ -11,7 +14,6 @@
 /*.md /404 404
 /*.txt /404 404
 /DOKUMEN* /404 404
-/dokumen.html /404 404
 /backend/* /404 404
 /.private_backups/* /404 404
 /.git/* /404 404
