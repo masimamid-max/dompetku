@@ -7331,8 +7331,12 @@ function openMobileMenuSheet(onTabChange) {
           </div>
         </div>
 
-        <!-- Section 3: Akun & Logout -->
-        <div style="padding-top:0.25rem;">
+        <!-- Section 3: Akun & Dokumen -->
+        <div style="padding-top:0.25rem;display:flex;flex-direction:column;gap:0.5rem;">
+          <a href="./dokumen.html" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:0.5rem;padding:0.75rem 1rem;background:#f8fafc;border:1px solid #cbd5e1;border-radius:12px;font-size:0.8125rem;font-weight:700;color:#334155;text-decoration:none;">
+            <span>💾</span>
+            <span>Simpan / Unduh Dokumen Lengkap (Master Code)</span>
+          </a>
           <button type="button" class="mobile-sheet-logout-btn" id="sheet-btn-logout">
             ${Icons.logOut ? Icons.logOut(18) : '🚪'}
             <span>Keluar dari Akun</span>
