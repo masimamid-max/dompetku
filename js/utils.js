@@ -56,6 +56,21 @@ export function getMonthName(monthIndex) {
 }
 
 /**
+ * Generate HTML <option> elements for year select dropdown (default: 2010 to 2050)
+ */
+export function renderYearOptions(selectedYear, startYear = 2010, endYear = 2050) {
+  const current = parseInt(selectedYear, 10) || new Date().getFullYear();
+  const start = Math.min(startYear, current);
+  const end = Math.max(endYear, current);
+  const options = [];
+  for (let y = start; y <= end; y++) {
+    const isSelected = y === current ? ' selected' : '';
+    options.push(`<option value="${y}"${isSelected}>${y}</option>`);
+  }
+  return options.join('\n');
+}
+
+/**
  * Export Transactions array to standard CSV
  */
 export function exportToCSV(transactions, categoriesMap, accountsMap, membersMap, filename = 'transaksi-dompet-keluarga.csv') {

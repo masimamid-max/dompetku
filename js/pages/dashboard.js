@@ -1,6 +1,6 @@
 import { appState } from '../state.js';
 import { Icons, getCategoryIcon } from '../components/icons.js';
-import { formatRupiah, getMonthName, renderDonutChartSVG, renderDailyBarChartSVG } from '../utils.js';
+import { formatRupiah, getMonthName, renderDonutChartSVG, renderDailyBarChartSVG, renderYearOptions } from '../utils.js';
 import { openTransactionModal } from '../components/transactionModal.js';
 import { openReceiptScanModal } from '../components/receiptScanModal.js';
 import { openAiModal } from '../components/aiModal.js';
@@ -54,9 +54,7 @@ export function renderDashboardPage() {
             `).join('')}
           </select>
           <select id="dash-year-select" class="year-select">
-            <option value="2025" ${appState.selectedYear === 2025 ? 'selected' : ''}>2025</option>
-            <option value="2026" ${appState.selectedYear === 2026 ? 'selected' : ''}>2026</option>
-            <option value="2027" ${appState.selectedYear === 2027 ? 'selected' : ''}>2027</option>
+            ${renderYearOptions(appState.selectedYear, 2010, 2050)}
           </select>
         </div>
       </div>

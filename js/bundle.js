@@ -1719,6 +1719,21 @@ function getMonthName(monthIndex) {
 }
 
 /**
+ * Generate HTML <option> elements for year select dropdown (default: 2010 to 2050)
+ */
+function renderYearOptions(selectedYear, startYear = 2010, endYear = 2050) {
+  const current = parseInt(selectedYear, 10) || new Date().getFullYear();
+  const start = Math.min(startYear, current);
+  const end = Math.max(endYear, current);
+  const options = [];
+  for (let y = start; y <= end; y++) {
+    const isSelected = y === current ? ' selected' : '';
+    options.push(`<option value="${y}"${isSelected}>${y}</option>`);
+  }
+  return options.join('\n');
+}
+
+/**
  * Export Transactions array to standard CSV
  */
 function exportToCSV(transactions, categoriesMap, accountsMap, membersMap, filename = 'transaksi-dompet-keluarga.csv') {
@@ -7303,9 +7318,7 @@ function renderDashboardPage() {
             `).join('')}
           </select>
           <select id="dash-year-select" class="year-select">
-            <option value="2025" ${appState.selectedYear === 2025 ? 'selected' : ''}>2025</option>
-            <option value="2026" ${appState.selectedYear === 2026 ? 'selected' : ''}>2026</option>
-            <option value="2027" ${appState.selectedYear === 2027 ? 'selected' : ''}>2027</option>
+            ${renderYearOptions(appState.selectedYear, 2010, 2050)}
           </select>
         </div>
       </div>
@@ -8045,9 +8058,7 @@ function renderBudgetsPage() {
               `).join('')}
             </select>
             <select id="budget-year-select" class="year-select">
-              <option value="2025" ${appState.selectedYear === 2025 ? 'selected' : ''}>2025</option>
-              <option value="2026" ${appState.selectedYear === 2026 ? 'selected' : ''}>2026</option>
-              <option value="2027" ${appState.selectedYear === 2027 ? 'selected' : ''}>2027</option>
+              ${renderYearOptions(appState.selectedYear, 2010, 2050)}
             </select>
           </div>
 
@@ -9275,9 +9286,7 @@ function renderReportsPage() {
               `).join('')}
             </select>
             <select id="report-year-select" class="year-select">
-              <option value="2025" ${appState.selectedYear === 2025 ? 'selected' : ''}>2025</option>
-              <option value="2026" ${appState.selectedYear === 2026 ? 'selected' : ''}>2026</option>
-              <option value="2027" ${appState.selectedYear === 2027 ? 'selected' : ''}>2027</option>
+              ${renderYearOptions(appState.selectedYear, 2010, 2050)}
             </select>
           </div>
 

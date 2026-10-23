@@ -1,6 +1,6 @@
 import { appState } from '../state.js';
 import { Icons, getCategoryIcon } from '../components/icons.js';
-import { formatRupiah, getMonthName, renderCashflowTrendSVG, exportToCSV, parseRupiah } from '../utils.js';
+import { formatRupiah, getMonthName, renderCashflowTrendSVG, exportToCSV, parseRupiah, renderYearOptions } from '../utils.js';
 import { modal } from '../components/modal.js';
 import { toast } from '../components/toast.js';
 import { openExportModal } from '../components/exportModal.js';
@@ -59,9 +59,7 @@ export function renderReportsPage() {
               `).join('')}
             </select>
             <select id="report-year-select" class="year-select">
-              <option value="2025" ${appState.selectedYear === 2025 ? 'selected' : ''}>2025</option>
-              <option value="2026" ${appState.selectedYear === 2026 ? 'selected' : ''}>2026</option>
-              <option value="2027" ${appState.selectedYear === 2027 ? 'selected' : ''}>2027</option>
+              ${renderYearOptions(appState.selectedYear, 2010, 2050)}
             </select>
           </div>
 
