@@ -76,7 +76,7 @@ export function renderReportsPage() {
 
       <!-- Printable Report Header (Visible only on print) -->
       <div class="print-only-header" style="display:none;margin-bottom:1.5rem;">
-        <h2 style="font-size:1.5rem;font-weight:800;color:#0f172a;">Laporan Keuangan: ${appState.family.name}</h2>
+        <h2 style="font-size:1.5rem;font-weight:800;color:#0f172a;">Laporan Keuangan: ${appState.family?.name || appState.familySettings?.name || 'Keluarga'}</h2>
         <p style="font-size:0.875rem;color:#475569;">Periode: ${getMonthName(currentMonth)} ${currentYear} • Dicetak pada: ${new Date().toLocaleDateString('id-ID')}</p>
         <hr style="margin:1rem 0;border:0;border-top:1px solid #cbd5e1;" />
       </div>
