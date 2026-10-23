@@ -10018,25 +10018,6 @@ function renderCloudTab() {
             </button>
           </div>
         </div>
-      </div>
-
-      <!-- Hosting Guide Quick Card -->
-      <div class="card" style="background:linear-gradient(135deg, #0f172a, #1e293b);color:#fff;">
-        <div style="font-size:1.125rem;font-weight:800;margin-bottom:0.5rem;display:flex;align-items:center;gap:0.5rem;">
-          🌐 Gratis Hosting di GitHub Pages & Cloudflare Pages
-        </div>
-        <p style="font-size:0.875rem;color:#cbd5e1;line-height:1.6;margin-bottom:1.25rem;">
-          Frontend aplikasi ini adalah <strong>Pure Static Web App</strong> yang 100% siap di-deploy secara gratis tanpa biaya langganan server di:
-        </p>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:0.75rem;font-size:0.8125rem;">
-          <div style="background:rgba(255,255,255,0.08);padding:0.75rem 1rem;border-radius:8px;">
-            <strong>GitHub Pages:</strong> Otomatis deploy via workflow di <code>.github/workflows/deploy.yml</code>
-          </div>
-          <div style="background:rgba(255,255,255,0.08);padding:0.75rem 1rem;border-radius:8px;">
-            <strong>Cloudflare Pages:</strong> Koneksikan repo GitHub Anda, pilih Build Output: <code>.</code> (Root)
-          </div>
-        </div>
-      </div>
     </div>
   `;
 }
