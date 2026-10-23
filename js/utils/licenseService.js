@@ -38,15 +38,23 @@ export class LicenseService {
    */
   static isLicensed() {
     const license = this.getLicense();
-    return license && license.status === 'active';
+    if (!license || license.status !== 'active') return false;
+    if (window.SecurityGuard && typeof window.SecurityGuard.verifyLicense === 'function') {
+      return window.SecurityGuard.verifyLicense(license);
+    }
+    return !!license.key;
   }
 
   /**
-   * Simpan status lisensi
+   * Simpan status lisensi dengan tanda tangan digital anti-tamper
    */
   static saveLicense(licenseData) {
     try {
-      localStorage.setItem(LICENSE_STORAGE_KEY, JSON.stringify(licenseData));
+      let dataToSave = licenseData;
+      if (window.SecurityGuard && typeof window.SecurityGuard.signLicense === 'function') {
+        dataToSave = window.SecurityGuard.signLicense(licenseData);
+      }
+      localStorage.setItem(LICENSE_STORAGE_KEY, JSON.stringify(dataToSave));
     } catch (_) {}
   }
 
@@ -63,7 +71,7 @@ export class LicenseService {
 
   /**
    * Verifikasi dan Aktivasi Kunci Lisensi Unik + Simpan Nomor WhatsApp
-   * Mendukung validasi online via Backend Developer & Master Key Offline
+   * Validasi online aman via Backend Developer & Serial Format Verification
    */
   static async activate(rawKey, userEmail = '', userPhone = '') {
     const key = (rawKey || '').trim().toUpperCase();
@@ -79,35 +87,7 @@ export class LicenseService {
     const fullName = session.fullName || userAccount?.name || 'Pelanggan';
     const phone = this.formatPhoneNumber(userPhone || session.phone || userAccount?.phone || '');
 
-    // 1. Cek Offline Master Keys (Untuk kemudahan aktivasi developer langsung)
-    const masterKeys = [
-      'DKPRO-LIFETIME-2026',
-      'DOMPETKU-PRO-VIP',
-      'DOMPETKU-PRO-8899',
-      'DK-SUPER-ACCESS'
-    ];
-
-    if (masterKeys.includes(key) || (key.startsWith('DKPRO-') && key.length >= 12)) {
-      const license = {
-        status: 'active',
-        plan: 'Dompetku PRO (Akses Penuh Selamanya)',
-        key: key,
-        email: email,
-        phone: phone,
-        fullName: fullName,
-        activatedAt: new Date().toISOString(),
-        validUntil: 'Selamanya (Lifetime)'
-      };
-      this.saveLicense(license);
-      this.notifyServerOfActivation(license);
-      return {
-        success: true,
-        message: '🎉 Lisensi Dompetku PRO Berhasil Diaktifkan! Semua fitur pencatatan telah terbuka penuh.',
-        license
-      };
-    }
-
-    // 2. Cek Online Verification ke Spreadsheet Backend Developer
+    // 1. Verifikasi Online Aman ke Backend Developer (Kunci Master & Kunci Pembeli)
     const apiUrl = window.AuthAccess?.getApiUrl?.() || 'https://script.google.com/macros/s/AKfycbwywRn2AgS94Qsh1VEFijrexDroXrb1zDhnvgQwqn6YsEcw24gNk89Yrts-DFSTb5p5HQ/exec';
     
     try {

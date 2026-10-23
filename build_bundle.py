@@ -2,6 +2,7 @@ import os
 import re
 
 files_order = [
+    "js/utils/securityGuard.js",
     "js/initialData.js",
     "js/state.js",
     "js/utils.js",
@@ -55,10 +56,17 @@ def clean_file_content(path):
     # Remove export { ... };
     content = re.sub(r'export\s*\{[^}]*\};?\n?', '', content)
 
-    return f"\n// ==================== [MODULE: {path}] ====================\n" + content
+    # Strip multi-line comments (except URLs)
+    content = re.sub(r'/\*[\s\S]*?\*/', '', content)
+    # Strip standalone single-line comments
+    content = re.sub(r'^\s*//(?!\s*http).*?$', '', content, flags=re.MULTILINE)
+    # Collapse multiple empty lines
+    content = re.sub(r'\n\s*\n+', '\n', content)
+
+    return content
 
 def build():
-    output = "/**\n * Dompet Keluarga V3.18.2 - Production Bundle\n * Complete Unified Client-Side Application with Cloud Sync & OCR\n */\n"
+    output = "/** Dompet Keluarga PRO V3.18.6 - Production Bundle - Protected by SecurityGuard */\n"
     
     for path in files_order:
         if os.path.exists(path):
@@ -69,7 +77,10 @@ def build():
     with open("js/bundle.js", "w", encoding="utf-8") as f:
         f.write(output)
     
-    print(f"Successfully generated js/bundle.js ({len(output)} bytes)")
+    with open("bundle.js", "w", encoding="utf-8") as f:
+        f.write(output)
+    
+    print(f"Successfully generated js/bundle.js and bundle.js ({len(output)} bytes)")
 
 if __name__ == "__main__":
     build()

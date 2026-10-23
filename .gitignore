@@ -2,9 +2,11 @@
 .DS_Store
 Thumbs.db
 
-# Local Archive Files
+# Local Archive & Backup Files
 *.zip
 *.log
+.private_backups/
+*.backup.*
 
 # Node & Temp
 node_modules/

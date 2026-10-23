@@ -1,12 +1,117 @@
-/**
- * Dompet Keluarga V3.18.2 - Production Bundle
- * Complete Unified Client-Side Application with Cloud Sync & OCR
- */
+/** Dompet Keluarga PRO V3.18.6 - Production Bundle - Protected by SecurityGuard */
 
-// ==================== [MODULE: js/initialData.js] ====================
-/**
- * Mock initial data for Indonesian family financial management MVP
- */
+(function () {
+  'use strict';
+  const hostname = (typeof window !== 'undefined' && window.location && window.location.hostname) ? window.location.hostname.toLowerCase() : '';
+  const protocol = (typeof window !== 'undefined' && window.location && window.location.protocol) ? window.location.protocol : '';
+  const isLocal = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1' || protocol === 'file:';
+  const isOfficialDomain = 
+    hostname === 'urwahdigital.space' ||
+    hostname.endsWith('.urwahdigital.space') ||
+    hostname.endsWith('.pages.dev');
+  if (!isLocal && !isOfficialDomain && typeof document !== 'undefined') {
+    const handleUnauthorized = () => {
+      document.body.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#064e3b;background:linear-gradient(135deg, #064e3b 0%, #022c22 100%);color:#f8fafc;font-family:'Plus Jakarta Sans',sans-serif;padding:2rem;box-sizing:border-box;">
+          <div style="max-width:480px;background:rgba(255,255,255,0.06);backdrop-filter:blur(16px);border:1.5px solid rgba(239,68,68,0.5);border-radius:24px;padding:2.5rem 2rem;text-align:center;box-shadow:0 25px 50px rgba(0,0,0,0.5);">
+            <div style="width:64px;height:64px;background:#fee2e2;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;font-size:32px;">⚠️</div>
+            <h2 style="color:#fca5a5;font-size:1.4rem;font-weight:800;margin:0 0 0.75rem 0;">Akses Domain Tidak Resmi</h2>
+            <p style="color:#e2e8f0;font-size:0.9rem;line-height:1.6;margin:0 0 1.5rem 0;">
+              Aplikasi <strong>Dompet Keluarga PRO</strong> dilindungi hak cipta intelektual dan lisensi domain. Distribusi di luar domain resmi tidak diizinkan.
+            </p>
+            <a href="https://urwahdigital.space" style="display:inline-flex;align-items:center;justify-content:center;padding:0.8rem 1.6rem;background:#10b981;color:#ffffff;font-weight:700;font-size:0.92rem;text-decoration:none;border-radius:12px;box-shadow:0 8px 20px rgba(16,185,129,0.3);">
+              Buka di Domain Resmi (urwahdigital.space) →
+            </a>
+          </div>
+        </div>
+      `;
+    };
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', handleUnauthorized);
+    } else {
+      handleUnauthorized();
+    }
+    throw new Error('Unauthorized domain distribution. Licensed exclusively to urwahdigital.space.');
+  }
+  if (!isLocal && typeof document !== 'undefined') {
+    document.addEventListener('contextmenu', function (e) {
+      const tag = (e.target && e.target.tagName) ? e.target.tagName.toUpperCase() : '';
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (e.target && e.target.isContentEditable)) {
+        return true; // Izinkan klik kanan untuk paste di input form
+      }
+      e.preventDefault();
+      return false;
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'F12' || e.keyCode === 123) {
+        e.preventDefault();
+        return false;
+      }
+      if ((e.ctrlKey || e.metaKey) && (e.shiftKey || e.altKey) && (e.key === 'I' || e.key === 'i' || e.keyCode === 73)) {
+        e.preventDefault();
+        return false;
+      }
+      if ((e.ctrlKey || e.metaKey) && (e.shiftKey || e.altKey) && (e.key === 'J' || e.key === 'j' || e.keyCode === 74)) {
+        e.preventDefault();
+        return false;
+      }
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'U' || e.key === 'u' || e.keyCode === 85)) {
+        e.preventDefault();
+        return false;
+      }
+    });
+  }
+  const SECRET_SALT = 'DK_PRO_GUARD_2026_@URWAH_SECURE_AUTH!';
+  function computeFastHash(str) {
+    let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+    for (let i = 0, ch; i < str.length; i++) {
+      ch = str.charCodeAt(i);
+      h1 = Math.imul(h1 ^ ch, 2654435761);
+      h2 = Math.imul(h2 ^ ch, 1597334677);
+    }
+    h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+    h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+    return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(16).padStart(14, '0');
+  }
+  function generateSignature(key, email, phone, status) {
+    const raw = `${String(key).trim().toUpperCase()}:${String(email).trim().toLowerCase()}:${String(phone).replace(/[^0-9]/g, '')}:${status}:${SECRET_SALT}`;
+    const part1 = computeFastHash(raw);
+    const part2 = computeFastHash(raw.split('').reverse().join(''));
+    return `sig_${part1}_${part2}`;
+  }
+  window.SecurityGuard = {
+    isProduction: !isLocal,
+    signLicense: function (license) {
+      if (!license) return license;
+      const copy = { ...license };
+      copy._sig = generateSignature(copy.key || '', copy.email || '', copy.phone || '', copy.status || '');
+      copy._verifiedAt = Date.now();
+      return copy;
+    },
+    verifyLicense: function (license) {
+      if (!license) return false;
+      if (license.status !== 'active') return false;
+      if (!license.key) return false;
+      const expectedSig = generateSignature(license.key || '', license.email || '', license.phone || '', license.status || '');
+      if (license._sig === expectedSig) {
+        return true;
+      }
+      const key = String(license.key).trim().toUpperCase();
+      const isValidPattern = /^DK-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(key) || (key.startsWith('DKPRO-') && key.length >= 10);
+      if (isValidPattern) {
+        license._sig = expectedSig;
+        license._verifiedAt = Date.now();
+        try {
+          localStorage.setItem('dk_app_license_v1', JSON.stringify(license));
+        } catch (_) {}
+        return true;
+      }
+      console.warn('⚠️ Integritas lisensi tidak valid (tampering detected).');
+      return false;
+    }
+  };
+})();
+
 
 var INITIAL_DATA = {
   currentUser: {
@@ -16,7 +121,6 @@ var INITIAL_DATA = {
     role: 'owner',
     avatarText: 'BS'
   },
-  
   family: {
     id: 'fam-1',
     name: 'Keluarga Santoso',
@@ -26,7 +130,6 @@ var INITIAL_DATA = {
     ownerId: 'user-1',
     createdAt: '2026-01-01'
   },
-
   members: [
     {
       id: 'user-1',
@@ -59,7 +162,6 @@ var INITIAL_DATA = {
       joinedAt: '2026-02-15'
     }
   ],
-
   accounts: [
     {
       id: 'acc-1',
@@ -106,9 +208,7 @@ var INITIAL_DATA = {
       isArchived: false
     }
   ],
-
   categories: [
-    // Expense Categories
     {
       id: 'cat-exp-1',
       familyId: 'fam-1',
@@ -197,8 +297,6 @@ var INITIAL_DATA = {
       isDefault: true,
       isArchived: false
     },
-
-    // Income Categories
     {
       id: 'cat-inc-1',
       familyId: 'fam-1',
@@ -233,7 +331,6 @@ var INITIAL_DATA = {
       isArchived: false
     }
   ],
-
   budgets: [
     { id: 'b-1', familyId: 'fam-1', month: 9, year: 2026, categoryId: 'cat-exp-1', amount: 4500000 },
     { id: 'b-2', familyId: 'fam-1', month: 9, year: 2026, categoryId: 'cat-exp-2', amount: 3000000 },
@@ -242,15 +339,11 @@ var INITIAL_DATA = {
     { id: 'b-5', familyId: 'fam-1', month: 9, year: 2026, categoryId: 'cat-exp-5', amount: 2500000 },
     { id: 'b-6', familyId: 'fam-1', month: 9, year: 2026, categoryId: 'cat-exp-6', amount: 1000000 },
     { id: 'b-7', familyId: 'fam-1', month: 9, year: 2026, categoryId: 'cat-exp-7', amount: 1200000 },
-    
-    // August budgets for comparison
     { id: 'b-old-1', familyId: 'fam-1', month: 8, year: 2026, categoryId: 'cat-exp-1', amount: 4500000 },
     { id: 'b-old-2', familyId: 'fam-1', month: 8, year: 2026, categoryId: 'cat-exp-2', amount: 3000000 },
     { id: 'b-old-3', familyId: 'fam-1', month: 8, year: 2026, categoryId: 'cat-exp-3', amount: 2200000 }
   ],
-
   transactions: [
-    // Current Month (September 2026)
     {
       id: 'tx-1',
       familyId: 'fam-1',
@@ -479,8 +572,6 @@ var INITIAL_DATA = {
       createdAt: '2026-09-18T12:30:00Z',
       updatedAt: '2026-09-18T12:30:00Z'
     },
-
-    // Previous Month (August 2026) for comparative analysis
     {
       id: 'tx-old-1',
       familyId: 'fam-1',
@@ -546,7 +637,6 @@ var INITIAL_DATA = {
       updatedAt: '2026-08-15T11:00:00Z'
     }
   ],
-
   goals: [
     {
       id: 'goal-1',
@@ -591,7 +681,6 @@ var INITIAL_DATA = {
       createdAt: '2026-06-01'
     }
   ],
-
   recurringBills: [
     {
       id: 'bill-1',
@@ -645,19 +734,12 @@ var INITIAL_DATA = {
 };
 
 
-// ==================== [MODULE: js/state.js] ====================
-/**
- * State Management & Data Store for Dompet Keluarga
- */
-
 var STORAGE_KEY = 'dompet_keluarga_db_v1';
-
 class AppState {
   constructor() {
     this.listeners = [];
     this.loadState();
   }
-
   loadState() {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -679,8 +761,6 @@ class AppState {
       console.error('Failed to load state from localStorage, falling back to initial data', e);
       this.resetToInitialData();
     }
-
-    // Default filters: prioritize month of latest transaction or current date
     const now = new Date();
     if (this.transactions && this.transactions.length > 0) {
       const latestTx = this.transactions[0];
@@ -698,7 +778,6 @@ class AppState {
     }
     this.activeTab = 'dashboard';
   }
-
   saveState() {
     try {
       const payload = {
@@ -718,7 +797,6 @@ class AppState {
     }
     this.notify();
   }
-
   resetToInitialData() {
     this.family = JSON.parse(JSON.stringify(INITIAL_DATA.family));
     this.currentUser = JSON.parse(JSON.stringify(INITIAL_DATA.currentUser));
@@ -731,16 +809,13 @@ class AppState {
     this.recurringBills = JSON.parse(JSON.stringify(INITIAL_DATA.recurringBills));
     this.saveState();
   }
-
   resetToCleanData() {
     const session = (window.AuthAccess && typeof window.AuthAccess.getSession === 'function')
       ? window.AuthAccess.getSession()
       : null;
-
     const ownerName = session?.fullName || (this.currentUser?.name && this.currentUser.name !== 'Budi Santoso' ? this.currentUser.name : 'Keluarga');
     const ownerEmail = session?.email || (this.currentUser?.email && this.currentUser.email !== 'budi@keluarga.id' ? this.currentUser.email : '');
     const avatar = ownerName.split(' ').map(v => v[0]).join('').slice(0, 2).toUpperCase() || 'DK';
-
     this.family = {
       id: 'fam_' + Date.now(),
       name: `Keluarga ${ownerName !== 'Keluarga' ? ownerName.split(' ')[0] : 'Harmonis'}`,
@@ -749,7 +824,6 @@ class AppState {
       inviteCode: 'DK-' + Math.random().toString(36).substring(2, 8).toUpperCase(),
       createdAt: new Date().toISOString()
     };
-
     const ownerId = 'mem_owner_' + Date.now();
     this.currentUser = {
       id: ownerId,
@@ -759,7 +833,6 @@ class AppState {
       roleLabel: 'Kepala Keluarga',
       avatarText: avatar
     };
-
     this.members = [
       {
         id: ownerId,
@@ -770,8 +843,6 @@ class AppState {
         avatarText: avatar
       }
     ];
-
-    // Buat 2 akun standar awal dengan saldo Rp 0
     this.accounts = [
       {
         id: 'acc_kas_utama',
@@ -798,33 +869,22 @@ class AppState {
         isArchived: false
       }
     ];
-
-    // Gunakan template kategori bawaan agar langsung siap pakai
     this.categories = JSON.parse(JSON.stringify(INITIAL_DATA.categories || []));
-
-    // Riwayat transaksi bersih (0 transaksi)
     this.transactions = [];
-
-    // Anggaran, tabungan, dan tagihan bersih
     this.budgets = [];
     this.goals = [];
     this.recurringBills = [];
-
     this.saveState();
   }
-
   subscribe(listener) {
     this.listeners.push(listener);
     return () => {
       this.listeners = this.listeners.filter(l => l !== listener);
     };
   }
-
   notify() {
     this.listeners.forEach(fn => fn());
   }
-
-  // User / Role Switching (Simulator for testing role-based access)
   setCurrentUser(userId) {
     const user = this.members.find(m => m.id === userId);
     if (user) {
@@ -838,30 +898,21 @@ class AppState {
       this.saveState();
     }
   }
-
-  // Permission Check
   canManageFamily() {
     return this.currentUser.role === 'owner';
   }
-
   canManageFinances() {
     return this.currentUser.role === 'owner' || this.currentUser.role === 'admin';
   }
-
   canEditTransaction(transaction) {
     if (this.canManageFinances()) return true;
-    // Member can only edit their own transaction
     return transaction.recordedBy === this.currentUser.id || transaction.memberId === this.currentUser.id;
   }
-
-  // Accounts with Running Balance Calculation
   getAccountsWithBalances() {
     return this.accounts.map(acc => {
       let balance = acc.initialBalance || 0;
-
       this.transactions.forEach(tx => {
         if (tx.status === 'cancelled') return;
-
         if (tx.type === 'income' && tx.accountId === acc.id) {
           balance += tx.amount;
         } else if (tx.type === 'expense' && tx.accountId === acc.id) {
@@ -875,18 +926,15 @@ class AppState {
           }
         }
       });
-
       return {
         ...acc,
         currentBalance: balance
       };
     });
   }
-
   getAccountById(id) {
     return this.getAccountsWithBalances().find(a => a.id === id);
   }
-
   addAccount(accData) {
     const newAcc = {
       id: `acc-${Date.now()}`,
@@ -903,7 +951,6 @@ class AppState {
     this.saveState();
     return newAcc;
   }
-
   updateAccount(id, updates) {
     const index = this.accounts.findIndex(a => a.id === id);
     if (index !== -1) {
@@ -911,7 +958,6 @@ class AppState {
       this.saveState();
     }
   }
-
   toggleArchiveAccount(id) {
     const acc = this.accounts.find(a => a.id === id);
     if (acc) {
@@ -919,8 +965,6 @@ class AppState {
       this.saveState();
     }
   }
-
-  // Categories
   getCategories(type = null) {
     let cats = this.categories.filter(c => !c.isArchived);
     if (type) {
@@ -928,11 +972,9 @@ class AppState {
     }
     return cats;
   }
-
   getCategoryById(id) {
     return this.categories.find(c => c.id === id);
   }
-
   addCategory(catData) {
     const newCat = {
       id: `cat-${catData.type === 'income' ? 'inc' : 'exp'}-${Date.now()}`,
@@ -949,7 +991,6 @@ class AppState {
     this.saveState();
     return newCat;
   }
-
   updateCategory(id, updates) {
     const index = this.categories.findIndex(c => c.id === id);
     if (index !== -1) {
@@ -957,14 +998,11 @@ class AppState {
       this.saveState();
     }
   }
-
   isCategoryInUse(categoryId) {
     return this.transactions.some(tx => tx.categoryId === categoryId);
   }
-
   deleteOrArchiveCategory(id) {
     if (this.isCategoryInUse(id)) {
-      // Archive instead of delete to protect historical data integrity
       const cat = this.categories.find(c => c.id === id);
       if (cat) {
         cat.isArchived = true;
@@ -977,8 +1015,6 @@ class AppState {
       return { status: 'deleted', message: 'Kategori berhasil dihapus.' };
     }
   }
-
-  // Transactions CRUD
   addTransaction(data) {
     const nowISO = new Date().toISOString();
     const newTx = {
@@ -999,19 +1035,15 @@ class AppState {
       createdAt: nowISO,
       updatedAt: nowISO
     };
-
     this.transactions.unshift(newTx);
     this.saveState();
-
     try {
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('transaction:added', { detail: newTx }));
       }
     } catch (e) {}
-
     return newTx;
   }
-
   updateTransaction(id, data) {
     const index = this.transactions.findIndex(t => t.id === id);
     if (index !== -1) {
@@ -1032,11 +1064,9 @@ class AppState {
     }
     return null;
   }
-
   duplicateTransaction(id) {
     const orig = this.transactions.find(t => t.id === id);
     if (!orig) return null;
-
     const copy = {
       ...orig,
       id: `tx-${Date.now()}`,
@@ -1047,7 +1077,6 @@ class AppState {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
-
     this.transactions.unshift(copy);
     this.saveState();
     try {
@@ -1057,7 +1086,6 @@ class AppState {
     } catch (e) {}
     return copy;
   }
-
   deleteTransaction(id) {
     this.transactions = this.transactions.filter(t => t.id !== id);
     this.saveState();
@@ -1067,65 +1095,48 @@ class AppState {
       }
     } catch (e) {}
   }
-
-  // Monthly Metrics & Analytics
   getMonthlyMetrics(month = this.selectedMonth, year = this.selectedYear) {
     const currentMonthTx = this.transactions.filter(tx => {
       if (tx.status === 'cancelled') return false;
       const d = new Date(tx.date);
       return d.getMonth() + 1 === month && d.getFullYear() === year;
     });
-
-    // Previous month for comparison
     let prevMonth = month - 1;
     let prevYear = year;
     if (prevMonth === 0) {
       prevMonth = 12;
       prevYear = year - 1;
     }
-
     const prevMonthTx = this.transactions.filter(tx => {
       if (tx.status === 'cancelled') return false;
       const d = new Date(tx.date);
       return d.getMonth() + 1 === prevMonth && d.getFullYear() === prevYear;
     });
-
     let totalIncome = 0;
     let totalExpense = 0;
     let transactionCount = currentMonthTx.length;
-
     currentMonthTx.forEach(tx => {
       if (tx.type === 'income') totalIncome += tx.amount;
       if (tx.type === 'expense') totalExpense += tx.amount;
     });
-
     let prevIncome = 0;
     let prevExpense = 0;
     prevMonthTx.forEach(tx => {
       if (tx.type === 'income') prevIncome += tx.amount;
       if (tx.type === 'expense') prevExpense += tx.amount;
     });
-
     const netSavings = totalIncome - totalExpense;
-
-    // Monthly Budgets Comparison
     const currentBudgets = this.budgets.filter(b => b.month === month && b.year === year);
     const totalBudget = currentBudgets.reduce((sum, b) => sum + b.amount, 0);
     const budgetUsedPercent = totalBudget > 0 ? Math.round((totalExpense / totalBudget) * 100) : 0;
-
-    // Expense percentage comparison vs previous month
     let expenseDiffPercent = 0;
     if (prevExpense > 0) {
       expenseDiffPercent = Math.round(((totalExpense - prevExpense) / prevExpense) * 100);
     }
-
-    // Top 5 Expenses
     const topExpenses = currentMonthTx
       .filter(tx => tx.type === 'expense')
       .sort((a, b) => b.amount - a.amount)
       .slice(0, 5);
-
-    // Expenses by Category
     const categoryExpensesMap = {};
     currentMonthTx.filter(tx => tx.type === 'expense').forEach(tx => {
       const cat = this.getCategoryById(tx.categoryId);
@@ -1133,7 +1144,6 @@ class AppState {
       const catName = cat ? cat.name : 'Lainnya';
       const catColor = cat ? cat.color : '#94a3b8';
       const catIcon = cat ? cat.icon : 'tag';
-
       if (!categoryExpensesMap[catId]) {
         categoryExpensesMap[catId] = {
           id: catId,
@@ -1145,10 +1155,7 @@ class AppState {
       }
       categoryExpensesMap[catId].value += tx.amount;
     });
-
     const categoryBreakdown = Object.values(categoryExpensesMap).sort((a, b) => b.value - a.value);
-
-    // Daily Expenses
     const daysInMonth = new Date(year, month, 0).getDate();
     const dailyExpenses = [];
     for (let day = 1; day <= daysInMonth; day++) {
@@ -1156,14 +1163,12 @@ class AppState {
       const dayTotal = currentMonthTx
         .filter(tx => tx.type === 'expense' && tx.date === dateStr)
         .reduce((sum, tx) => sum + tx.amount, 0);
-
       dailyExpenses.push({
         day,
         date: dateStr,
         amount: dayTotal
       });
     }
-
     return {
       month,
       year,
@@ -1181,32 +1186,26 @@ class AppState {
       dailyExpenses
     };
   }
-
-  // Budgets
   getCategoryBudgetsWithProgress(month = this.selectedMonth, year = this.selectedYear) {
     const expenseCategories = this.getCategories('expense');
     const monthlyBudgets = this.budgets.filter(b => b.month === month && b.year === year);
     const metrics = this.getMonthlyMetrics(month, year);
     const catSpentMap = {};
-
     metrics.categoryBreakdown.forEach(c => {
       catSpentMap[c.id] = c.value;
     });
-
     return expenseCategories.map(cat => {
       const budgetEntry = monthlyBudgets.find(b => b.categoryId === cat.id);
       const budgetAmount = budgetEntry ? budgetEntry.amount : 0;
       const spentAmount = catSpentMap[cat.id] || 0;
       const remainingAmount = budgetAmount - spentAmount;
       const percent = budgetAmount > 0 ? Math.round((spentAmount / budgetAmount) * 100) : 0;
-
       let status = 'safe'; // < 80%
       if (percent >= 100) {
         status = 'danger'; // Over budget
       } else if (percent >= 80) {
         status = 'warning'; // 80 - 99%
       }
-
       return {
         categoryId: cat.id,
         category: cat,
@@ -1219,7 +1218,6 @@ class AppState {
       };
     });
   }
-
   setBudget(categoryId, amount, month = this.selectedMonth, year = this.selectedYear) {
     const existing = this.budgets.find(b => b.categoryId === categoryId && b.month === month && b.year === year);
     if (existing) {
@@ -1236,7 +1234,6 @@ class AppState {
     }
     this.saveState();
   }
-
   copyBudgetsFromPreviousMonth(targetMonth = this.selectedMonth, targetYear = this.selectedYear) {
     let prevMonth = targetMonth - 1;
     let prevYear = targetYear;
@@ -1244,12 +1241,10 @@ class AppState {
       prevMonth = 12;
       prevYear = targetYear - 1;
     }
-
     const prevBudgets = this.budgets.filter(b => b.month === prevMonth && b.year === prevYear);
     if (prevBudgets.length === 0) {
       return { count: 0, message: 'Tidak ada anggaran di bulan sebelumnya untuk disalin.' };
     }
-
     let copiedCount = 0;
     prevBudgets.forEach(pb => {
       const exists = this.budgets.find(b => b.categoryId === pb.categoryId && b.month === targetMonth && b.year === targetYear);
@@ -1267,12 +1262,9 @@ class AppState {
       }
       copiedCount++;
     });
-
     this.saveState();
     return { count: copiedCount, message: `Berhasil menyalin ${copiedCount} alokasi anggaran dari bulan sebelumnya!` };
   }
-
-  // Members Management & Super Access Control
   addMember(name, email, role = 'member', password = '123') {
     const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) || 'AG';
     const roleLabels = {
@@ -1280,7 +1272,6 @@ class AppState {
       admin: 'Admin (Pengelola)',
       member: 'Anggota Keluarga'
     };
-
     const newMember = {
       id: `user-${Date.now()}`,
       name: name.trim(),
@@ -1295,17 +1286,14 @@ class AppState {
     this.saveState();
     return newMember;
   }
-
   updateMember(userId, updates) {
     const member = this.members.find(m => m.id === userId);
     if (!member) return null;
-
     const roleLabels = {
       owner: 'Super Akses (Pemilik)',
       admin: 'Admin (Pengelola)',
       member: 'Anggota Keluarga'
     };
-
     if (updates.name) {
       member.name = updates.name.trim();
       member.avatarText = member.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) || 'AG';
@@ -1320,8 +1308,6 @@ class AppState {
       member.role = updates.role;
       member.roleLabel = roleLabels[updates.role] || updates.role;
     }
-
-    // If updating current active user, sync session
     if (this.currentUser.id === userId) {
       this.currentUser = {
         ...this.currentUser,
@@ -1331,42 +1317,33 @@ class AppState {
         avatarText: member.avatarText
       };
     }
-
     this.saveState();
     return member;
   }
-
   deleteMember(userId) {
     const member = this.members.find(m => m.id === userId);
     if (!member) {
       return { success: false, message: 'Anggota tidak ditemukan.' };
     }
-
     if (member.role === 'owner') {
       const ownerCount = this.members.filter(m => m.role === 'owner').length;
       if (ownerCount <= 1) {
         return { success: false, message: 'Tidak dapat menghapus Pemilik/Super Akses utama ruang keluarga.' };
       }
     }
-
     this.members = this.members.filter(m => m.id !== userId);
-
-    // If current active user was deleted, fallback to the first available owner
     if (this.currentUser.id === userId) {
       const fallback = this.members.find(m => m.role === 'owner') || this.members[0];
       if (fallback) {
         this.setCurrentUser(fallback.id);
       }
     }
-
     this.saveState();
     return { success: true, message: `Anggota ${member.name} berhasil dihapus dari ruang keluarga.` };
   }
-
   updateMemberRole(userId, newRole) {
     return this.updateMember(userId, { role: newRole });
   }
-
   loginUser(email, password) {
     const user = this.members.find(m => m.email.toLowerCase() === email.toLowerCase());
     if (!user) {
@@ -1378,10 +1355,6 @@ class AppState {
     this.setCurrentUser(user.id);
     return { success: true, user, message: `Selamat datang kembali, ${user.name}!` };
   }
-
-  // ==========================================
-  // Financial Goals / Celengan Digital
-  // ==========================================
   getGoals() {
     return (this.goals || []).map(g => {
       const progress = g.targetAmount > 0 ? Math.min(100, Math.round((g.currentAmount / g.targetAmount) * 100)) : 0;
@@ -1393,11 +1366,9 @@ class AppState {
       };
     });
   }
-
   getGoalById(id) {
     return this.getGoals().find(g => g.id === id);
   }
-
   addGoal(data) {
     const newGoal = {
       id: `goal-${Date.now()}`,
@@ -1418,7 +1389,6 @@ class AppState {
     this.saveState();
     return newGoal;
   }
-
   updateGoal(id, updates) {
     const idx = (this.goals || []).findIndex(g => g.id === id);
     if (idx !== -1) {
@@ -1428,17 +1398,12 @@ class AppState {
     }
     return null;
   }
-
   depositToGoal(goalId, amount, sourceAccountId) {
     const goal = (this.goals || []).find(g => g.id === goalId);
     if (!goal) return { success: false, message: 'Target tabungan tidak ditemukan.' };
-    
     const depositAmount = Number(amount);
     if (depositAmount <= 0) return { success: false, message: 'Nominal setoran harus lebih dari Rp 0.' };
-
     goal.currentAmount = (goal.currentAmount || 0) + depositAmount;
-
-    // Record as transfer / expense transaction
     this.addTransaction({
       type: 'expense',
       amount: depositAmount,
@@ -1449,28 +1414,20 @@ class AppState {
       notes: `Alokasi dana target ${goal.name}`,
       status: 'verified'
     });
-
     this.saveState();
     return { success: true, message: `Berhasil menyetor dana sebesar ${depositAmount.toLocaleString('id-ID')} ke ${goal.name}!` };
   }
-
   deleteGoal(id) {
     this.goals = (this.goals || []).filter(g => g.id !== id);
     this.saveState();
     return { success: true, message: 'Target tabungan berhasil dihapus.' };
   }
-
-  // ==========================================
-  // Recurring Bills & Reminders
-  // ==========================================
   getRecurringBills() {
     return this.recurringBills || [];
   }
-
   getBillById(id) {
     return (this.recurringBills || []).find(b => b.id === id);
   }
-
   addRecurringBill(data) {
     const newBill = {
       id: `bill-${Date.now()}`,
@@ -1489,7 +1446,6 @@ class AppState {
     this.saveState();
     return newBill;
   }
-
   updateRecurringBill(id, updates) {
     const idx = (this.recurringBills || []).findIndex(b => b.id === id);
     if (idx !== -1) {
@@ -1499,15 +1455,11 @@ class AppState {
     }
     return null;
   }
-
   payRecurringBill(billId, accountId = null) {
     const bill = (this.recurringBills || []).find(b => b.id === billId);
     if (!bill) return { success: false, message: 'Tagihan tidak ditemukan.' };
-
     const useAccount = accountId || bill.accountId;
     const nowStr = new Date().toISOString().split('T')[0];
-
-    // Create automatic expense transaction
     this.addTransaction({
       type: 'expense',
       amount: bill.amount,
@@ -1518,28 +1470,20 @@ class AppState {
       notes: bill.notes || 'Pembayaran rutin bulanan',
       status: 'verified'
     });
-
     bill.isPaidThisMonth = true;
     bill.lastPaidDate = nowStr;
     this.saveState();
-
     return { success: true, message: `Tagihan "${bill.name}" berhasil dibayar dan dicatat ke transaksi!` };
   }
-
   deleteRecurringBill(id) {
     this.recurringBills = (this.recurringBills || []).filter(b => b.id !== id);
     this.saveState();
     return { success: true, message: 'Tagihan rutin berhasil dihapus.' };
   }
-
   updateFamilyInfo(name) {
     this.family.name = name.trim();
     this.saveState();
   }
-
-  // ==========================================
-  // Backup, Restore & CSV Export
-  // ==========================================
   exportFullBackupJSON() {
     try {
       const backupData = {
@@ -1556,7 +1500,6 @@ class AppState {
         goals: this.goals,
         recurringBills: this.recurringBills
       };
-
       const jsonStr = JSON.stringify(backupData, null, 2);
       const blob = new Blob([jsonStr], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -1574,16 +1517,13 @@ class AppState {
       return false;
     }
   }
-
   exportAllTransactionsCSV() {
     try {
       const headers = ['ID', 'Tanggal', 'Tipe', 'Deskripsi', 'Kategori', 'Subkategori', 'Jumlah (IDR)', 'Rekening Asal', 'Rekening Tujuan', 'Dicatat Oleh', 'Catatan', 'Status'];
       const rows = [headers];
-
       const accountMap = new Map((this.accounts || []).map(a => [a.id, a.name]));
       const categoryMap = new Map((this.categories || []).map(c => [c.id, c.name]));
       const memberMap = new Map((this.members || []).map(m => [m.id, m.name]));
-
       (this.transactions || []).forEach(tx => {
         const typeLabel = tx.type === 'income' ? 'Pemasukan' : tx.type === 'expense' ? 'Pengeluaran' : 'Transfer Antar Rekening';
         const catName = categoryMap.get(tx.categoryId) || '-';
@@ -1592,7 +1532,6 @@ class AppState {
         const accTarget = tx.targetAccountId ? (accountMap.get(tx.targetAccountId) || '-') : '-';
         const recorder = memberMap.get(tx.recordedBy || tx.memberId) || 'Saya';
         const statusLabel = tx.status === 'verified' ? 'Terverifikasi' : tx.status === 'cancelled' ? 'Dibatalkan' : 'Pending';
-
         const row = [
           `"${tx.id || ''}"`,
           `"${tx.date || ''}"`,
@@ -1609,7 +1548,6 @@ class AppState {
         ];
         rows.push(row);
       });
-
       const csvContent = '\uFEFF' + rows.map(r => r.join(',')).join('\r\n');
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
@@ -1627,14 +1565,12 @@ class AppState {
       return false;
     }
   }
-
   importFullBackupJSON(jsonString) {
     try {
       const data = typeof jsonString === 'string' ? JSON.parse(jsonString) : jsonString;
       if (!data || typeof data !== 'object') {
         return { success: false, message: 'Format data cadangan tidak valid.' };
       }
-
       if (data.family) this.family = data.family;
       if (data.currentUser) this.currentUser = data.currentUser;
       if (Array.isArray(data.members)) this.members = data.members;
@@ -1644,7 +1580,6 @@ class AppState {
       if (Array.isArray(data.budgets)) this.budgets = data.budgets;
       if (Array.isArray(data.goals)) this.goals = data.goals;
       if (Array.isArray(data.recurringBills)) this.recurringBills = data.recurringBills;
-
       this.saveState();
       return { 
         success: true, 
@@ -1656,14 +1591,8 @@ class AppState {
     }
   }
 }
-
 var appState = new AppState();
 
-
-// ==================== [MODULE: js/utils.js] ====================
-/**
- * Formatting, Date, CSV Export, and SVG Data Visualizations Helper
- */
 
 function formatRupiah(amount, withSymbol = true) {
   if (isNaN(amount) || amount === null || amount === undefined) {
@@ -1673,19 +1602,16 @@ function formatRupiah(amount, withSymbol = true) {
   const sign = amount < 0 ? '-' : '';
   return withSymbol ? `${sign}Rp ${formatted}` : `${sign}${formatted}`;
 }
-
 function parseRupiah(val) {
   if (typeof val === 'number') return val;
   if (!val) return 0;
   const cleaned = val.toString().replace(/[^0-9]/g, '');
   return parseInt(cleaned, 10) || 0;
 }
-
 function formatDate(dateString, style = 'medium') {
   if (!dateString) return '-';
   const date = new Date(dateString);
   if (isNaN(date.getTime())) return dateString;
-
   const monthsIndo = [
     'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
     'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
@@ -1694,11 +1620,9 @@ function formatDate(dateString, style = 'medium') {
     'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
     'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'
   ];
-
   const day = date.getDate();
   const month = date.getMonth();
   const year = date.getFullYear();
-
   if (style === 'short') {
     return `${day} ${monthsIndoShort[month]}`;
   } else if (style === 'medium') {
@@ -1709,7 +1633,6 @@ function formatDate(dateString, style = 'medium') {
   }
   return `${day}/${month + 1}/${year}`;
 }
-
 function getMonthName(monthIndex) {
   const months = [
     'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -1717,10 +1640,6 @@ function getMonthName(monthIndex) {
   ];
   return months[monthIndex - 1] || '';
 }
-
-/**
- * Generate HTML <option> elements for year select dropdown (default: 2010 to 2050)
- */
 function renderYearOptions(selectedYear, startYear = 2010, endYear = 2050) {
   const current = parseInt(selectedYear, 10) || new Date().getFullYear();
   const start = Math.min(startYear, current);
@@ -1732,19 +1651,13 @@ function renderYearOptions(selectedYear, startYear = 2010, endYear = 2050) {
   }
   return options.join('\n');
 }
-
-/**
- * Export Transactions array to standard CSV
- */
 function exportToCSV(transactions, categoriesMap, accountsMap, membersMap, filename = 'transaksi-dompet-keluarga.csv') {
   const headers = ['ID', 'Tanggal', 'Jenis', 'Nominal (IDR)', 'Deskripsi', 'Kategori', 'Subkategori', 'Akun Asal', 'Akun Tujuan', 'Anggota', 'Status', 'Catatan'];
-  
   const rows = transactions.map(tx => {
     const cat = categoriesMap[tx.categoryId] ? categoriesMap[tx.categoryId].name : '-';
     const acc = accountsMap[tx.accountId] ? accountsMap[tx.accountId].name : '-';
     const targetAcc = tx.targetAccountId && accountsMap[tx.targetAccountId] ? accountsMap[tx.targetAccountId].name : '-';
     const member = membersMap[tx.memberId] ? membersMap[tx.memberId].name : '-';
-    
     return [
       `"${tx.id}"`,
       `"${tx.date}"`,
@@ -1760,7 +1673,6 @@ function exportToCSV(transactions, categoriesMap, accountsMap, membersMap, filen
       `"${(tx.notes || '').replace(/"/g, '""')}"`
     ].join(',');
   });
-
   const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\r\n');
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
@@ -1771,34 +1683,25 @@ function exportToCSV(transactions, categoriesMap, accountsMap, membersMap, filen
   link.click();
   document.body.removeChild(link);
 }
-
-/**
- * Interactive Donut Chart SVG Generator
- */
 function renderDonutChartSVG(data, size = 240) {
   if (!data || data.length === 0) {
     return `<div class="empty-chart" style="height:${size}px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:0.875rem;">Belum ada pengeluaran di bulan ini</div>`;
   }
-
   const total = data.reduce((acc, item) => acc + item.value, 0);
   if (total === 0) {
     return `<div class="empty-chart" style="height:${size}px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:0.875rem;">Total pengeluaran Rp 0</div>`;
   }
-
   const radius = size * 0.38;
   const strokeWidth = size * 0.16;
   const center = size / 2;
   const circumference = 2 * Math.PI * radius;
-
   let accumulatedPercent = 0;
   let paths = '';
-
   data.forEach((slice) => {
     const percent = slice.value / total;
     const strokeDasharray = `${percent * circumference} ${circumference}`;
     const strokeDashoffset = -(accumulatedPercent * circumference);
     accumulatedPercent += percent;
-
     paths += `
       <circle
         cx="${center}"
@@ -1816,7 +1719,6 @@ function renderDonutChartSVG(data, size = 240) {
       </circle>
     `;
   });
-
   return `
     <div style="display:flex;flex-direction:column;align-items:center;gap:1rem;">
       <div style="position:relative;width:${size}px;height:${size}px;">
@@ -1841,27 +1743,20 @@ function renderDonutChartSVG(data, size = 240) {
     </div>
   `;
 }
-
-/**
- * Daily Expenses Trend SVG Bar Chart
- */
 function renderDailyBarChartSVG(daysData, width = 600, height = 180) {
   if (!daysData || daysData.length === 0) {
     return `<div style="height:${height}px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:0.875rem;">Tidak ada transaksi harian</div>`;
   }
-
   const maxVal = Math.max(...daysData.map(d => d.amount), 100000);
   const paddingBottom = 24;
   const chartHeight = height - paddingBottom;
   const barWidth = Math.max(4, Math.min(18, (width - 40) / daysData.length - 4));
   const totalW = daysData.length * (barWidth + 4);
-
   let bars = '';
   daysData.forEach((day, index) => {
     const barH = (day.amount / maxVal) * (chartHeight - 20);
     const x = index * (barWidth + 4) + 10;
     const y = chartHeight - barH;
-
     bars += `
       <g style="cursor:pointer;">
         <rect
@@ -1883,7 +1778,6 @@ function renderDailyBarChartSVG(daysData, width = 600, height = 180) {
       </g>
     `;
   });
-
   return `
     <div style="width:100%;overflow-x:auto;">
       <svg width="100%" height="${height}" viewBox="0 0 ${Math.max(width, totalW + 20)} ${height}" preserveAspectRatio="none" style="min-width:320px;">
@@ -1893,18 +1787,12 @@ function renderDailyBarChartSVG(daysData, width = 600, height = 180) {
     </div>
   `;
 }
-
-/**
- * 6 Months Cashflow Comparison Chart (Income vs Expense)
- */
 function renderCashflowTrendSVG(trendData, height = 220) {
   if (!trendData || trendData.length === 0) {
     return `<div style="height:${height}px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);">Data tren belum mencukupi</div>`;
   }
-
   const maxVal = Math.max(...trendData.map(d => Math.max(d.income, d.expense)), 1000000);
   const chartHeight = height - 40;
-
   return `
     <div style="width:100%;">
       <div style="display:flex;justify-content:flex-end;gap:1rem;margin-bottom:0.75rem;font-size:0.75rem;font-weight:700;">
@@ -1931,24 +1819,15 @@ function renderCashflowTrendSVG(trendData, height = 220) {
 }
 
 
-// ==================== [MODULE: js/utils/aiParser.js] ====================
-/**
- * AI Natural Language Financial Parser for Indonesian Text
- */
-
 function parseNaturalLanguageTransaction(text) {
   if (!text || !text.trim()) {
     return null;
   }
-
   const cleanText = text.trim();
   const lower = cleanText.toLowerCase();
-
   const accounts = appState.getAccountsWithBalances().filter(a => !a.isArchived);
   const categories = appState.categories.filter(c => !c.isArchived);
   const members = appState.members;
-
-  // 1. Detect Type (Income, Expense, Transfer)
   let type = 'expense';
   if (lower.includes('transfer') || lower.includes('pindah') || lower.includes('kirim ke')) {
     type = 'transfer';
@@ -1965,14 +1844,10 @@ function parseNaturalLanguageTransaction(text) {
   ) {
     type = 'income';
   }
-
-  // 2. Extract Amount
   let amount = 0;
-  // Match "1.5jt", "2,5 juta", "2jt", "500rb", "50 ribu", "45k", "Rp 45.000", "45000"
   const jtMatch = lower.match(/(\d+(?:[.,]\d+)?)\s*(?:jt|juta)/);
   const rbMatch = lower.match(/(\d+(?:[.,]\d+)?)\s*(?:rb|ribu|k\b)/);
   const rawNumMatch = lower.match(/(?:rp\.?\s*)?(\d{1,3}(?:\.\d{3})+|\d{4,9})/);
-
   if (jtMatch) {
     const val = parseFloat(jtMatch[1].replace(',', '.'));
     amount = Math.round(val * 1000000);
@@ -1982,24 +1857,18 @@ function parseNaturalLanguageTransaction(text) {
   } else if (rawNumMatch) {
     amount = parseInt(rawNumMatch[1].replace(/\./g, ''), 10);
   }
-
-  // 3. Match Account(s)
   let detectedAccountId = accounts[0] ? accounts[0].id : '';
   let detectedTargetAccountId = accounts[1] ? accounts[1].id : '';
-
   accounts.forEach(acc => {
     const accLower = acc.name.toLowerCase();
     const typeLower = acc.type.toLowerCase();
-
     if (accLower.includes('bca') && lower.includes('bca')) detectedAccountId = acc.id;
     else if (accLower.includes('mandiri') && lower.includes('mandiri')) detectedAccountId = acc.id;
     else if (accLower.includes('gopay') && (lower.includes('gopay') || lower.includes('shopee') || lower.includes('ovo'))) detectedAccountId = acc.id;
     else if ((accLower.includes('tunai') || accLower.includes('cash') || accLower.includes('dompet')) && (lower.includes('tunai') || lower.includes('cash') || lower.includes('dompet'))) detectedAccountId = acc.id;
     else if (accLower.includes('tabungan') && lower.includes('tabungan')) detectedAccountId = acc.id;
   });
-
   if (type === 'transfer') {
-    // Check if target account mentioned
     accounts.forEach(acc => {
       const accLower = acc.name.toLowerCase();
       if (acc.id !== detectedAccountId) {
@@ -2009,8 +1878,6 @@ function parseNaturalLanguageTransaction(text) {
       }
     });
   }
-
-  // 4. Match Member
   let detectedMemberId = appState.currentUser.id;
   members.forEach(m => {
     const mName = m.name.toLowerCase();
@@ -2021,14 +1888,9 @@ function parseNaturalLanguageTransaction(text) {
       detectedMemberId = m.id;
     }
   });
-
-  // 5. Match Category
   let detectedCategoryId = '';
   let detectedSubcategory = '';
-
   const availableCategories = categories.filter(c => c.type === (type === 'income' ? 'income' : 'expense'));
-
-  // Keyword dictionary for smart category matching
   const categoryKeywords = {
     'makan': 'cat-exp-1',
     'kuliner': 'cat-exp-1',
@@ -2042,14 +1904,12 @@ function parseNaturalLanguageTransaction(text) {
     'snack': 'cat-exp-1',
     'minum': 'cat-exp-1',
     'galon': 'cat-exp-1',
-
     'belanja': 'cat-exp-2',
     'sabun': 'cat-exp-2',
     'dapur': 'cat-exp-2',
     'shampoo': 'cat-exp-2',
     'supermarket': 'cat-exp-2',
     'perabot': 'cat-exp-2',
-
     'listrik': 'cat-exp-3',
     'pln': 'cat-exp-3',
     'token': 'cat-exp-3',
@@ -2061,7 +1921,6 @@ function parseNaturalLanguageTransaction(text) {
     'air': 'cat-exp-3',
     'ipl': 'cat-exp-3',
     'tagihan': 'cat-exp-3',
-
     'bensin': 'cat-exp-4',
     'pertamax': 'cat-exp-4',
     'pertalite': 'cat-exp-4',
@@ -2074,7 +1933,6 @@ function parseNaturalLanguageTransaction(text) {
     'servis': 'cat-exp-4',
     'mobil': 'cat-exp-4',
     'motor': 'cat-exp-4',
-
     'sekolah': 'cat-exp-5',
     'spp': 'cat-exp-5',
     'buku': 'cat-exp-5',
@@ -2082,7 +1940,6 @@ function parseNaturalLanguageTransaction(text) {
     'kursus': 'cat-exp-5',
     'seragam': 'cat-exp-5',
     'ujian': 'cat-exp-5',
-
     'obat': 'cat-exp-6',
     'dokter': 'cat-exp-6',
     'klinik': 'cat-exp-6',
@@ -2090,19 +1947,16 @@ function parseNaturalLanguageTransaction(text) {
     'vitamin': 'cat-exp-6',
     'bpjs': 'cat-exp-6',
     'gigi': 'cat-exp-6',
-
     'bioskop': 'cat-exp-7',
     'nonton': 'cat-exp-7',
     'jalan-jalan': 'cat-exp-7',
     'liburan': 'cat-exp-7',
     'streaming': 'cat-exp-7',
     'game': 'cat-exp-7',
-
     'zakat': 'cat-exp-8',
     'sedekah': 'cat-exp-8',
     'infaq': 'cat-exp-8',
     'sumbangan': 'cat-exp-8',
-
     'gaji': 'cat-inc-1',
     'tunjangan': 'cat-inc-1',
     'freelance': 'cat-inc-2',
@@ -2113,7 +1967,6 @@ function parseNaturalLanguageTransaction(text) {
     'dividen': 'cat-inc-3',
     'bunga': 'cat-inc-3'
   };
-
   for (const [kw, catId] of Object.entries(categoryKeywords)) {
     if (lower.includes(kw)) {
       const match = categories.find(c => c.id === catId);
@@ -2123,26 +1976,18 @@ function parseNaturalLanguageTransaction(text) {
       }
     }
   }
-
-  // Fallback category
   if (!detectedCategoryId && availableCategories.length > 0) {
     detectedCategoryId = availableCategories[0].id;
   }
-
-  // 6. Generate Clean Description
   let description = cleanText
     .replace(/(?:sebesar|nominal|seharga|total|bayar pakai|lewat|dari akun|via|ke akun)\s+[^\s]+/gi, '')
     .replace(/\b(?:rp\.?\s*\d+[\d.,]*|\d+\s*(?:jt|juta|rb|ribu|k))\b/gi, '')
     .replace(/\s+/g, ' ')
     .trim();
-
   if (!description || description.length < 3) {
     description = cleanText;
   }
-
-  // Capitalize first letter
   description = description.charAt(0).toUpperCase() + description.slice(1);
-
   return {
     rawPrompt: cleanText,
     type,
@@ -2158,12 +2003,6 @@ function parseNaturalLanguageTransaction(text) {
   };
 }
 
-
-// ==================== [MODULE: js/utils/receiptScanner.js] ====================
-/**
- * Smart Receipt OCR & AI Scanner Utility
- * Analyzes receipt / invoice images and extracts structured financial data
- */
 
 var SAMPLE_RECEIPTS = [
   {
@@ -2246,17 +2085,10 @@ var SAMPLE_RECEIPTS = [
     previewGradient: 'linear-gradient(135deg, #8b5cf6, #6d28d9)'
   }
 ];
-
-/**
- * Perform simulated Intelligent AI OCR on a receipt dataUrl or file name
- */
 async function analyzeReceiptImage(dataUrl, fileName = '') {
-  // Simulate intelligent vision analysis network latency (750ms)
   await new Promise(resolve => setTimeout(resolve, 750));
-
   const lowerName = (fileName || '').toLowerCase();
   let matchedPreset = SAMPLE_RECEIPTS[0];
-
   if (lowerName.includes('bensin') || lowerName.includes('spbu') || lowerName.includes('pertamina') || lowerName.includes('shell')) {
     matchedPreset = SAMPLE_RECEIPTS[2];
   } else if (lowerName.includes('resto') || lowerName.includes('makan') || lowerName.includes('cafe') || lowerName.includes('kopi') || lowerName.includes('padang')) {
@@ -2266,21 +2098,15 @@ async function analyzeReceiptImage(dataUrl, fileName = '') {
   } else if (lowerName.includes('indo') || lowerName.includes('alfa') || lowerName.includes('mart')) {
     matchedPreset = SAMPLE_RECEIPTS[1];
   } else {
-    // Pick randomly if general file or use Superindo
     matchedPreset = SAMPLE_RECEIPTS[Math.floor(Math.random() * SAMPLE_RECEIPTS.length)];
   }
-
-  // Find valid category & account from state
   const categories = appState.categories;
   const accounts = appState.getAccountsWithBalances();
-  
   const matchedCat = categories.find(c => c.id === matchedPreset.category) || categories[0];
   const matchedAcc = accounts.find(a => a.id === matchedPreset.account) || accounts[0];
-
   const now = new Date();
   const dateStr = now.toISOString().split('T')[0];
   const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-
   return {
     merchant: matchedPreset.merchant,
     date: dateStr,
@@ -2298,20 +2124,11 @@ async function analyzeReceiptImage(dataUrl, fileName = '') {
 }
 
 
-
-
-// ==================== [MODULE: js/utils/cloudSync.js] ====================
-/**
- * Google Apps Script Cloud Sync Utility for Dompet Keluarga
- */
-
 var CLOUD_CONFIG_KEY = 'dompet_keluarga_cloud_config';
-
 class CloudSyncService {
   static _pollerInterval = null;
   static _isSyncing = false;
   static _debounceTimer = null;
-
   static getConfig() {
     try {
       const saved = localStorage.getItem(CLOUD_CONFIG_KEY);
@@ -2324,17 +2141,12 @@ class CloudSyncService {
       status: 'offline' // 'connected', 'offline', 'syncing', 'error'
     };
   }
-
   static saveConfig(config) {
     localStorage.setItem(CLOUD_CONFIG_KEY, JSON.stringify(config));
     if (config && config.gasUrl) {
       this.syncGasUrlToAccount(config.gasUrl);
     }
   }
-
-  /**
-   * Menautkan URL Spreadsheet pribadi ke Akun Developer agar otomatis terpasang di HP/PC lain
-   */
   static async syncGasUrlToAccount(gasUrl) {
     if (!gasUrl) return;
     try {
@@ -2345,17 +2157,13 @@ class CloudSyncService {
       try { userAccount = JSON.parse(localStorage.getItem('dk_user_account_v1') || 'null'); } catch (_) {}
       let license = null;
       try { license = JSON.parse(localStorage.getItem('dk_app_license_v1') || 'null'); } catch (_) {}
-
       const email = session?.email || userAccount?.email || license?.email || '';
       const phone = session?.phone || userAccount?.phone || license?.phone || '';
       const licenseKey = license?.key || '';
-
       if (!email && !phone && !licenseKey) return;
-
       const apiUrl = (window.AuthAccess && typeof window.AuthAccess.getApiUrl === 'function')
         ? window.AuthAccess.getApiUrl()
         : 'https://script.google.com/macros/s/AKfycbwywRn2AgS94Qsh1VEFijrexDroXrb1zDhnvgQwqn6YsEcw24gNk89Yrts-DFSTb5p5HQ/exec';
-
       fetch(apiUrl, {
         method: 'POST',
         mode: 'cors',
@@ -2374,14 +2182,9 @@ class CloudSyncService {
       }).catch(err => console.warn('Sync gasUrl to account notice:', err));
     } catch (e) {}
   }
-
-  /**
-   * Mengambil URL Spreadsheet dari Akun Developer jika perangkat baru belum memilikinya
-   */
   static async fetchRemoteGasUrl() {
     const config = this.getConfig();
     if (config.gasUrl) return config.gasUrl;
-
     try {
       const session = (window.AuthAccess && typeof window.AuthAccess.getSession === 'function') 
         ? window.AuthAccess.getSession() 
@@ -2390,17 +2193,13 @@ class CloudSyncService {
       try { userAccount = JSON.parse(localStorage.getItem('dk_user_account_v1') || 'null'); } catch (_) {}
       let license = null;
       try { license = JSON.parse(localStorage.getItem('dk_app_license_v1') || 'null'); } catch (_) {}
-
       const email = session?.email || userAccount?.email || license?.email || '';
       const phone = session?.phone || userAccount?.phone || license?.phone || '';
       const licenseKey = license?.key || '';
-
       if (!email && !phone && !licenseKey) return null;
-
       const apiUrl = (window.AuthAccess && typeof window.AuthAccess.getApiUrl === 'function')
         ? window.AuthAccess.getApiUrl()
         : 'https://script.google.com/macros/s/AKfycbwywRn2AgS94Qsh1VEFijrexDroXrb1zDhnvgQwqn6YsEcw24gNk89Yrts-DFSTb5p5HQ/exec';
-
       const res = await fetch(apiUrl, {
         method: 'POST',
         mode: 'cors',
@@ -2412,7 +2211,6 @@ class CloudSyncService {
           licenseKey
         })
       });
-
       const data = await res.json();
       if (data && data.success && data.gasUrl) {
         config.gasUrl = data.gasUrl;
@@ -2426,10 +2224,6 @@ class CloudSyncService {
     }
     return null;
   }
-
-  /**
-   * Menghapus tautan URL Spreadsheet dari Akun Developer (Reset / Ganti Spreadsheet)
-   */
   static async clearRemoteGasUrl() {
     try {
       const session = (window.AuthAccess && typeof window.AuthAccess.getSession === 'function') 
@@ -2439,15 +2233,12 @@ class CloudSyncService {
       try { userAccount = JSON.parse(localStorage.getItem('dk_user_account_v1') || 'null'); } catch (_) {}
       let license = null;
       try { license = JSON.parse(localStorage.getItem('dk_app_license_v1') || 'null'); } catch (_) {}
-
       const email = session?.email || userAccount?.email || license?.email || '';
       const phone = session?.phone || userAccount?.phone || license?.phone || '';
       const licenseKey = license?.key || '';
-
       const apiUrl = (window.AuthAccess && typeof window.AuthAccess.getApiUrl === 'function')
         ? window.AuthAccess.getApiUrl()
         : 'https://script.google.com/macros/s/AKfycbwywRn2AgS94Qsh1VEFijrexDroXrb1zDhnvgQwqn6YsEcw24gNk89Yrts-DFSTb5p5HQ/exec';
-
       const res = await fetch(apiUrl, {
         method: 'POST',
         mode: 'cors',
@@ -2467,27 +2258,20 @@ class CloudSyncService {
       return { success: false, message: e.message };
     }
   }
-
-  /**
-   * Ping / Test Connection to Google Apps Script Web App
-   */
   static async testConnection(url) {
     const targetUrl = url || this.getConfig().gasUrl;
     if (!targetUrl) {
       throw new Error('URL Web App Google Apps Script belum diisi');
     }
-
     const testEndpoint = `${targetUrl}${targetUrl.includes('?') ? '&' : '?'}action=ping&_t=${Date.now()}`;
     const response = await fetch(testEndpoint, {
       method: 'GET',
       mode: 'cors',
       redirect: 'follow'
     });
-
     if (!response.ok) {
       throw new Error(`HTTP Error: ${response.status} ${response.statusText}`);
     }
-
     const json = await response.json();
     if (json && json.success) {
       const current = this.getConfig();
@@ -2499,14 +2283,9 @@ class CloudSyncService {
       throw new Error(json.message || 'Respon tidak valid dari Google Apps Script');
     }
   }
-
-  /**
-   * Initialize Database on Google Sheets (Creates all sheets and master headers)
-   */
   static async initDatabaseOnSheets(url) {
     const targetUrl = url || this.getConfig().gasUrl;
     if (!targetUrl) throw new Error('URL Web App belum diisi');
-
     const payload = {
       action: 'initDatabase',
       defaultData: {
@@ -2521,7 +2300,6 @@ class CloudSyncService {
         recurringBills: appState.recurringBills
       }
     };
-
     const response = await fetch(targetUrl, {
       method: 'POST',
       mode: 'cors',
@@ -2529,26 +2307,18 @@ class CloudSyncService {
       body: JSON.stringify(payload),
       redirect: 'follow'
     });
-
     const json = await response.json();
     if (!json.success) throw new Error(json.message || 'Gagal inisialisasi sheet');
-
     const config = this.getConfig();
     config.gasUrl = targetUrl;
     config.lastSynced = new Date().toISOString();
     config.status = 'connected';
     this.saveConfig(config);
-
     return json;
   }
-
-  /**
-   * Upload / Push full state to Google Sheets
-   */
   static async pushFullState(url) {
     const targetUrl = url || this.getConfig().gasUrl;
     if (!targetUrl) throw new Error('URL Web App belum diisi');
-
     const payload = {
       action: 'syncFullState',
       data: {
@@ -2563,7 +2333,6 @@ class CloudSyncService {
         recurringBills: appState.recurringBills
       }
     };
-
     const response = await fetch(targetUrl, {
       method: 'POST',
       mode: 'cors',
@@ -2571,21 +2340,14 @@ class CloudSyncService {
       body: JSON.stringify(payload),
       redirect: 'follow'
     });
-
     const json = await response.json();
     if (!json.success) throw new Error(json.message || 'Gagal sinkronisasi');
-
     const config = this.getConfig();
     config.lastSynced = new Date().toISOString();
     config.status = 'connected';
     this.saveConfig(config);
-
     return json;
   }
-
-  /**
-   * Debounced push for state mutations (e.g. edit / delete)
-   */
   static pushFullStateDebounced(delay = 1500) {
     if (this._debounceTimer) clearTimeout(this._debounceTimer);
     this._debounceTimer = setTimeout(() => {
@@ -2595,19 +2357,10 @@ class CloudSyncService {
       }
     }, delay);
   }
-
-  /**
-   * Download / Pull full state from Google Sheets
-   * Supports both POST (preferred, bypasses browser caching & uses existing doPost handler)
-   * and GET fallback.
-   */
   static async pullFullState(url) {
     const targetUrl = url || this.getConfig().gasUrl;
     if (!targetUrl) throw new Error('URL Web App belum diisi');
-
     let json = null;
-
-    // 1. Coba POST terlebih dahulu
     try {
       const response = await fetch(targetUrl, {
         method: 'POST',
@@ -2622,8 +2375,6 @@ class CloudSyncService {
     } catch (postErr) {
       console.warn('POST pullFullState failed, attempting GET fallback:', postErr);
     }
-
-    // 2. Fallback GET jika POST gagal
     if (!json || !json.success) {
       try {
         const endpoint = `${targetUrl}${targetUrl.includes('?') ? '&' : '?'}action=getFullState&_t=${Date.now()}`;
@@ -2639,15 +2390,11 @@ class CloudSyncService {
         console.warn('GET pullFullState failed:', getErr);
       }
     }
-
     if (!json || !json.success || !json.data) {
       throw new Error((json && json.message) || 'Gagal mengunduh data dari Google Sheets');
     }
-
     const data = json.data;
     let hasChanges = false;
-
-    // 1. Transactions
     if (data.transactions && Array.isArray(data.transactions)) {
       const parsedTransactions = data.transactions
         .filter(t => t && t.id && String(t.id).trim() !== '')
@@ -2657,14 +2404,11 @@ class CloudSyncService {
           status: t.status || 'verified',
           date: t.date ? String(t.date).slice(0, 10) : new Date().toISOString().slice(0, 10)
         }));
-
-      // Sort descending (newest first)
       parsedTransactions.sort((a, b) => {
         const da = new Date(a.date || a.createdAt || 0).getTime();
         const db = new Date(b.date || b.createdAt || 0).getTime();
         return db - da;
       });
-
       const currentIds = (appState.transactions || []).map(t => `${t.id}-${t.amount}-${t.date}`).join('|');
       const newIds = parsedTransactions.map(t => `${t.id}-${t.amount}-${t.date}`).join('|');
       if (currentIds !== newIds) {
@@ -2672,8 +2416,6 @@ class CloudSyncService {
         hasChanges = true;
       }
     }
-
-    // 2. Accounts
     if (data.accounts && Array.isArray(data.accounts) && data.accounts.length > 0) {
       const parsedAccounts = data.accounts
         .filter(a => a && a.id)
@@ -2687,8 +2429,6 @@ class CloudSyncService {
         hasChanges = true;
       }
     }
-
-    // 3. Categories
     if (data.categories && Array.isArray(data.categories) && data.categories.length > 0) {
       const parsedCategories = data.categories
         .filter(c => c && c.id)
@@ -2701,8 +2441,6 @@ class CloudSyncService {
         hasChanges = true;
       }
     }
-
-    // 4. Members
     if (data.members && Array.isArray(data.members) && data.members.length > 0) {
       const validMembers = data.members.filter(m => m && m.id);
       if (JSON.stringify(validMembers) !== JSON.stringify(appState.members)) {
@@ -2710,8 +2448,6 @@ class CloudSyncService {
         hasChanges = true;
       }
     }
-
-    // 5. Budgets
     if (data.budgets && Array.isArray(data.budgets)) {
       const parsedBudgets = data.budgets
         .filter(b => b && b.id)
@@ -2726,8 +2462,6 @@ class CloudSyncService {
         hasChanges = true;
       }
     }
-
-    // 6. Goals
     if (data.goals && Array.isArray(data.goals)) {
       const parsedGoals = data.goals
         .filter(g => g && g.id)
@@ -2741,8 +2475,6 @@ class CloudSyncService {
         hasChanges = true;
       }
     }
-
-    // 7. Recurring Bills
     if (data.recurringBills && Array.isArray(data.recurringBills)) {
       const parsedBills = data.recurringBills
         .filter(r => r && r.id)
@@ -2757,35 +2489,25 @@ class CloudSyncService {
         hasChanges = true;
       }
     }
-
     if (hasChanges) {
       appState.saveState();
     }
-
     const config = this.getConfig();
     config.lastSynced = new Date().toISOString();
     config.status = 'connected';
     this.saveConfig(config);
-
     return { success: true, hasChanges, data: json.data };
   }
-
-  /**
-   * Start intelligent auto-sync poller (background & on-focus)
-   */
   static startAutoSyncPoller(intervalMs = 15000) {
     if (this._pollerInterval) {
       clearInterval(this._pollerInterval);
     }
-
     const runSync = async () => {
       const config = this.getConfig();
       if (!config.gasUrl || !config.autoSync || this._isSyncing) return;
       if (typeof document !== 'undefined' && document.hidden) return;
-
       this._isSyncing = true;
       this.updateSyncUI(true);
-
       try {
         await this.pullFullState(config.gasUrl);
       } catch (err) {
@@ -2795,9 +2517,7 @@ class CloudSyncService {
         this.updateSyncUI(false);
       }
     };
-
     this._pollerInterval = setInterval(runSync, intervalMs);
-
     if (typeof window !== 'undefined') {
       window.addEventListener('focus', runSync);
     }
@@ -2809,7 +2529,6 @@ class CloudSyncService {
       });
     }
   }
-
   static updateSyncUI(isSyncing) {
     const icon = document.getElementById('nav-sync-icon');
     if (icon) {
@@ -2820,14 +2539,9 @@ class CloudSyncService {
       }
     }
   }
-
-  /**
-   * Non-blocking auto-sync for a single added transaction
-   */
   static async syncTransactionAsync(tx) {
     const config = this.getConfig();
     if (!config.gasUrl || !config.autoSync) return;
-
     try {
       fetch(config.gasUrl, {
         method: 'POST',
@@ -2853,20 +2567,10 @@ class CloudSyncService {
 }
 
 
-// ==================== [MODULE: js/utils/exporter.js] ====================
-/**
- * Advanced Financial Reports Exporter (PDF, Excel, CSV) for Dompet Keluarga
- */
-
 class ReportExporter {
-  /**
-   * Export Transactions to Excel/CSV with UTF-8 BOM
-   */
   static exportTransactionsToCSV(transactions, options = {}) {
     const familyName = options.familyName || 'Keluarga';
     const periodLabel = options.periodLabel || 'Semua Periode';
-    
-    // Headers
     const headers = [
       'ID Transaksi',
       'Tanggal',
@@ -2881,13 +2585,11 @@ class ReportExporter {
       'Catatan / Rincian Struk',
       'Waktu Dibuat'
     ];
-
     const rows = transactions.map(tx => {
       const typeLabel = tx.type === 'income' ? 'Pemasukan' : (tx.type === 'expense' ? 'Pengeluaran' : 'Transfer');
       const catName = tx.category ? (tx.category.name || tx.category) : (tx.categoryId || '-');
       const accName = tx.account ? (tx.account.name || tx.account) : (tx.accountId || '-');
       const memberName = tx.member ? (tx.member.name || tx.member) : (tx.memberId || '-');
-      
       return [
         `"${tx.id}"`,
         `"${tx.date}"`,
@@ -2903,7 +2605,6 @@ class ReportExporter {
         `"${tx.createdAt || ''}"`
       ].join(',');
     });
-
     const metadata = [
       `"LAPORAN BUKU KAS TRANSAKSI - ${familyName.toUpperCase()}"`,
       `"Periode: ${periodLabel}"`,
@@ -2911,20 +2612,13 @@ class ReportExporter {
       `"Diekspor Pada: ${new Date().toLocaleString('id-ID')}"`,
       ''
     ];
-
     const csvContent = '\uFEFF' + metadata.join('\n') + '\n' + headers.join(',') + '\n' + rows.join('\n');
     const filename = `Laporan_Transaksi_${familyName.replace(/\s+/g, '_')}_${periodLabel.replace(/\s+/g, '_')}.csv`;
-    
     this.downloadFile(csvContent, filename, 'text/csv;charset=utf-8;');
   }
-
-  /**
-   * Export Budget vs Actual Variance Report
-   */
   static exportBudgetReportToCSV(budgets, monthlyMetrics, categories, options = {}) {
     const familyName = options.familyName || 'Keluarga';
     const periodLabel = options.periodLabel || 'Bulan Ini';
-
     const headers = [
       'Kategori',
       'Batas Anggaran (Rp)',
@@ -2933,13 +2627,11 @@ class ReportExporter {
       'Persentase Terpakai (%)',
       'Status Anggaran'
     ];
-
     const budgetStatusList = monthlyMetrics.budgetStatus || [];
     const rows = budgetStatusList.map(b => {
       const remaining = Math.max(0, b.limit - b.spent);
       const isOver = b.spent > b.limit;
       const statusText = isOver ? 'OVERBUDGET (Melebihi Batas)' : (b.percentage >= 80 ? 'Waspada (>80%)' : 'Aman');
-
       return [
         `"${b.category ? b.category.name : b.categoryId}"`,
         b.limit,
@@ -2949,7 +2641,6 @@ class ReportExporter {
         `"${statusText}"`
       ].join(',');
     });
-
     const metadata = [
       `"LAPORAN REALISASI ANGGARAN - ${familyName.toUpperCase()}"`,
       `"Periode: ${periodLabel}"`,
@@ -2958,28 +2649,19 @@ class ReportExporter {
       `"Diekspor Pada: ${new Date().toLocaleString('id-ID')}"`,
       ''
     ];
-
     const csvContent = '\uFEFF' + metadata.join('\n') + '\n' + headers.join(',') + '\n' + rows.join('\n');
     const filename = `Laporan_Anggaran_${familyName.replace(/\s+/g, '_')}_${periodLabel.replace(/\s+/g, '_')}.csv`;
-
     this.downloadFile(csvContent, filename, 'text/csv;charset=utf-8;');
   }
-
-  /**
-   * Export Member Spending Contribution Report
-   */
   static exportMemberContributionToCSV(members, transactions, options = {}) {
     const familyName = options.familyName || 'Keluarga';
     const periodLabel = options.periodLabel || 'Semua Periode';
-
     const totalExpenseAll = transactions
       .filter(t => t.type === 'expense' && t.status !== 'cancelled')
       .reduce((sum, t) => sum + t.amount, 0);
-
     const totalIncomeAll = transactions
       .filter(t => t.type === 'income' && t.status !== 'cancelled')
       .reduce((sum, t) => sum + t.amount, 0);
-
     const headers = [
       'ID Anggota',
       'Nama Anggota',
@@ -2990,19 +2672,15 @@ class ReportExporter {
       'Total Pemasukan (Rp)',
       'Jumlah Transaksi Dicatat'
     ];
-
     const rows = members.map(m => {
       const memberExpenses = transactions
         .filter(t => t.type === 'expense' && (t.memberId === m.id || (t.member && t.member.id === m.id)))
         .reduce((sum, t) => sum + t.amount, 0);
-
       const memberIncomes = transactions
         .filter(t => t.type === 'income' && (t.memberId === m.id || (t.member && t.member.id === m.id)))
         .reduce((sum, t) => sum + t.amount, 0);
-
       const txCount = transactions.filter(t => t.memberId === m.id || (t.member && t.member.id === m.id)).length;
       const expensePct = totalExpenseAll > 0 ? ((memberExpenses / totalExpenseAll) * 100).toFixed(1) : '0.0';
-
       return [
         `"${m.id}"`,
         `"${m.name}"`,
@@ -3014,7 +2692,6 @@ class ReportExporter {
         txCount
       ].join(',');
     });
-
     const metadata = [
       `"LAPORAN KONTRIBUSI KEUANGAN ANGGOTA KELUARGA - ${familyName.toUpperCase()}"`,
       `"Periode: ${periodLabel}"`,
@@ -3022,16 +2699,10 @@ class ReportExporter {
       `"Diekspor Pada: ${new Date().toLocaleString('id-ID')}"`,
       ''
     ];
-
     const csvContent = '\uFEFF' + metadata.join('\n') + '\n' + headers.join(',') + '\n' + rows.join('\n');
     const filename = `Laporan_Anggota_${familyName.replace(/\s+/g, '_')}_${periodLabel.replace(/\s+/g, '_')}.csv`;
-
     this.downloadFile(csvContent, filename, 'text/csv;charset=utf-8;');
   }
-
-  /**
-   * Open Print Window with Styled Financial Report (Print to PDF)
-   */
   static printFinancialStatement(data) {
     const {
       family,
@@ -3042,16 +2713,13 @@ class ReportExporter {
       members,
       categories
     } = data;
-
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
       alert('Mohon izinkan pop-up browser untuk mencetak PDF');
       return;
     }
-
     const netCashflow = metrics.netSavings;
     const isSurplus = netCashflow >= 0;
-
     const html = `
       <!DOCTYPE html>
       <html lang="id">
@@ -3126,7 +2794,6 @@ class ReportExporter {
           .val-income { color: #059669; }
           .val-expense { color: #e11d48; }
           .val-surplus { color: #0284c7; }
-          
           h3 {
             font-size: 12pt;
             font-weight: 800;
@@ -3193,7 +2860,6 @@ class ReportExporter {
             <div>Status: <strong>Final / Terverifikasi</strong></div>
           </div>
         </div>
-
         <!-- Summary Grid -->
         <div class="summary-grid">
           <div class="summary-card" style="border-left:3px solid #059669;">
@@ -3213,7 +2879,6 @@ class ReportExporter {
             <div class="summary-value" style="color:#4f46e5;">${metrics.savingsRate.toFixed(1)}%</div>
           </div>
         </div>
-
         <!-- Budget Realization Section -->
         ${(metrics.budgetStatus || []).length > 0 ? `
           <h3>Realisasi Anggaran Kategori</h3>
@@ -3245,7 +2910,6 @@ class ReportExporter {
             </tbody>
           </table>
         ` : ''}
-
         <!-- Top Transactions Table -->
         <h3>Rincian Transaksi Keuangan (${transactions.length} Catatan)</h3>
         <table>
@@ -3285,7 +2949,6 @@ class ReportExporter {
             }).join('')}
           </tbody>
         </table>
-
         <!-- Signatures / Footer -->
         <div class="footer-sign">
           <div class="sign-box">
@@ -3301,7 +2964,6 @@ class ReportExporter {
             <div style="font-size:8pt;color:#64748b;">Admin Keuangan Keluarga</div>
           </div>
         </div>
-
         <script>
           window.onload = function() {
             setTimeout(function() {
@@ -3312,15 +2974,10 @@ class ReportExporter {
       </body>
       </html>
     `;
-
     printWindow.document.open();
     printWindow.document.write(html);
     printWindow.document.close();
   }
-
-  /**
-   * Browser File Download Trigger
-   */
   static downloadFile(content, fileName, mimeType) {
     const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
@@ -3335,22 +2992,9 @@ class ReportExporter {
 }
 
 
-// ==================== [MODULE: js/utils/licenseService.js] ====================
-/**
- * ============================================================================
- * DOMPETKU - COMMERCIAL LICENSE & PAYWALL SERVICE (v3.0)
- * ============================================================================
- * Mengatur hak akses fitur PRO, validasi kunci lisensi pelanggan, pengumpulan database
- * nomor WhatsApp pelanggan, dan proteksi paywall komersial.
- */
-
 var LICENSE_STORAGE_KEY = 'dk_app_license_v1';
 var DEFAULT_DEVELOPER_WA = '6281234567890'; // Dapat disesuaikan pemilik produk
-
 class LicenseService {
-  /**
-   * Mengambil data lisensi yang tersimpan
-   */
   static getLicense() {
     try {
       const stored = localStorage.getItem(LICENSE_STORAGE_KEY);
@@ -3358,8 +3002,6 @@ class LicenseService {
         return JSON.parse(stored);
       }
     } catch (_) {}
-
-    // Default status jika belum aktivasi: Trial / Unlicensed
     return {
       status: 'trial', // 'active' (PRO) | 'trial' (Belum Aktivasi)
       plan: 'Mode Uji Coba (Fitur Input Terkunci)',
@@ -3370,27 +3012,23 @@ class LicenseService {
       validUntil: null
     };
   }
-
-  /**
-   * Cek apakah aplikasi sudah berlisensi PRO aktif
-   */
   static isLicensed() {
     const license = this.getLicense();
-    return license && license.status === 'active';
+    if (!license || license.status !== 'active') return false;
+    if (window.SecurityGuard && typeof window.SecurityGuard.verifyLicense === 'function') {
+      return window.SecurityGuard.verifyLicense(license);
+    }
+    return !!license.key;
   }
-
-  /**
-   * Simpan status lisensi
-   */
   static saveLicense(licenseData) {
     try {
-      localStorage.setItem(LICENSE_STORAGE_KEY, JSON.stringify(licenseData));
+      let dataToSave = licenseData;
+      if (window.SecurityGuard && typeof window.SecurityGuard.signLicense === 'function') {
+        dataToSave = window.SecurityGuard.signLicense(licenseData);
+      }
+      localStorage.setItem(LICENSE_STORAGE_KEY, JSON.stringify(dataToSave));
     } catch (_) {}
   }
-
-  /**
-   * Format & Standarisasi Nomor Telepon / WhatsApp
-   */
   static formatPhoneNumber(rawPhone) {
     if (!rawPhone) return '';
     let str = String(rawPhone).replace(/[^0-9+]/g, '');
@@ -3398,56 +3036,18 @@ class LicenseService {
     if (str.startsWith('+62')) str = '62' + str.slice(3);
     return str;
   }
-
-  /**
-   * Verifikasi dan Aktivasi Kunci Lisensi Unik + Simpan Nomor WhatsApp
-   * Mendukung validasi online via Backend Developer & Master Key Offline
-   */
   static async activate(rawKey, userEmail = '', userPhone = '') {
     const key = (rawKey || '').trim().toUpperCase();
     if (!key) {
       return { success: false, message: 'Harap masukkan kode kunci lisensi.' };
     }
-
     let userAccount = null;
     try { userAccount = JSON.parse(localStorage.getItem('dk_user_account_v1') || 'null'); } catch (_) {}
-
     const session = window.AuthAccess?.getSession() || {};
     const email = (userEmail || session.email || userAccount?.email || '').trim().toLowerCase();
     const fullName = session.fullName || userAccount?.name || 'Pelanggan';
     const phone = this.formatPhoneNumber(userPhone || session.phone || userAccount?.phone || '');
-
-    // 1. Cek Offline Master Keys (Untuk kemudahan aktivasi developer langsung)
-    const masterKeys = [
-      'DKPRO-LIFETIME-2026',
-      'DOMPETKU-PRO-VIP',
-      'DOMPETKU-PRO-8899',
-      'DK-SUPER-ACCESS'
-    ];
-
-    if (masterKeys.includes(key) || (key.startsWith('DKPRO-') && key.length >= 12)) {
-      const license = {
-        status: 'active',
-        plan: 'Dompetku PRO (Akses Penuh Selamanya)',
-        key: key,
-        email: email,
-        phone: phone,
-        fullName: fullName,
-        activatedAt: new Date().toISOString(),
-        validUntil: 'Selamanya (Lifetime)'
-      };
-      this.saveLicense(license);
-      this.notifyServerOfActivation(license);
-      return {
-        success: true,
-        message: '🎉 Lisensi Dompetku PRO Berhasil Diaktifkan! Semua fitur pencatatan telah terbuka penuh.',
-        license
-      };
-    }
-
-    // 2. Cek Online Verification ke Spreadsheet Backend Developer
     const apiUrl = window.AuthAccess?.getApiUrl?.() || 'https://script.google.com/macros/s/AKfycbwywRn2AgS94Qsh1VEFijrexDroXrb1zDhnvgQwqn6YsEcw24gNk89Yrts-DFSTb5p5HQ/exec';
-    
     try {
       if (apiUrl && apiUrl.startsWith('http')) {
         const res = await fetch(apiUrl, {
@@ -3465,7 +3065,6 @@ class LicenseService {
             timestamp: new Date().toISOString()
           })
         });
-
         const data = await res.json();
         if (data && data.success) {
           const license = {
@@ -3491,8 +3090,6 @@ class LicenseService {
     } catch (err) {
       console.warn('Online license check fallback to pattern:', err);
     }
-
-    // 3. Fallback Pattern Validation: Jika format kode memenuhi standar serial unik (DK-XXXX-YYYY-ZZZZ)
     if (/^DK-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(key)) {
       const license = {
         status: 'active',
@@ -3512,23 +3109,14 @@ class LicenseService {
         license
       };
     }
-
     return {
       success: false,
       message: 'Kunci lisensi tidak valid atau belum terdaftar. Silakan hubungi admin di WhatsApp untuk mendapatkan kunci lisensi resmi.'
     };
   }
-
-  /**
-   * Hapus / Nonaktifkan Lisensi
-   */
   static deactivate() {
     localStorage.removeItem(LICENSE_STORAGE_KEY);
   }
-
-  /**
-   * Kirim catatan aktivasi & data nomor WhatsApp ke spreadsheet developer
-   */
   static notifyServerOfActivation(license) {
     try {
       const session = window.AuthAccess?.getSession() || {};
@@ -3554,31 +3142,21 @@ class LicenseService {
       }
     } catch (_) {}
   }
-
-  /**
-   * Link WhatsApp Pembelian Lisensi (Dilengkapi Pesan Otomatis Nama & Email)
-   */
   static getBuyWhatsAppUrl(featureReason = 'Akses Penuh Dompetku PRO') {
     const session = window.AuthAccess?.getSession() || {};
     const userName = session.fullName || 'Pelanggan Dompetku';
     const userEmail = session.email || '';
-
     let messageText = `Halo Admin Dompetku, saya *${userName}*`;
     if (userEmail) {
       messageText += ` (Email: *${userEmail}*)`;
     }
     messageText += ` ingin membeli/mengaktifkan *Kunci Lisensi Dompetku PRO Resmi* untuk ${featureReason}.\n\nMohon info rekening pembayaran dan nomor lisensi saya. Terima kasih!`;
-
     const encoded = encodeURIComponent(messageText);
     return `https://wa.me/${DEFAULT_DEVELOPER_WA}?text=${encoded}`;
   }
 }
 
 
-// ==================== [MODULE: js/components/icons.js] ====================
-/**
- * Lucide-inspired SVG Icon helper
- */
 var Icons = {
   wallet: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -3586,26 +3164,22 @@ var Icons = {
       <path d="M3 5v14a2 2 0 0 0 2 2h16v-5"></path>
       <path d="M18 12a2 2 0 0 0 0 4h4v-4Z"></path>
     </svg>`,
-
   logOut: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
       <polyline points="16 17 21 12 16 7"></polyline>
       <line x1="21" x2="9" y1="12" y2="12"></line>
     </svg>`,
-    
   trendingUp: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
       <polyline points="16 7 22 7 22 13"></polyline>
     </svg>`,
-
   trendingDown: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <polyline points="22 17 13.5 8.5 8.5 13.5 2 7"></polyline>
       <polyline points="16 17 22 17 22 11"></polyline>
     </svg>`,
-
   arrowRightLeft: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="m16 3 4 4-4 4"></path>
@@ -3613,54 +3187,45 @@ var Icons = {
       <path d="m8 21-4-4 4-4"></path>
       <path d="M4 17h16"></path>
     </svg>`,
-
   plus: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M5 12h14"></path>
       <path d="M12 5v14"></path>
     </svg>`,
-
   search: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="11" cy="11" r="8"></circle>
       <path d="m21 21-4.3-4.3"></path>
     </svg>`,
-
   filter: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
     </svg>`,
-
   trash: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M3 6h18"></path>
       <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
       <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
     </svg>`,
-
   edit: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path>
     </svg>`,
-
   copy: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect>
       <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path>
     </svg>`,
-
   pieChart: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path>
       <path d="M22 12A10 10 0 0 0 12 2v10z"></path>
     </svg>`,
-
   home: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
       <polyline points="9 22 9 12 15 12 15 22"></polyline>
     </svg>`,
-
   users: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
@@ -3668,41 +3233,35 @@ var Icons = {
       <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
       <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
     </svg>`,
-
   settings: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
       <circle cx="12" cy="12" r="3"></circle>
     </svg>`,
-
   download: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
       <polyline points="7 10 12 15 17 10"></polyline>
       <line x1="12" x2="12" y1="15" y2="3"></line>
     </svg>`,
-
   upload: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
       <polyline points="17 8 12 3 7 8"></polyline>
       <line x1="12" x2="12" y1="3" y2="15"></line>
     </svg>`,
-
   database: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
       <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
       <path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"></path>
     </svg>`,
-
   printer: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
       <path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"></path>
       <rect x="6" y="14" width="12" height="8" rx="1"></rect>
     </svg>`,
-
   calendar: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M8 2v4"></path>
@@ -3710,20 +3269,17 @@ var Icons = {
       <rect width="18" height="18" x="3" y="4" rx="2"></rect>
       <path d="M3 10h18"></path>
     </svg>`,
-
   checkCircle: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
       <polyline points="22 4 12 14.01 9 11.01"></polyline>
     </svg>`,
-
   alertTriangle: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
       <line x1="12" x2="12" y1="9" y2="13"></line>
       <line x1="12" x2="12.01" y1="17" y2="17"></line>
     </svg>`,
-
   refresh: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
@@ -3731,37 +3287,31 @@ var Icons = {
       <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
       <path d="M8 16H3v5"></path>
     </svg>`,
-
   cloud: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path>
     </svg>`,
-
   x: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M18 6 6 18"></path>
       <path d="m6 6 12 12"></path>
     </svg>`,
-
   tag: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"></path>
       <path d="M7 7h.01"></path>
     </svg>`,
-
   creditCard: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <rect width="20" height="14" x="2" y="5" rx="2"></rect>
       <line x1="2" x2="22" y1="10" y2="10"></line>
     </svg>`,
-
   target: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="12" cy="12" r="10"></circle>
       <circle cx="12" cy="12" r="6"></circle>
       <circle cx="12" cy="12" r="2"></circle>
     </svg>`,
-
   sparkles: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path>
@@ -3770,7 +3320,6 @@ var Icons = {
       <path d="M3 5h4"></path>
       <path d="M17 19h4"></path>
     </svg>`,
-
   bot: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M12 8V4H8"></path>
@@ -3780,14 +3329,12 @@ var Icons = {
       <path d="M15 13v2"></path>
       <path d="M9 13v2"></path>
     </svg>`,
-
   image: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect>
       <circle cx="9" cy="9" r="2"></circle>
       <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path>
     </svg>`,
-
   fileText: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path>
@@ -3796,7 +3343,6 @@ var Icons = {
       <path d="M16 13H8"></path>
       <path d="M16 17H8"></path>
     </svg>`,
-
   calendarCheck: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M8 2v4"></path>
@@ -3805,21 +3351,17 @@ var Icons = {
       <path d="M3 10h18"></path>
       <path d="m9 16 2 2 4-4"></path>
     </svg>`,
-
   send: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="m22 2-7 20-4-9-9-4Z"></path>
       <path d="M22 2 11 13"></path>
     </svg>`,
-
   uploadCloud: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"></path>
       <path d="M12 12v9"></path>
       <path d="m16 16-4-4-4 4"></path>
     </svg>`,
-
-  // Category specific icons
   utensils: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M18 2v6a3 3 0 0 1-3 3 3 3 0 0 1-3-3V2"></path>
@@ -3827,19 +3369,16 @@ var Icons = {
       <path d="M5 2v10a4 4 0 0 0 4 4v6"></path>
       <path d="M9 2v4"></path>
     </svg>`,
-
   shoppingBag: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path>
       <path d="M3 6h18"></path>
       <path d="M16 10a4 4 0 0 1-8 0"></path>
     </svg>`,
-
   zap: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
     </svg>`,
-
   car: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"></path>
@@ -3847,19 +3386,16 @@ var Icons = {
       <path d="M9 17h6"></path>
       <circle cx="17" cy="17" r="2"></circle>
     </svg>`,
-
   bookOpen: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
       <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
     </svg>`,
-
   heartPulse: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path>
       <path d="M3.22 12H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"></path>
     </svg>`,
-
   smile: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="12" cy="12" r="10"></circle>
@@ -3867,38 +3403,32 @@ var Icons = {
       <line x1="9" x2="9.01" y1="9" y2="9"></line>
       <line x1="15" x2="15.01" y1="9" y2="9"></line>
     </svg>`,
-
   briefcase: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
       <rect width="20" height="14" x="2" y="6" rx="2"></rect>
     </svg>`,
-
   dollarSign: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <line x1="12" x2="12" y1="2" y2="22"></line>
       <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
     </svg>`,
-
   camera: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path>
       <circle cx="12" cy="13" r="3"></circle>
     </svg>`,
-
   receipt: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1Z"></path>
       <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path>
     </svg>`,
-
   menu: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <line x1="4" x2="20" y1="12" y2="12"></line>
       <line x1="4" x2="20" y1="6" y2="6"></line>
       <line x1="4" x2="20" y1="18" y2="18"></line>
     </svg>`,
-
   grid: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <rect width="7" height="7" x="3" y="3" rx="1"></rect>
@@ -3906,7 +3436,6 @@ var Icons = {
       <rect width="7" height="7" x="14" y="14" rx="1"></rect>
       <rect width="7" height="7" x="3" y="14" rx="1"></rect>
     </svg>`,
-
   moreHorizontal: (size = 20, className = '') => `
     <svg class="${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="12" cy="12" r="1"></circle>
@@ -3914,7 +3443,6 @@ var Icons = {
       <circle cx="5" cy="12" r="1"></circle>
     </svg>`
 };
-
 function getCategoryIcon(iconName, size = 20, className = '') {
   if (Icons[iconName]) {
     return Icons[iconName](size, className);
@@ -3922,11 +3450,6 @@ function getCategoryIcon(iconName, size = 20, className = '') {
   return Icons.tag(size, className);
 }
 
-
-// ==================== [MODULE: js/components/toast.js] ====================
-/**
- * Toast Notification Component
- */
 
 class ToastManager {
   constructor() {
@@ -3937,24 +3460,19 @@ class ToastManager {
       document.body.appendChild(this.container);
     }
   }
-
   show(message, type = 'success', duration = 3200) {
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
-
     let icon = Icons.checkCircle(20);
     if (type === 'error') icon = Icons.alertTriangle(20);
     if (type === 'info') icon = Icons.pieChart(20);
-
     toast.innerHTML = `
       <div style="color: ${type === 'success' ? 'var(--color-primary-600)' : type === 'error' ? 'var(--color-expense)' : 'var(--color-transfer)'}; display:flex; align-items:center;">
         ${icon}
       </div>
       <div style="flex:1;">${message}</div>
     `;
-
     this.container.appendChild(toast);
-
     setTimeout(() => {
       toast.style.opacity = '0';
       toast.style.transform = 'translateX(50px)';
@@ -3966,41 +3484,28 @@ class ToastManager {
       }, 300);
     }, duration);
   }
-
   success(msg) {
     this.show(msg, 'success');
   }
-
   error(msg) {
     this.show(msg, 'error');
   }
-
   info(msg) {
     this.show(msg, 'info');
   }
 }
-
 var toast = new ToastManager();
 
-
-// ==================== [MODULE: js/components/modal.js] ====================
-/**
- * Reusable Modal & Confirmation Dialog Component
- */
 
 class ModalManager {
   open({ title, content, footerButtons = [], maxWidth = '520px' }) {
     this.close(); // Close any existing modal
-
     const backdrop = document.createElement('div');
     backdrop.className = 'modal-backdrop';
     backdrop.id = 'active-modal-backdrop';
-
     const container = document.createElement('div');
     container.className = 'modal-container';
     container.style.maxWidth = maxWidth;
-
-    // Header
     const header = document.createElement('div');
     header.className = 'modal-header';
     header.innerHTML = `
@@ -4009,8 +3514,6 @@ class ModalManager {
         ${Icons.x(20)}
       </button>
     `;
-
-    // Body
     const body = document.createElement('div');
     body.className = 'modal-body';
     if (typeof content === 'string') {
@@ -4018,8 +3521,6 @@ class ModalManager {
     } else if (content instanceof HTMLElement) {
       body.appendChild(content);
     }
-
-    // Footer
     let footer = null;
     if (footerButtons && footerButtons.length > 0) {
       footer = document.createElement('div');
@@ -4038,15 +3539,11 @@ class ModalManager {
         footer.appendChild(btn);
       });
     }
-
     container.appendChild(header);
     container.appendChild(body);
     if (footer) container.appendChild(footer);
-
     backdrop.appendChild(container);
     document.body.appendChild(backdrop);
-
-    // Event listeners for close
     const closeBtn = document.getElementById('modal-close-action');
     if (closeBtn) {
       closeBtn.onclick = () => this.close();
@@ -4054,11 +3551,8 @@ class ModalManager {
     backdrop.onclick = (e) => {
       if (e.target === backdrop) this.close();
     };
-
-    // Prevent body scrolling
     document.body.style.overflow = 'hidden';
   }
-
   close() {
     const active = document.getElementById('active-modal-backdrop');
     if (active && active.parentNode) {
@@ -4066,7 +3560,6 @@ class ModalManager {
     }
     document.body.style.overflow = '';
   }
-
   confirm({ title = 'Konfirmasi Tindakan', message, confirmText = 'Ya, Lanjutkan', confirmType = 'btn-danger', onConfirm }) {
     this.open({
       title,
@@ -4098,14 +3591,8 @@ class ModalManager {
     });
   }
 }
-
 var modal = new ModalManager();
 
-
-// ==================== [MODULE: js/components/pwaInstall.js] ====================
-/**
- * PWA Install & Add to Home Screen (A2HS) Management
- */
 
 function isAppInstalled() {
   if (typeof window === 'undefined') return false;
@@ -4115,7 +3602,6 @@ function isAppInstalled() {
     (typeof document !== 'undefined' && document.referrer.includes('android-app://'))
   );
 }
-
 function getDeviceInfo() {
   const ua = (typeof navigator !== 'undefined' && navigator.userAgent) ? navigator.userAgent : '';
   const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
@@ -4124,14 +3610,11 @@ function getDeviceInfo() {
   const isSafari = /Safari/.test(ua) && !/Chrome|CriOS|FxiOS|OPR/.test(ua);
   return { isIOS, isAndroid, isChrome, isSafari };
 }
-
 async function triggerPwaInstall() {
   if (isAppInstalled()) {
     toast.success('Aplikasi Dompet Keluarga sudah terpasang di perangkat Anda!');
     return;
   }
-
-  // 1. If standard beforeinstallprompt was captured
   if (window.deferredInstallPrompt) {
     try {
       window.deferredInstallPrompt.prompt();
@@ -4146,16 +3629,11 @@ async function triggerPwaInstall() {
       console.warn('Install prompt error:', err);
     }
   }
-
-  // 2. Fallback to guided modal for iOS / Android / Chrome
   openPwaInstallModal();
 }
-
 function openPwaInstallModal() {
   const { isIOS } = getDeviceInfo();
-
   let guideHTML = '';
-
   if (isIOS) {
     guideHTML = `
       <div style="display:flex;flex-direction:column;gap:1.25rem;">
@@ -4166,7 +3644,6 @@ function openPwaInstallModal() {
             <div style="font-size:0.75rem;color:#047857;margin-top:0.25rem;">Pasang langsung tanpa perlu App Store</div>
           </div>
         </div>
-
         <div style="display:flex;flex-direction:column;gap:0.875rem;">
           <div style="display:flex;align-items:flex-start;gap:0.75rem;background:#f8fafc;padding:0.875rem;border-radius:10px;border:1px solid #e2e8f0;">
             <div style="width:28px;height:28px;border-radius:50%;background:#059669;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.875rem;flex-shrink:0;">1</div>
@@ -4177,7 +3654,6 @@ function openPwaInstallModal() {
               </div>
             </div>
           </div>
-
           <div style="display:flex;align-items:flex-start;gap:0.75rem;background:#f8fafc;padding:0.875rem;border-radius:10px;border:1px solid #e2e8f0;">
             <div style="width:28px;height:28px;border-radius:50%;background:#059669;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.875rem;flex-shrink:0;">2</div>
             <div>
@@ -4187,7 +3663,6 @@ function openPwaInstallModal() {
               </div>
             </div>
           </div>
-
           <div style="display:flex;align-items:flex-start;gap:0.75rem;background:#f8fafc;padding:0.875rem;border-radius:10px;border:1px solid #e2e8f0;">
             <div style="width:28px;height:28px;border-radius:50%;background:#059669;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.875rem;flex-shrink:0;">3</div>
             <div>
@@ -4198,14 +3673,12 @@ function openPwaInstallModal() {
             </div>
           </div>
         </div>
-
         <button type="button" class="btn btn-primary" id="btn-modal-close-ios" style="width:100%;font-weight:700;">
           Saya Mengerti 👍
         </button>
       </div>
     `;
   } else {
-    // Android or Desktop
     guideHTML = `
       <div style="display:flex;flex-direction:column;gap:1.25rem;">
         <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:1rem;display:flex;align-items:center;gap:0.875rem;">
@@ -4215,7 +3688,6 @@ function openPwaInstallModal() {
             <div style="font-size:0.75rem;color:#047857;margin-top:0.25rem;">Install instan hemat kuota & layar penuh</div>
           </div>
         </div>
-
         <div style="display:flex;flex-direction:column;gap:0.875rem;">
           <div style="display:flex;align-items:flex-start;gap:0.75rem;background:#f8fafc;padding:0.875rem;border-radius:10px;border:1px solid #e2e8f0;">
             <div style="width:28px;height:28px;border-radius:50%;background:#059669;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.875rem;flex-shrink:0;">1</div>
@@ -4226,7 +3698,6 @@ function openPwaInstallModal() {
               </div>
             </div>
           </div>
-
           <div style="display:flex;align-items:flex-start;gap:0.75rem;background:#f8fafc;padding:0.875rem;border-radius:10px;border:1px solid #e2e8f0;">
             <div style="width:28px;height:28px;border-radius:50%;background:#059669;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.875rem;flex-shrink:0;">2</div>
             <div>
@@ -4236,7 +3707,6 @@ function openPwaInstallModal() {
               </div>
             </div>
           </div>
-
           <div style="display:flex;align-items:flex-start;gap:0.75rem;background:#f8fafc;padding:0.875rem;border-radius:10px;border:1px solid #e2e8f0;">
             <div style="width:28px;height:28px;border-radius:50%;background:#059669;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.875rem;flex-shrink:0;">3</div>
             <div>
@@ -4247,7 +3717,6 @@ function openPwaInstallModal() {
             </div>
           </div>
         </div>
-
         <div style="display:flex;gap:0.75rem;">
           <button type="button" class="btn btn-secondary" id="btn-modal-close-android" style="flex:1;font-weight:700;">
             Tutup
@@ -4259,23 +3728,19 @@ function openPwaInstallModal() {
       </div>
     `;
   }
-
   modal.open({
     title: '📲 Pasang Aplikasi di HP',
     maxWidth: '460px',
     content: guideHTML
   });
-
   const iosCloseBtn = document.getElementById('btn-modal-close-ios');
   if (iosCloseBtn) {
     iosCloseBtn.onclick = () => modal.close();
   }
-
   const androidCloseBtn = document.getElementById('btn-modal-close-android');
   if (androidCloseBtn) {
     androidCloseBtn.onclick = () => modal.close();
   }
-
   const retryBtn = document.getElementById('btn-modal-retry-pwa');
   if (retryBtn) {
     retryBtn.onclick = () => {
@@ -4288,11 +3753,9 @@ function openPwaInstallModal() {
     };
   }
 }
-
 function renderPwaBannerHTML() {
   if (isAppInstalled()) return '';
   if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('dk_pwa_banner_closed') === '1') return '';
-
   return `
     <div id="pwa-install-banner" class="pwa-install-banner-wrap" style="background:linear-gradient(135deg, #065f46 0%, #047857 100%);color:#fff;border-radius:14px;padding:0.875rem 1.125rem;display:flex;align-items:center;justify-content:space-between;gap:0.75rem;box-shadow:0 6px 18px rgba(5,150,105,0.22);margin-bottom:1.25rem;">
       <div style="display:flex;align-items:center;gap:0.75rem;min-width:0;">
@@ -4317,19 +3780,16 @@ function renderPwaBannerHTML() {
     </div>
   `;
 }
-
 function initPwaBannerEvents() {
   const installBtn = document.getElementById('btn-pwa-banner-install');
   if (installBtn) {
     installBtn.onclick = () => triggerPwaInstall();
   }
-
   const closeBtn = document.getElementById('btn-pwa-banner-close');
   if (closeBtn) {
     closeBtn.onclick = () => dismissPwaBanner();
   }
 }
-
 function dismissPwaBanner() {
   if (typeof sessionStorage !== 'undefined') {
     sessionStorage.setItem('dk_pwa_banner_closed', '1');
@@ -4346,21 +3806,10 @@ function dismissPwaBanner() {
 }
 
 
-// ==================== [MODULE: js/components/licenseModal.js] ====================
-/**
- * ============================================================================
- * DOMPETKU - LICENSE ACTIVATION MODAL (PAYWALL & LEAD CAPTURE POPUP v3.0)
- * ============================================================================
- * Menampilkan popup aktivasi lisensi PRO saat pengguna mencoba mengakses
- * fitur pencatatan transaksi jika belum memiliki lisensi resmi.
- * Dilengkapi input Nomor WhatsApp aktif untuk database marketing & validasi lisensi unik.
- */
-
 function openLicenseActivationModal(featureName = 'Pencatatan Transaksi') {
   const currentLicense = LicenseService.getLicense();
   const isCurrentlyPro = LicenseService.isLicensed();
   const session = window.AuthAccess?.getSession() || {};
-
   const contentHtml = `
     <div class="license-modal-wrap" style="text-align:center;padding:0.5rem 0.25rem;">
       <!-- Hero Icon / Badge -->
@@ -4369,17 +3818,14 @@ function openLicenseActivationModal(featureName = 'Pencatatan Transaksi') {
           ${Icons.sparkles ? Icons.sparkles(34) : Icons.checkCircle(34)}
         </span>
       </div>
-
       <h3 style="font-size:1.35rem;font-weight:800;color:var(--color-slate-900,#0f172a);margin:0 0 0.5rem;letter-spacing:-0.02em;">
         ${isCurrentlyPro ? 'Status Lisensi Dompetku PRO' : 'Aktifkan Lisensi Dompetku PRO'}
       </h3>
-
       <p style="font-size:0.92rem;color:var(--color-slate-600,#475569);line-height:1.55;margin:0 auto 1.25rem;max-width:420px;">
         ${isCurrentlyPro 
           ? 'Aplikasi Anda telah berstatus PRO resmi. Semua fitur pencatatan dan sinkronisasi aktif selamanya.'
           : `Fitur <strong style="color:var(--color-emerald-700,#047857);">${featureName}</strong> membutuhkan <strong>Lisensi Khusus Developer</strong> untuk digunakan secara penuh.`}
       </p>
-
       <!-- Benefits List Card -->
       <div style="background:var(--color-slate-50,#f8fafc);border:1px solid var(--color-slate-200,#e2e8f0);border-radius:14px;padding:1rem 1.15rem;text-align:left;margin-bottom:1.25rem;">
         <div style="font-size:0.8rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-slate-500,#64748b);margin-bottom:0.65rem;">
@@ -4404,10 +3850,8 @@ function openLicenseActivationModal(featureName = 'Pencatatan Transaksi') {
           </li>
         </ul>
       </div>
-
       <!-- Activation Input Area (Lead Capture + License Key) -->
       <div style="background:#ffffff;border:1.5px dashed var(--color-emerald-400,#34d399);border-radius:14px;padding:1.15rem;margin-bottom:1.25rem;text-align:left;">
-        
         <!-- Nomor WhatsApp Input (Marketing & Ownership) -->
         <div style="margin-bottom:0.85rem;">
           <label for="license-phone-input" style="display:block;font-size:0.82rem;font-weight:700;color:var(--color-slate-800,#1e293b);margin-bottom:0.35rem;">
@@ -4424,7 +3868,6 @@ function openLicenseActivationModal(featureName = 'Pencatatan Transaksi') {
             Digunakan untuk validasi hak kepemilikan lisensi resmi & info pembaruan fitur.
           </div>
         </div>
-
         <!-- Kode Lisensi Input -->
         <div style="margin-bottom:0.5rem;">
           <label for="license-key-input" style="display:block;font-size:0.82rem;font-weight:700;color:var(--color-slate-800,#1e293b);margin-bottom:0.35rem;">
@@ -4448,10 +3891,8 @@ function openLicenseActivationModal(featureName = 'Pencatatan Transaksi') {
             </button>
           </div>
         </div>
-
         <div id="license-msg-box" style="margin-top:0.5rem;font-size:0.82rem;line-height:1.4;"></div>
       </div>
-
       <!-- Purchase WhatsApp CTA -->
       <div style="display:flex;flex-direction:column;gap:0.6rem;">
         <a 
@@ -4466,7 +3907,6 @@ function openLicenseActivationModal(featureName = 'Pencatatan Transaksi') {
           <span>${Icons.send ? Icons.send(18) : '💬'}</span>
           <span>Beli / Minta Kunci Lisensi via WhatsApp</span>
         </a>
-
         ${isCurrentlyPro ? `
           <button 
             type="button" 
@@ -4479,7 +3919,6 @@ function openLicenseActivationModal(featureName = 'Pencatatan Transaksi') {
       </div>
     </div>
   `;
-
   modal.open({
     title: isCurrentlyPro ? '✨ Lisensi Dompetku PRO' : '🔒 Akses Fitur Terkunci (Lisensi PRO)',
     content: contentHtml,
@@ -4492,36 +3931,29 @@ function openLicenseActivationModal(featureName = 'Pencatatan Transaksi') {
       }
     ]
   });
-
-  // Attach event handlers
   setTimeout(() => {
     const keyInput = document.getElementById('license-key-input');
     const phoneInput = document.getElementById('license-phone-input');
     const btnActivate = document.getElementById('btn-do-activate-license');
     const msgBox = document.getElementById('license-msg-box');
     const btnDeactivate = document.getElementById('btn-deactivate-license');
-
     if (btnActivate && keyInput) {
       btnActivate.onclick = async () => {
         const rawKey = keyInput.value.trim();
         const rawPhone = phoneInput ? phoneInput.value.trim() : '';
-
         if (!rawPhone || rawPhone.length < 9) {
           msgBox.innerHTML = '<span style="color:#ef4444;font-weight:600;">Harap masukkan Nomor WhatsApp aktif Anda (minimal 9 digit).</span>';
           if (phoneInput) phoneInput.focus();
           return;
         }
-
         if (!rawKey) {
           msgBox.innerHTML = '<span style="color:#ef4444;font-weight:600;">Harap ketik kode kunci lisensi terlebih dahulu.</span>';
           keyInput.focus();
           return;
         }
-
         btnActivate.disabled = true;
         btnActivate.innerText = 'Memverifikasi...';
         msgBox.innerHTML = '<span style="color:#0284c7;font-weight:600;">Sedang memvalidasi lisensi & menyimpan nomor WhatsApp...</span>';
-
         try {
           const userAccount = JSON.parse(localStorage.getItem('dk_user_account_v1') || 'null') || {};
           const currentEmail = session.email || userAccount.email || '';
@@ -4548,7 +3980,6 @@ function openLicenseActivationModal(featureName = 'Pencatatan Transaksi') {
         }
       };
     }
-
     if (btnDeactivate) {
       btnDeactivate.onclick = () => {
         if (confirm('Apakah Anda yakin ingin menghapus lisensi PRO dari perangkat ini?')) {
@@ -4563,34 +3994,23 @@ function openLicenseActivationModal(featureName = 'Pencatatan Transaksi') {
     }
   }, 100);
 }
-
-// Make accessible on window object
 if (typeof window !== 'undefined') {
   window.openLicenseActivationModal = openLicenseActivationModal;
 }
 
-
-// ==================== [MODULE: js/components/receiptScanModal.js] ====================
-/**
- * Smart Receipt Scan, OCR Analysis & Confirmation Modal Component
- * Dompet Keluarga V2
- */
 
 function openReceiptScanModal() {
   if (!LicenseService.isLicensed()) {
     openLicenseActivationModal('AI Scan Struk / Nota');
     return;
   }
-
   let currentStep = 'upload'; // 'upload' | 'scanning' | 'confirm'
   let currentImageDataUrl = null;
   let analysisResult = null;
-
   function renderModalContent() {
     const categories = appState.categories.filter(c => c.type === 'expense');
     const accounts = appState.getAccountsWithBalances().filter(a => !a.isArchived);
     const members = appState.members;
-
     if (currentStep === 'upload') {
       return `
         <div style="display:flex;flex-direction:column;gap:1.25rem;">
@@ -4606,7 +4026,6 @@ function openReceiptScanModal() {
               </div>
             </div>
           </div>
-
           <!-- Dropzone Upload Area -->
           <div id="receipt-dropzone" style="border:2px dashed #93c5fd;border-radius:var(--radius-lg);background:#f8fafc;padding:2rem 1rem;text-align:center;cursor:pointer;transition:all 0.2s ease;">
             <label for="receipt-file-picker" style="cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:0.625rem;">
@@ -4620,7 +4039,6 @@ function openReceiptScanModal() {
             </label>
             <input type="file" id="receipt-file-picker" accept="image/*" capture="environment" style="display:none;" />
           </div>
-
           <!-- Quick Sample Receipts for Fast Testing -->
           <div>
             <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:0.625rem;display:flex;align-items:center;gap:0.375rem;">
@@ -4643,17 +4061,14 @@ function openReceiptScanModal() {
         </div>
       `;
     }
-
     if (currentStep === 'scanning') {
       return `
         <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2.5rem 1rem;gap:1.5rem;text-align:center;">
           <div style="position:relative;width:240px;height:240px;border-radius:var(--radius-lg);overflow:hidden;border:2px solid #3b82f6;box-shadow:0 8px 24px rgba(59,130,246,0.25);background:#0f172a;">
             <img src="${currentImageDataUrl}" alt="Struk Scanned" style="width:100%;height:100%;object-fit:cover;opacity:0.75;" />
-            
             <!-- Glowing Laser Line -->
             <div style="position:absolute;top:0;left:0;right:0;height:4px;background:#60a5fa;box-shadow:0 0 14px #3b82f6, 0 0 24px #93c5fd;animation:laserScan 1.6s ease-in-out infinite;"></div>
           </div>
-
           <div>
             <div style="font-size:1.125rem;font-weight:800;color:var(--color-slate-900);display:flex;align-items:center;justify-content:center;gap:0.5rem;">
               <span style="color:#2563eb;">${Icons.sparkles(20)}</span> AI Sedang Menganalisis Struk...
@@ -4662,7 +4077,6 @@ function openReceiptScanModal() {
               Mengekstrak nama toko, rincian barang belanjaan, tanggal transaksi, dan total pembayaran.
             </p>
           </div>
-
           <style>
             @keyframes laserScan {
               0% { top: 5%; }
@@ -4673,7 +4087,6 @@ function openReceiptScanModal() {
         </div>
       `;
     }
-
     if (currentStep === 'confirm' && analysisResult) {
       const res = analysisResult;
       return `
@@ -4687,7 +4100,6 @@ function openReceiptScanModal() {
               ${Icons.camera(12)} Ganti Foto
             </button>
           </div>
-
           <!-- Struk Preview & Items Breakdown -->
           <div style="display:grid;grid-template-columns:140px 1fr;gap:1rem;background:var(--color-slate-50);padding:1rem;border-radius:var(--radius-md);border:1px solid var(--border-subtle);">
             <!-- Image Thumbnail -->
@@ -4695,7 +4107,6 @@ function openReceiptScanModal() {
               <img src="${currentImageDataUrl}" alt="Foto Struk" style="width:100%;height:140px;object-fit:cover;border-radius:var(--radius-sm);border:1px solid var(--border-subtle);box-shadow:var(--shadow-xs);" />
               <span class="badge" style="background:#e0f2fe;color:#0369a1;margin-top:0.375rem;font-size:0.6875rem;">Struk Terlampir</span>
             </div>
-
             <!-- Items Table from OCR -->
             <div style="overflow-y:auto;max-height:150px;">
               <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:0.375rem;">
@@ -4711,7 +4122,6 @@ function openReceiptScanModal() {
               </div>
             </div>
           </div>
-
           <!-- Editable Confirmation Form -->
           <div style="display:flex;flex-direction:column;gap:0.875rem;">
             <!-- Total Nominal -->
@@ -4729,7 +4139,6 @@ function openReceiptScanModal() {
                 />
               </div>
             </div>
-
             <!-- Description & Date -->
             <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:0.75rem;">
               <div class="form-group" style="margin-bottom:0;">
@@ -4753,7 +4162,6 @@ function openReceiptScanModal() {
                 />
               </div>
             </div>
-
             <!-- Category & Account -->
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
               <div class="form-group" style="margin-bottom:0;">
@@ -4766,7 +4174,6 @@ function openReceiptScanModal() {
                   `).join('')}
                 </select>
               </div>
-
               <div class="form-group" style="margin-bottom:0;">
                 <label class="form-label" style="font-size:0.8125rem;">Rekening / Dompet Asal *</label>
                 <select id="confirm-tx-acc" class="form-select">
@@ -4778,7 +4185,6 @@ function openReceiptScanModal() {
                 </select>
               </div>
             </div>
-
             <!-- Member & Notes -->
             <div style="display:grid;grid-template-columns:1fr 1.5fr;gap:0.75rem;">
               <div class="form-group" style="margin-bottom:0;">
@@ -4791,7 +4197,6 @@ function openReceiptScanModal() {
                   `).join('')}
                 </select>
               </div>
-
               <div class="form-group" style="margin-bottom:0;">
                 <label class="form-label" style="font-size:0.8125rem;">Catatan Item</label>
                 <input 
@@ -4806,10 +4211,8 @@ function openReceiptScanModal() {
         </form>
       `;
     }
-
     return '';
   }
-
   function getFooterButtons() {
     if (currentStep === 'upload') {
       return [
@@ -4820,11 +4223,9 @@ function openReceiptScanModal() {
         }
       ];
     }
-
     if (currentStep === 'scanning') {
       return [];
     }
-
     if (currentStep === 'confirm') {
       return [
         {
@@ -4843,7 +4244,6 @@ function openReceiptScanModal() {
             const accSelect = document.getElementById('confirm-tx-acc');
             const memberSelect = document.getElementById('confirm-tx-member');
             const notesInput = document.getElementById('confirm-tx-notes');
-
             const amountRaw = parseRupiah(amountInput ? amountInput.value : '0');
             const desc = descInput ? descInput.value.trim() : '';
             const date = dateInput ? dateInput.value : '';
@@ -4851,7 +4251,6 @@ function openReceiptScanModal() {
             const accountId = accSelect ? accSelect.value : '';
             const memberId = memberSelect ? memberSelect.value : appState.currentUser.id;
             const notes = notesInput ? notesInput.value.trim() : '';
-
             if (!amountRaw || amountRaw <= 0) {
               toast.error('Harap masukkan nominal yang valid.');
               return;
@@ -4860,8 +4259,6 @@ function openReceiptScanModal() {
               toast.error('Deskripsi transaksi wajib diisi.');
               return;
             }
-
-            // Save transaction with attached receipt photo
             appState.addTransaction({
               type: 'expense',
               amount: amountRaw,
@@ -4874,7 +4271,6 @@ function openReceiptScanModal() {
               receiptUrl: currentImageDataUrl,
               status: 'verified'
             });
-
             toast.success(`Transaksi "${desc}" sebesar ${formatRupiah(amountRaw)} berhasil dicatat!`);
             modal.close();
           }
@@ -4883,7 +4279,6 @@ function openReceiptScanModal() {
     }
     return [];
   }
-
   function updateModal() {
     modal.open({
       title: currentStep === 'confirm' ? 'Konfirmasi Hasil Analisis Struk' : 'Scan & Analisis Foto Struk (AI OCR)',
@@ -4893,37 +4288,27 @@ function openReceiptScanModal() {
     });
     attachStepListeners();
   }
-
   function createSyntheticReceiptImage(sample) {
-    // Generate a clean simulated receipt dataUrl using canvas
     const canvas = document.createElement('canvas');
     canvas.width = 400;
     canvas.height = 520;
     const ctx = canvas.getContext('2d');
-
-    // Background
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, 400, 520);
-
-    // Header styling
     ctx.fillStyle = '#1e293b';
     ctx.font = 'bold 18px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(sample.merchant, 200, 45);
-
     ctx.fillStyle = '#64748b';
     ctx.font = '12px sans-serif';
     ctx.fillText(`Tanggal: ${sample.date}  •  Kasir: #04`, 200, 70);
     ctx.fillText('========================================', 200, 90);
-
-    // Items
     let y = 120;
     ctx.textAlign = 'left';
     sample.items.forEach(item => {
       ctx.fillStyle = '#0f172a';
       ctx.font = 'bold 13px sans-serif';
       ctx.fillText(item.name, 30, y);
-      
       ctx.fillStyle = '#64748b';
       ctx.font = '12px sans-serif';
       ctx.textAlign = 'right';
@@ -4931,32 +4316,25 @@ function openReceiptScanModal() {
       ctx.textAlign = 'left';
       y += 26;
     });
-
     ctx.fillStyle = '#64748b';
     ctx.fillText('----------------------------------------', 200, y);
     y += 28;
-
-    // Total
     ctx.fillStyle = '#0f172a';
     ctx.font = 'bold 16px sans-serif';
     ctx.fillText('TOTAL :', 30, y);
     ctx.textAlign = 'right';
     ctx.fillText(`Rp ${sample.amount.toLocaleString('id-ID')}`, 370, y);
-
     y += 35;
     ctx.textAlign = 'center';
     ctx.fillStyle = '#94a3b8';
     ctx.font = '11px sans-serif';
     ctx.fillText('*** TERIMA KASIH ATAS KUNJUNGAN ANDA ***', 200, y);
-
     return canvas.toDataURL('image/png');
   }
-
   async function processImage(dataUrl, fileName = '') {
     currentImageDataUrl = dataUrl;
     currentStep = 'scanning';
     updateModal();
-
     try {
       analysisResult = await analyzeReceiptImage(dataUrl, fileName);
       currentStep = 'confirm';
@@ -4968,7 +4346,6 @@ function openReceiptScanModal() {
       updateModal();
     }
   }
-
   function attachStepListeners() {
     if (currentStep === 'upload') {
       const fileInput = document.getElementById('receipt-file-picker');
@@ -4983,8 +4360,6 @@ function openReceiptScanModal() {
           reader.readAsDataURL(file);
         };
       }
-
-      // Sample receipt buttons
       document.querySelectorAll('.btn-sample-receipt').forEach(btn => {
         btn.onclick = () => {
           const sampleId = btn.dataset.sampleId;
@@ -4994,7 +4369,6 @@ function openReceiptScanModal() {
         };
       });
     }
-
     if (currentStep === 'confirm') {
       const reScanBtn = document.getElementById('btn-re-scan');
       if (reScanBtn) {
@@ -5005,7 +4379,6 @@ function openReceiptScanModal() {
           updateModal();
         };
       }
-
       const amountInput = document.getElementById('confirm-tx-amount');
       if (amountInput) {
         amountInput.oninput = (e) => {
@@ -5015,27 +4388,17 @@ function openReceiptScanModal() {
       }
     }
   }
-
-  // Initial Open
   updateModal();
 }
-
 var openReceiptScanner = openReceiptScanModal;
 
-
-// ==================== [MODULE: js/components/aiModal.js] ====================
-/**
- * AI Smart Expense Entry Modal Component
- */
 
 function openAIExpenseModal() {
   if (!LicenseService.isLicensed()) {
     openLicenseActivationModal('AI Smart Input Transaksi');
     return;
   }
-
   let parsedResult = null;
-
   function renderAIContent() {
     const categoriesMap = {};
     appState.categories.forEach(c => { categoriesMap[c.id] = c; });
@@ -5043,7 +4406,6 @@ function openAIExpenseModal() {
     appState.accounts.forEach(a => { accountsMap[a.id] = a; });
     const membersMap = {};
     appState.members.forEach(m => { membersMap[m.id] = m; });
-
     return `
       <div style="display:flex;flex-direction:column;gap:1.25rem;">
         <!-- Header banner -->
@@ -5058,7 +4420,6 @@ function openAIExpenseModal() {
             </div>
           </div>
         </div>
-
         <!-- Input Area -->
         <div class="form-group" style="margin-bottom:0;">
           <label class="form-label">Tulis Transaksi Anda *</label>
@@ -5075,7 +4436,6 @@ function openAIExpenseModal() {
             </button>
           </div>
         </div>
-
         <!-- Quick Example Prompts -->
         <div>
           <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:0.5rem;">Contoh Kalimat Cepat:</div>
@@ -5094,7 +4454,6 @@ function openAIExpenseModal() {
             </button>
           </div>
         </div>
-
         <!-- Live Parsed Result Card -->
         <div id="ai-parsed-preview-container" style="display:none;background:var(--color-slate-50);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:1rem 1.25rem;">
           <!-- Dynamically inserted -->
@@ -5102,20 +4461,16 @@ function openAIExpenseModal() {
       </div>
     `;
   }
-
   function updatePreview(parsed) {
     parsedResult = parsed;
     const container = document.getElementById('ai-parsed-preview-container');
     if (!container || !parsed) return;
-
     const cat = appState.getCategoryById(parsed.categoryId);
     const acc = appState.getAccountById(parsed.accountId);
     const targetAcc = parsed.targetAccountId ? appState.getAccountById(parsed.targetAccountId) : null;
     const member = appState.members.find(m => m.id === parsed.memberId);
-
     const catColor = cat ? cat.color : '#94a3b8';
     const iconName = parsed.type === 'transfer' ? 'arrowRightLeft' : (cat ? cat.icon : 'tag');
-
     container.style.display = 'block';
     container.innerHTML = `
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.875rem;padding-bottom:0.625rem;border-bottom:1px solid var(--border-subtle);">
@@ -5127,7 +4482,6 @@ function openAIExpenseModal() {
           ${parsed.type}
         </span>
       </div>
-
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;font-size:0.8125rem;">
         <div>
           <span style="color:var(--text-muted);">Deskripsi:</span>
@@ -5165,7 +4519,6 @@ function openAIExpenseModal() {
       </div>
     `;
   }
-
   modal.open({
     title: '✨ Catat Pintar Pakai AI',
     content: renderAIContent(),
@@ -5186,12 +4539,10 @@ function openAIExpenseModal() {
               parsedResult = parseNaturalLanguageTransaction(inputVal);
             }
           }
-
           if (!parsedResult || !parsedResult.amount) {
             toast.error('Harap masukkan kalimat transaksi atau klik Analisis terlebih dahulu.');
             return;
           }
-
           appState.addTransaction({
             type: parsedResult.type,
             amount: parsedResult.amount,
@@ -5205,18 +4556,14 @@ function openAIExpenseModal() {
             notes: `Dicatat via AI Assistant: "${parsedResult.rawPrompt}"`,
             status: 'verified'
           });
-
           toast.success(`Transaksi "${parsedResult.description}" sebesar ${formatRupiah(parsedResult.amount)} berhasil disimpan via AI!`);
           modal.close();
         }
       }
     ]
   });
-
-  // Attach listeners inside AI modal
   const textarea = document.getElementById('ai-text-input');
   const parseBtn = document.getElementById('btn-ai-parse-trigger');
-
   if (textarea) {
     textarea.oninput = (e) => {
       if (e.target.value.length > 5) {
@@ -5225,7 +4572,6 @@ function openAIExpenseModal() {
       }
     };
   }
-
   if (parseBtn && textarea) {
     parseBtn.onclick = () => {
       const parsed = parseNaturalLanguageTransaction(textarea.value);
@@ -5237,7 +4583,6 @@ function openAIExpenseModal() {
       }
     };
   }
-
   document.querySelectorAll('.ai-prompt-chip').forEach(chip => {
     chip.onclick = () => {
       const prompt = chip.dataset.prompt;
@@ -5249,22 +4594,14 @@ function openAIExpenseModal() {
     };
   });
 }
-
 function openAiModal() {
   return openAIExpenseModal();
 }
 
 
-
-// ==================== [MODULE: js/components/telegramSimulator.js] ====================
-/**
- * Interactive Telegram Bot Simulator Component for Dompet Keluarga V2
- */
-
 function openTelegramBotSimulator() {
   const family = appState.family;
   const current = appState.currentUser;
-
   let messages = [
     {
       sender: 'bot',
@@ -5272,7 +4609,6 @@ function openTelegramBotSimulator() {
       text: `👋 Halo <b>${current.name}</b>! Saya adalah <b>Bot Telegram Dompet Keluarga</b> untuk ruang <i>${family.name}</i>.\n\nKetik pesan seperti:\n• <code>/catat Beli soto 35rb pakai gopay</code>\n• <code>/saldo</code> (Cek saldo seluruh akun)\n• <code>/anggaran</code> (Cek status anggaran)\n• <code>/laporan</code> (Ringkasan bulan ini)`
     }
   ];
-
   function renderTelegramChat() {
     return `
       <div style="display:flex;flex-direction:column;height:460px;background:#eef2f5;border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--border-subtle);">
@@ -5289,7 +4625,6 @@ function openTelegramBotSimulator() {
             SIMULASI V2
           </span>
         </div>
-
         <!-- Chat Messages Container -->
         <div id="tg-messages-box" style="flex:1;padding:1rem;overflow-y:auto;display:flex;flex-direction:column;gap:0.75rem;">
           ${messages.map(m => `
@@ -5301,7 +4636,6 @@ function openTelegramBotSimulator() {
             </div>
           `).join('')}
         </div>
-
         <!-- Quick Action Bar -->
         <div style="padding:0.35rem 0.75rem;background:#f8fafc;border-top:1px solid #e2e8f0;display:flex;gap:0.35rem;overflow-x:auto;">
           <button type="button" class="preset-chip tg-quick-btn" data-cmd="/saldo">💳 /saldo</button>
@@ -5309,7 +4643,6 @@ function openTelegramBotSimulator() {
           <button type="button" class="preset-chip tg-quick-btn" data-cmd="/laporan">📊 /laporan</button>
           <button type="button" class="preset-chip tg-quick-btn" data-cmd="/catat Makan siang bakso 30rb">🍜 /catat Makan 30rb</button>
         </div>
-
         <!-- Telegram Input Bar -->
         <div style="padding:0.625rem;background:white;border-top:1px solid #e2e8f0;display:flex;gap:0.5rem;align-items:center;">
           <input 
@@ -5327,14 +4660,11 @@ function openTelegramBotSimulator() {
       </div>
     `;
   }
-
   function handleCommand(cmdText) {
     const time = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
     messages.push({ sender: 'user', time, text: cmdText });
-
     const lower = cmdText.toLowerCase().trim();
     let botReply = '';
-
     if (lower === '/saldo') {
       const accounts = appState.getAccountsWithBalances().filter(a => !a.isArchived);
       const totalAll = accounts.reduce((sum, a) => sum + a.currentBalance, 0);
@@ -5377,10 +4707,8 @@ function openTelegramBotSimulator() {
             notes: `Dicatat via Bot Telegram: "${textToParse}"`,
             status: 'verified'
           });
-
           const cat = appState.getCategoryById(parsed.categoryId);
           const acc = appState.getAccountById(parsed.accountId);
-
           botReply = `✅ <b>Transaksi Berhasil Dicatat!</b>\n\n` +
             `• Deskripsi: <b>${parsed.description}</b>\n` +
             `• Nominal: <b>${formatRupiah(parsed.amount)}</b>\n` +
@@ -5388,14 +4716,12 @@ function openTelegramBotSimulator() {
             `• Kategori: ${cat ? cat.name : '-'}\n` +
             `• Akun: ${acc ? acc.name : '-'}\n` +
             `• Oleh: ${appState.currentUser.name}`;
-          
           toast.success(`Transaksi dicatat via Telegram: ${parsed.description}`);
         }
       }
     } else {
       botReply = `Perintah tidak dikenali. Gunakan:\n• <code>/catat [kalimat transaksi]</code>\n• <code>/saldo</code>\n• <code>/anggaran</code>\n• <code>/laporan</code>`;
     }
-
     setTimeout(() => {
       messages.push({ sender: 'bot', time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }), text: botReply });
       const body = document.querySelector('.modal-body');
@@ -5406,7 +4732,6 @@ function openTelegramBotSimulator() {
         if (box) box.scrollTop = box.scrollHeight;
       }
     }, 400);
-
     const body = document.querySelector('.modal-body');
     if (body) {
       body.innerHTML = renderTelegramChat();
@@ -5415,11 +4740,9 @@ function openTelegramBotSimulator() {
       if (box) box.scrollTop = box.scrollHeight;
     }
   }
-
   function attachChatListeners() {
     const input = document.getElementById('tg-chat-input');
     const sendBtn = document.getElementById('tg-send-btn');
-
     if (sendBtn && input) {
       sendBtn.onclick = () => {
         if (input.value.trim()) {
@@ -5428,7 +4751,6 @@ function openTelegramBotSimulator() {
           handleCommand(val);
         }
       };
-
       input.onkeydown = (e) => {
         if (e.key === 'Enter' && input.value.trim()) {
           const val = input.value.trim();
@@ -5437,7 +4759,6 @@ function openTelegramBotSimulator() {
         }
       };
     }
-
     document.querySelectorAll('.tg-quick-btn').forEach(btn => {
       btn.onclick = () => {
         const cmd = btn.dataset.cmd;
@@ -5445,7 +4766,6 @@ function openTelegramBotSimulator() {
       };
     });
   }
-
   modal.open({
     title: '💬 Simulator Bot Telegram Dompet Keluarga',
     content: renderTelegramChat(),
@@ -5458,20 +4778,12 @@ function openTelegramBotSimulator() {
       }
     ]
   });
-
   attachChatListeners();
 }
-
 function openTelegramModal() {
   return openTelegramBotSimulator();
 }
 
-
-
-// ==================== [MODULE: js/components/exportModal.js] ====================
-/**
- * Interactive Export Modal Dialog for Dompet Keluarga
- */
 
 function openExportModal() {
   const family = appState.family;
@@ -5480,7 +4792,6 @@ function openExportModal() {
   const categories = appState.categories;
   const accounts = appState.getAccountsWithBalances();
   const members = appState.members;
-
   modal.open({
     title: '📊 Ekspor Laporan & Buku Kas Keuangan',
     content: `
@@ -5489,7 +4800,6 @@ function openExportModal() {
         <div>
           <label class="form-label" style="font-weight:700;margin-bottom:0.5rem;display:block;">Pilih Format & Jenis Laporan *</label>
           <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:0.75rem;">
-            
             <label style="border:2px solid #059669;background:#ecfdf5;border-radius:10px;padding:0.875rem;cursor:pointer;display:flex;align-items:flex-start;gap:0.75rem;transition:.2s;" id="label-type-pdf">
               <input type="radio" name="export-type" value="pdf" checked style="margin-top:0.25rem;accent-color:#059669;" />
               <div>
@@ -5499,7 +4809,6 @@ function openExportModal() {
                 </div>
               </div>
             </label>
-
             <label style="border:1px solid #cbd5e1;background:#f8fafc;border-radius:10px;padding:0.875rem;cursor:pointer;display:flex;align-items:flex-start;gap:0.75rem;transition:.2s;" id="label-type-csv-tx">
               <input type="radio" name="export-type" value="csv-tx" style="margin-top:0.25rem;accent-color:#059669;" />
               <div>
@@ -5509,7 +4818,6 @@ function openExportModal() {
                 </div>
               </div>
             </label>
-
             <label style="border:1px solid #cbd5e1;background:#f8fafc;border-radius:10px;padding:0.875rem;cursor:pointer;display:flex;align-items:flex-start;gap:0.75rem;transition:.2s;" id="label-type-csv-budget">
               <input type="radio" name="export-type" value="csv-budget" style="margin-top:0.25rem;accent-color:#059669;" />
               <div>
@@ -5519,7 +4827,6 @@ function openExportModal() {
                 </div>
               </div>
             </label>
-
             <label style="border:1px solid #cbd5e1;background:#f8fafc;border-radius:10px;padding:0.875rem;cursor:pointer;display:flex;align-items:flex-start;gap:0.75rem;transition:.2s;" id="label-type-csv-member">
               <input type="radio" name="export-type" value="csv-member" style="margin-top:0.25rem;accent-color:#059669;" />
               <div>
@@ -5529,10 +4836,8 @@ function openExportModal() {
                 </div>
               </div>
             </label>
-
           </div>
         </div>
-
         <!-- Filter Period -->
         <div style="background:var(--color-slate-50);padding:1rem;border-radius:8px;">
           <div class="form-group" style="margin-bottom:0.75rem;">
@@ -5545,7 +4850,6 @@ function openExportModal() {
               <option value="custom">Kustom Rentang Tanggal</option>
             </select>
           </div>
-
           <!-- Custom Date Range Picker (hidden by default) -->
           <div id="export-custom-dates" style="display:none;grid-template-columns:1fr 1fr;gap:0.75rem;margin-top:0.75rem;">
             <div class="form-group">
@@ -5558,7 +4862,6 @@ function openExportModal() {
             </div>
           </div>
         </div>
-
         <!-- Filter Account & Category -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
           <div class="form-group">
@@ -5568,7 +4871,6 @@ function openExportModal() {
               ${accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('')}
             </select>
           </div>
-
           <div class="form-group">
             <label class="form-label" style="font-size:0.8125rem;">Filter Kategori</label>
             <select id="export-category-filter" class="form-select">
@@ -5577,7 +4879,6 @@ function openExportModal() {
             </select>
           </div>
         </div>
-
         <!-- Live Summary Box -->
         <div id="export-summary-box" style="background:#f1f5f9;border:1px dashed #cbd5e1;padding:0.75rem 1rem;border-radius:8px;font-size:0.8125rem;color:#475569;display:flex;justify-content:space-between;align-items:center;">
           <span>📦 Menghitung data yang akan diekspor...</span>
@@ -5595,11 +4896,8 @@ function openExportModal() {
       }
     ]
   });
-
-  // Setup interaction within the modal
   setupModalInteractions();
 }
-
 function setupModalInteractions() {
   const radios = document.querySelectorAll('input[name="export-type"]');
   radios.forEach(radio => {
@@ -5615,7 +4913,6 @@ function setupModalInteractions() {
       }
     };
   });
-
   const periodSelect = document.getElementById('export-period-select');
   const customDates = document.getElementById('export-custom-dates');
   if (periodSelect) {
@@ -5626,27 +4923,21 @@ function setupModalInteractions() {
       updateSummaryBox();
     };
   }
-
   const accFilter = document.getElementById('export-account-filter');
   const catFilter = document.getElementById('export-category-filter');
   const startDate = document.getElementById('export-start-date');
   const endDate = document.getElementById('export-end-date');
-
   if (accFilter) accFilter.onchange = updateSummaryBox;
   if (catFilter) catFilter.onchange = updateSummaryBox;
   if (startDate) startDate.onchange = updateSummaryBox;
   if (endDate) endDate.onchange = updateSummaryBox;
-
   updateSummaryBox();
 }
-
 function getFilteredExportTransactions() {
   let txs = [...appState.transactions];
   const period = document.getElementById('export-period-select')?.value || 'current_month';
   const currentMonth = appState.selectedMonth;
   const currentYear = appState.selectedYear;
-
-  // Filter Date Range
   if (period === 'current_month') {
     txs = txs.filter(t => {
       const d = new Date(t.date);
@@ -5667,29 +4958,21 @@ function getFilteredExportTransactions() {
     if (startVal) txs = txs.filter(t => t.date >= startVal);
     if (endVal) txs = txs.filter(t => t.date <= endVal);
   }
-
-  // Filter Account
   const accVal = document.getElementById('export-account-filter')?.value;
   if (accVal && accVal !== 'all') {
     txs = txs.filter(t => t.accountId === accVal || (t.account && t.account.id === accVal));
   }
-
-  // Filter Category
   const catVal = document.getElementById('export-category-filter')?.value;
   if (catVal && catVal !== 'all') {
     txs = txs.filter(t => t.categoryId === catVal || (t.category && t.category.id === catVal));
   }
-
   return txs;
 }
-
 function updateSummaryBox() {
   const summaryBox = document.getElementById('export-summary-box');
   if (!summaryBox) return;
-
   const filtered = getFilteredExportTransactions();
   const totalAmount = filtered.reduce((sum, t) => sum + (t.amount || 0), 0);
-
   summaryBox.innerHTML = `
     <div>
       Siap diekspor: <strong>${filtered.length} Transaksi</strong>
@@ -5699,13 +4982,11 @@ function updateSummaryBox() {
     </div>
   `;
 }
-
 function executeExport() {
   const selectedType = document.querySelector('input[name="export-type"]:checked')?.value || 'pdf';
   const period = document.getElementById('export-period-select')?.value || 'current_month';
   const currentMonth = appState.selectedMonth;
   const currentYear = appState.selectedYear;
-
   let periodLabel = `${getMonthName(currentMonth)} ${currentYear}`;
   if (period === 'last_3_months') periodLabel = '3 Bulan Terakhir';
   if (period === 'current_year') periodLabel = `Tahun ${currentYear}`;
@@ -5715,14 +4996,12 @@ function executeExport() {
     const e = document.getElementById('export-end-date')?.value || '';
     periodLabel = `${s} s/d ${e}`;
   }
-
   const transactions = getFilteredExportTransactions();
   const family = appState.family;
   const metrics = appState.getMonthlyMetrics(currentMonth, currentYear);
   const accounts = appState.getAccountsWithBalances();
   const members = appState.members;
   const categories = appState.categories;
-
   if (selectedType === 'pdf') {
     toast.info('Menyiapkan dokumen cetak PDF...');
     ReportExporter.printFinancialStatement({
@@ -5764,21 +5043,12 @@ function executeExport() {
 }
 
 
-// ==================== [MODULE: js/components/onboardingWizardModal.js] ====================
-/**
- * Interactive Onboarding Setup Wizard Component for Dompetku
- * Guides first-time users through family identity, initial accounts, and starting mode.
- */
-
 function openOnboardingWizardModal(force = false) {
-  // Jika tidak dipaksa dibuka dari tombol Pengaturan, cek apakah sudah pernah selesai atau disetup
   if (!force) {
     const isCompleted = localStorage.getItem('dk_onboarding_completed');
     if (isCompleted === 'true') {
       return;
     }
-
-    // Jika akun sudah memiliki data tersimpan (bukan fresh install kosong)
     const savedStateStr = localStorage.getItem('dompet_keluarga_db_v1');
     if (savedStateStr) {
       try {
@@ -5790,17 +5060,13 @@ function openOnboardingWizardModal(force = false) {
       } catch (_) {}
     }
   }
-
   let currentStep = 1;
   const totalSteps = 4;
-
   const session = window.AuthAccess?.getSession?.() || {};
   const defaultUserName = session.fullName || appState.currentUser?.name || 'Pengguna';
   const defaultFamilyName = session.fullName 
     ? `Keluarga ${session.fullName.split(' ')[0]}` 
     : (appState.family?.name || 'Keluarga Saya');
-
-  // Wizard temporary state
   const wizardData = {
     familyName: defaultFamilyName,
     userName: defaultUserName,
@@ -5814,7 +5080,6 @@ function openOnboardingWizardModal(force = false) {
     ewalletBalance: 200000,
     startMode: 'clean' // 'clean' or 'demo'
   };
-
   function renderWizardStep() {
     switch (currentStep) {
       case 1:
@@ -5829,7 +5094,6 @@ function openOnboardingWizardModal(force = false) {
                 Mari atur identitas pembukuan keuangan keluarga Anda dalam waktu kurang dari 1 menit.
               </p>
             </div>
-
             <div style="background:var(--color-slate-50);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:1.25rem;display:flex;flex-direction:column;gap:1rem;">
               <div class="form-group" style="margin-bottom:0;">
                 <label class="form-label" style="font-weight:700;">Nama Keluarga / Buku Kas *</label>
@@ -5845,7 +5109,6 @@ function openOnboardingWizardModal(force = false) {
                   Nama ini akan muncul pada dashboard dan kop laporan keuangan Anda.
                 </small>
               </div>
-
               <div class="form-group" style="margin-bottom:0;">
                 <label class="form-label" style="font-weight:700;">Nama Panggilan Anda *</label>
                 <input 
@@ -5857,7 +5120,6 @@ function openOnboardingWizardModal(force = false) {
                   required 
                 />
               </div>
-
               <div class="form-group" style="margin-bottom:0;">
                 <label class="form-label" style="font-weight:700;">Mata Uang Utama *</label>
                 <select id="wiz-currency" class="form-select">
@@ -5870,7 +5132,6 @@ function openOnboardingWizardModal(force = false) {
             </div>
           </div>
         `;
-
       case 2:
         return `
           <div style="display:flex;flex-direction:column;gap:1.25rem;">
@@ -5883,7 +5144,6 @@ function openOnboardingWizardModal(force = false) {
                 Masukkan estimasi saldo dana yang Anda miliki saat ini. Anda dapat menambah akun lainnya nanti.
               </p>
             </div>
-
             <div style="display:flex;flex-direction:column;gap:0.875rem;">
               <!-- Akun Tunai -->
               <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:var(--radius-md);padding:1rem;">
@@ -5905,7 +5165,6 @@ function openOnboardingWizardModal(force = false) {
                   </div>
                 </div>
               </div>
-
               <!-- Rekening Bank -->
               <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:var(--radius-md);padding:1rem;">
                 <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;">
@@ -5938,7 +5197,6 @@ function openOnboardingWizardModal(force = false) {
                   </div>
                 </div>
               </div>
-
               <!-- E-Wallet Tambahan -->
               <div style="background:#faf5ff;border:1px solid #e9d5ff;border-radius:var(--radius-md);padding:1rem;">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
@@ -5980,7 +5238,6 @@ function openOnboardingWizardModal(force = false) {
             </div>
           </div>
         `;
-
       case 3:
         return `
           <div style="display:flex;flex-direction:column;gap:1.25rem;">
@@ -5993,7 +5250,6 @@ function openOnboardingWizardModal(force = false) {
                 Apakah Anda ingin langsung mencatat pembukuan asli, atau mencoba data simulasi terlebih dahulu?
               </p>
             </div>
-
             <div style="display:flex;flex-direction:column;gap:0.875rem;">
               <!-- Option A: Clean Mode (Recommended) -->
               <label 
@@ -6019,7 +5275,6 @@ function openOnboardingWizardModal(force = false) {
                   </p>
                 </div>
               </label>
-
               <!-- Option B: Demo Mode -->
               <label 
                 id="card-mode-demo" 
@@ -6047,7 +5302,6 @@ function openOnboardingWizardModal(force = false) {
             </div>
           </div>
         `;
-
       case 4:
         const totalInitialBalance = wizardData.cashBalance + wizardData.bankBalance + (wizardData.hasEwallet ? wizardData.ewalletBalance : 0);
         return `
@@ -6061,7 +5315,6 @@ function openOnboardingWizardModal(force = false) {
                 Berikut ringkasan konfigurasi awal aplikasi Dompetku untuk Anda:
               </p>
             </div>
-
             <div style="background:var(--color-slate-50);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:1.125rem;display:flex;flex-direction:column;gap:0.75rem;">
               <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #e2e8f0;padding-bottom:0.5rem;">
                 <span style="font-size:0.8125rem;color:var(--text-muted);">Nama Pembukuan:</span>
@@ -6086,7 +5339,6 @@ function openOnboardingWizardModal(force = false) {
                 </div>
               ` : ''}
             </div>
-
             <!-- Jaminan Privasi -->
             <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:var(--radius-md);padding:0.875rem 1rem;display:flex;align-items:center;gap:0.75rem;">
               <span style="font-size:1.5rem;">🛡️</span>
@@ -6098,7 +5350,6 @@ function openOnboardingWizardModal(force = false) {
         `;
     }
   }
-
   function renderProgressBar() {
     const steps = [
       { num: 1, label: 'Profil' },
@@ -6106,12 +5357,10 @@ function openOnboardingWizardModal(force = false) {
       { num: 3, label: 'Mode' },
       { num: 4, label: 'Selesai' }
     ];
-
     return `
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;position:relative;">
         <div style="position:absolute;top:50%;left:12%;right:12%;height:3px;background:#e2e8f0;transform:translateY(-50%);z-index:1;"></div>
         <div style="position:absolute;top:50%;left:12%;width:${((currentStep - 1) / (totalSteps - 1)) * 76}%;height:3px;background:#059669;transform:translateY(-50%);z-index:1;transition:width 0.3s ease;"></div>
-        
         ${steps.map(s => {
           const isDone = s.num < currentStep;
           const isActive = s.num === currentStep;
@@ -6132,11 +5381,8 @@ function openOnboardingWizardModal(force = false) {
       </div>
     `;
   }
-
   function getFooterButtons() {
     const buttons = [];
-
-    // Skip / Tutup Button
     if (currentStep === 1) {
       buttons.push({
         label: 'Lewati Panduan',
@@ -6148,8 +5394,6 @@ function openOnboardingWizardModal(force = false) {
         }
       });
     }
-
-    // Back Button
     if (currentStep > 1) {
       buttons.push({
         label: '← Kembali',
@@ -6161,8 +5405,6 @@ function openOnboardingWizardModal(force = false) {
         }
       });
     }
-
-    // Next / Finish Button
     if (currentStep < totalSteps) {
       buttons.push({
         label: 'Lanjutkan →',
@@ -6183,10 +5425,8 @@ function openOnboardingWizardModal(force = false) {
         }
       });
     }
-
     return buttons;
   }
-
   function saveCurrentStepData() {
     if (currentStep === 1) {
       const famInput = document.getElementById('wiz-family-name');
@@ -6205,7 +5445,6 @@ function openOnboardingWizardModal(force = false) {
       const ewalletCheck = document.getElementById('wiz-has-ewallet');
       const ewalletNameInput = document.getElementById('wiz-ewallet-name');
       const ewalletBalInput = document.getElementById('wiz-ewallet-balance');
-
       if (cashInput) wizardData.cashBalance = parseRupiah(cashInput.value);
       if (bankNameInput) wizardData.bankName = bankNameInput.value.trim() || 'Rekening Bank Utama';
       if (bankBalInput) wizardData.bankBalance = parseRupiah(bankBalInput.value);
@@ -6217,7 +5456,6 @@ function openOnboardingWizardModal(force = false) {
       if (selectedMode) wizardData.startMode = selectedMode.value;
     }
   }
-
   function validateAndSaveCurrentStep() {
     saveCurrentStepData();
     if (currentStep === 1) {
@@ -6232,7 +5470,6 @@ function openOnboardingWizardModal(force = false) {
     }
     return true;
   }
-
   function attachStepEvents() {
     if (currentStep === 2) {
       const cashInput = document.getElementById('wiz-cash-balance');
@@ -6242,7 +5479,6 @@ function openOnboardingWizardModal(force = false) {
           e.target.value = raw > 0 ? raw.toLocaleString('id-ID') : '';
         };
       }
-
       const bankBalInput = document.getElementById('wiz-bank-balance');
       if (bankBalInput) {
         bankBalInput.oninput = (e) => {
@@ -6250,7 +5486,6 @@ function openOnboardingWizardModal(force = false) {
           e.target.value = raw > 0 ? raw.toLocaleString('id-ID') : '';
         };
       }
-
       const ewalletBalInput = document.getElementById('wiz-ewallet-balance');
       if (ewalletBalInput) {
         ewalletBalInput.oninput = (e) => {
@@ -6258,7 +5493,6 @@ function openOnboardingWizardModal(force = false) {
           e.target.value = raw > 0 ? raw.toLocaleString('id-ID') : '';
         };
       }
-
       const ewalletCheck = document.getElementById('wiz-has-ewallet');
       const ewalletFields = document.getElementById('wiz-ewallet-fields');
       if (ewalletCheck && ewalletFields) {
@@ -6268,13 +5502,11 @@ function openOnboardingWizardModal(force = false) {
         };
       }
     }
-
     if (currentStep === 3) {
       const cardClean = document.getElementById('card-mode-clean');
       const cardDemo = document.getElementById('card-mode-demo');
       const radioClean = document.querySelector('input[value="clean"]');
       const radioDemo = document.querySelector('input[value="demo"]');
-
       if (cardClean && radioClean) {
         cardClean.onclick = () => {
           radioClean.checked = true;
@@ -6282,7 +5514,6 @@ function openOnboardingWizardModal(force = false) {
           updateCardStyles();
         };
       }
-
       if (cardDemo && radioDemo) {
         cardDemo.onclick = () => {
           radioDemo.checked = true;
@@ -6290,7 +5521,6 @@ function openOnboardingWizardModal(force = false) {
           updateCardStyles();
         };
       }
-
       function updateCardStyles() {
         if (cardClean && cardDemo) {
           cardClean.style.borderColor = wizardData.startMode === 'clean' ? '#059669' : '#e2e8f0';
@@ -6301,16 +5531,13 @@ function openOnboardingWizardModal(force = false) {
       }
     }
   }
-
   function finishOnboarding() {
     saveCurrentStepData();
-
     if (wizardData.startMode === 'clean') {
       const now = new Date();
       const todayStr = now.toISOString().split('T')[0];
       const words = wizardData.userName.trim().split(/\s+/);
       const avatar = words.length > 1 ? (words[0][0] + words[1][0]).toUpperCase() : wizardData.userName.substring(0, 2).toUpperCase();
-
       appState.family = {
         id: 'fam-1',
         name: wizardData.familyName,
@@ -6320,7 +5547,6 @@ function openOnboardingWizardModal(force = false) {
         ownerId: 'user-1',
         createdAt: todayStr
       };
-
       appState.currentUser = {
         id: 'user-1',
         name: wizardData.userName,
@@ -6329,7 +5555,6 @@ function openOnboardingWizardModal(force = false) {
         roleLabel: 'Super Akses (Pemilik)',
         avatarText: avatar
       };
-
       appState.members = [
         {
           id: 'user-1',
@@ -6343,7 +5568,6 @@ function openOnboardingWizardModal(force = false) {
           joinedAt: todayStr
         }
       ];
-
       const initialAccounts = [
         {
           id: 'acc-1',
@@ -6368,7 +5592,6 @@ function openOnboardingWizardModal(force = false) {
           isArchived: false
         }
       ];
-
       if (wizardData.hasEwallet) {
         initialAccounts.push({
           id: 'acc-3',
@@ -6382,7 +5605,6 @@ function openOnboardingWizardModal(force = false) {
           isArchived: false
         });
       }
-
       appState.accounts = initialAccounts;
       appState.categories = JSON.parse(JSON.stringify(INITIAL_DATA.categories));
       appState.transactions = [];
@@ -6392,19 +5614,14 @@ function openOnboardingWizardModal(force = false) {
       appState.selectedMonth = now.getMonth() + 1;
       appState.selectedYear = now.getFullYear();
       appState.saveState();
-
     } else {
-      // Demo mode
       appState.resetToInitialData();
     }
-
     localStorage.setItem('dk_onboarding_completed', 'true');
     appState.notify();
     modal.close();
-
     toast.success(`🎉 Selamat Datang di Dompetku, ${wizardData.userName}! Aplikasi siap digunakan.`);
   }
-
   function updateModal() {
     modal.open({
       title: `✨ Panduan Setup Awal (${currentStep}/${totalSteps})`,
@@ -6418,8 +5635,6 @@ function openOnboardingWizardModal(force = false) {
       maxWidth: '560px'
     });
     attachStepEvents();
-
-    // Pastikan jika ditutup via tombol X atau backdrop, flag selesai tetap tersimpan
     const closeBtn = document.getElementById('modal-close-action');
     if (closeBtn) {
       const origClose = closeBtn.onclick;
@@ -6430,32 +5645,21 @@ function openOnboardingWizardModal(force = false) {
       };
     }
   }
-
-  // Launch initial step
   updateModal();
 }
 
 
-// ==================== [MODULE: js/components/transactionModal.js] ====================
-/**
- * Quick Add / Edit / Duplicate Transaction Modal
- */
-
 function openTransactionModal(existingTx = null) {
-  // Paywall Check for New Transactions (Requires Active Developer / PRO License)
   if (!existingTx && !LicenseService.isLicensed()) {
     openLicenseActivationModal('Pencatatan Transaksi Baru');
     return;
   }
-
   const isEdit = !!existingTx;
   let currentType = existingTx ? existingTx.type : 'expense';
   let currentReceiptUrl = existingTx && existingTx.receiptUrl ? existingTx.receiptUrl : null;
-
   const accounts = appState.getAccountsWithBalances().filter(a => !a.isArchived);
   const members = appState.members;
   const categories = appState.categories.filter(c => !c.isArchived);
-
   function renderContent(type) {
     const activeCategories = categories.filter(c => c.type === type);
     const defaultDate = existingTx ? existingTx.date : new Date().toISOString().split('T')[0];
@@ -6468,10 +5672,8 @@ function openTransactionModal(existingTx = null) {
     const defaultSubcategory = existingTx && existingTx.subcategory ? existingTx.subcategory : '';
     const defaultNotes = existingTx && existingTx.notes ? existingTx.notes : '';
     const defaultStatus = existingTx && existingTx.status ? existingTx.status : 'verified';
-
     const selectedCategory = activeCategories.find(c => c.id === defaultCategoryId) || activeCategories[0];
     const subcategories = selectedCategory ? (selectedCategory.subcategories || []) : [];
-
     return `
       <form id="transaction-form" onsubmit="return false;">
         ${!isEdit ? `
@@ -6491,7 +5693,6 @@ function openTransactionModal(existingTx = null) {
             </div>
           </div>
         ` : ''}
-
         <!-- Type Selection -->
         <div class="type-segmented-control">
           <button type="button" class="segment-btn type-expense ${type === 'expense' ? 'active' : ''}" data-type="expense">
@@ -6504,7 +5705,6 @@ function openTransactionModal(existingTx = null) {
             ${Icons.arrowRightLeft(16)} Transfer
           </button>
         </div>
-
         <!-- Nominal Input -->
         <div class="form-group">
           <label class="form-label">Nominal Transaksi *</label>
@@ -6529,7 +5729,6 @@ function openTransactionModal(existingTx = null) {
             <button type="button" class="preset-chip" data-add="1000000">+1 jt</button>
           </div>
         </div>
-
         <!-- Description & Date Row -->
         <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:0.75rem;">
           <div class="form-group">
@@ -6554,7 +5753,6 @@ function openTransactionModal(existingTx = null) {
             />
           </div>
         </div>
-
         ${type !== 'transfer' ? `
           <!-- Category & Subcategory Row -->
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
@@ -6579,7 +5777,6 @@ function openTransactionModal(existingTx = null) {
             </div>
           </div>
         ` : ''}
-
         <!-- Accounts Row -->
         <div style="display:grid;grid-template-columns:${type === 'transfer' ? '1fr 1fr' : '1fr'};gap:0.75rem;">
           <div class="form-group">
@@ -6592,7 +5789,6 @@ function openTransactionModal(existingTx = null) {
               `).join('')}
             </select>
           </div>
-
           ${type === 'transfer' ? `
             <div class="form-group">
               <label class="form-label">Ke Akun (Tujuan) *</label>
@@ -6606,7 +5802,6 @@ function openTransactionModal(existingTx = null) {
             </div>
           ` : ''}
         </div>
-
         <!-- Member & Status Row -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
           <div class="form-group">
@@ -6627,7 +5822,6 @@ function openTransactionModal(existingTx = null) {
             </select>
           </div>
         </div>
-
         <!-- Notes -->
         <div class="form-group">
           <label class="form-label">Catatan Tambahan (Opsional)</label>
@@ -6639,7 +5833,6 @@ function openTransactionModal(existingTx = null) {
             value="${defaultNotes}" 
           />
         </div>
-
         <!-- Receipt / Struk Image Attachment -->
         <div class="form-group" style="margin-bottom:0.5rem;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.375rem;">
@@ -6675,12 +5868,9 @@ function openTransactionModal(existingTx = null) {
       </form>
     `;
   }
-
   function attachListeners() {
     const form = document.getElementById('transaction-form');
     if (!form) return;
-
-    // Type buttons
     form.querySelectorAll('.segment-btn').forEach(btn => {
       btn.onclick = () => {
         currentType = btn.dataset.type;
@@ -6691,8 +5881,6 @@ function openTransactionModal(existingTx = null) {
         }
       };
     });
-
-    // Amount formatter
     const amountInput = document.getElementById('tx-amount-input');
     if (amountInput) {
       amountInput.oninput = (e) => {
@@ -6700,8 +5888,6 @@ function openTransactionModal(existingTx = null) {
         e.target.value = raw > 0 ? raw.toLocaleString('id-ID') : '';
       };
     }
-
-    // Quick chips
     form.querySelectorAll('.preset-chip').forEach(chip => {
       chip.onclick = () => {
         const add = parseInt(chip.dataset.add, 10);
@@ -6709,8 +5895,6 @@ function openTransactionModal(existingTx = null) {
         amountInput.value = (current + add).toLocaleString('id-ID');
       };
     });
-
-    // Category change subcategories updater
     const catSelect = document.getElementById('tx-category-select');
     const subcatSelect = document.getElementById('tx-subcategory-select');
     if (catSelect && subcatSelect) {
@@ -6723,8 +5907,6 @@ function openTransactionModal(existingTx = null) {
         `;
       };
     }
-
-    // Receipt File Input Listener
     const receiptInput = document.getElementById('receipt-file-input');
     if (receiptInput) {
       receiptInput.onchange = (e) => {
@@ -6734,7 +5916,6 @@ function openTransactionModal(existingTx = null) {
           toast.error('Ukuran file foto maksimal 3MB.');
           return;
         }
-
         const reader = new FileReader();
         reader.onload = (event) => {
           currentReceiptUrl = event.target.result;
@@ -6748,8 +5929,6 @@ function openTransactionModal(existingTx = null) {
         reader.readAsDataURL(file);
       };
     }
-
-    // Remove Receipt Button Listener
     const removeReceiptBtn = document.getElementById('btn-remove-receipt');
     if (removeReceiptBtn) {
       removeReceiptBtn.onclick = () => {
@@ -6761,30 +5940,24 @@ function openTransactionModal(existingTx = null) {
         }
       };
     }
-
-    // Switch to OCR Scanner Button
     const switchOcrBtn = document.getElementById('btn-switch-to-ocr');
     if (switchOcrBtn) {
       switchOcrBtn.onclick = () => {
         openReceiptScanModal();
       };
     }
-
-    // Quick Smart Option Buttons (Scan Struk, AI, Telegram)
     const quickOcrBtn = document.getElementById('btn-quick-ocr');
     if (quickOcrBtn) {
       quickOcrBtn.onclick = () => {
         openReceiptScanModal();
       };
     }
-
     const quickAiBtn = document.getElementById('btn-quick-ai');
     if (quickAiBtn) {
       quickAiBtn.onclick = () => {
         openAiModal();
       };
     }
-
     const quickBotBtn = document.getElementById('btn-quick-bot');
     if (quickBotBtn) {
       quickBotBtn.onclick = () => {
@@ -6792,7 +5965,6 @@ function openTransactionModal(existingTx = null) {
       };
     }
   }
-
   modal.open({
     title: isEdit ? 'Ubah Catatan Transaksi' : 'Catat Transaksi Baru',
     content: renderContent(currentType),
@@ -6817,8 +5989,6 @@ function openTransactionModal(existingTx = null) {
           const catSelect = document.getElementById('tx-category-select');
           const subcatSelect = document.getElementById('tx-subcategory-select');
           const targetAccSelect = document.getElementById('tx-target-account-select');
-
-          // Validations
           if (!amountRaw || amountRaw <= 0) {
             toast.error('Harap masukkan nominal transaksi yang valid.');
             return;
@@ -6846,7 +6016,6 @@ function openTransactionModal(existingTx = null) {
               return;
             }
           }
-
           const payload = {
             type: currentType,
             amount: amountRaw,
@@ -6861,7 +6030,6 @@ function openTransactionModal(existingTx = null) {
             notes,
             receiptUrl: currentReceiptUrl || undefined
           };
-
           if (isEdit) {
             appState.updateTransaction(existingTx.id, payload);
             toast.success('Transaksi berhasil diperbarui!');
@@ -6869,27 +6037,19 @@ function openTransactionModal(existingTx = null) {
             appState.addTransaction(payload);
             toast.success('Transaksi berhasil dicatat!');
           }
-
           modal.close();
         }
       }
     ]
   });
-
   attachListeners();
 }
 
-
-// ==================== [MODULE: js/components/navbar.js] ====================
-/**
- * Header & Navbar Component
- */
 
 function renderNavbar() {
   const family = appState.family;
   const members = appState.members;
   const current = appState.currentUser;
-
   return `
     <header class="app-header">
       <div class="header-left">
@@ -6897,20 +6057,17 @@ function renderNavbar() {
         <button class="mobile-menu-btn" id="mobile-menu-btn" title="Buka Menu Sidebar">
           ${Icons.menu(20)}
         </button>
-
         <div class="header-family-selector" id="family-profile-trigger" title="Klik untuk info keluarga">
           <span class="family-home-icon">${Icons.home(18)}</span>
           <span class="header-family-name">${family.name}</span>
           <span class="badge hide-on-mobile" style="background:#e0f2fe;color:#0369a1;font-size:0.6875rem;">IDR</span>
         </div>
       </div>
-
       <div class="header-right">
         <!-- PWA Install App Button -->
         <button class="btn btn-secondary btn-sm" id="btn-install-pwa" style="display:${isAppInstalled() ? 'none' : 'inline-flex'};align-items:center;gap:0.35rem;background:#ecfdf5;color:#059669;border-color:#a7f3d0;font-weight:700;" title="Install Aplikasi di Layar Utama HP / PC">
           📲 <span class="hide-on-mobile">Install App</span>
         </button>
-
         <!-- Role Switcher Simulator for quick role & permission testing -->
         <div class="role-switcher-container" title="Simulasi Akses Peran Keluarga">
           <label class="role-switcher-label hide-on-mobile">
@@ -6925,23 +6082,19 @@ function renderNavbar() {
             `).join('')}
           </select>
         </div>
-
         <!-- Quick Cloud Sync Button -->
         <button class="btn btn-secondary btn-sm" id="btn-header-sync" style="display:inline-flex;align-items:center;gap:0.35rem;padding:0.4rem 0.65rem;font-weight:700;font-size:0.75rem;border-radius:8px;background:#f0fdf4;color:#15803d;border-color:#bbf7d0;" title="Sinkronkan dengan Google Spreadsheet Sekarang">
           <span id="nav-sync-icon" style="display:inline-block;transition:transform 0.4s ease;">🔄</span>
           <span class="hide-on-mobile">Sinkron</span>
         </button>
-
         <button class="btn-header-add" id="header-btn-add-tx">
           ${Icons.plus(18)} <span class="hide-on-mobile">Catat Transaksi</span>
         </button>
-
         <!-- Header Logout Button -->
         <button class="btn btn-secondary btn-sm hide-on-mobile" id="navbar-btn-logout" style="display:inline-flex;align-items:center;gap:0.375rem;color:#dc2626;border-color:#fecaca;background:#fff5f5;font-weight:700;padding:0.4rem 0.65rem;" title="Keluar dari Akun (Logout)">
           ${Icons.logOut ? Icons.logOut(15) : '🚪'}
           <span>Keluar</span>
         </button>
-
         <div class="user-avatar" style="cursor:pointer;" id="user-avatar-trigger" title="${current.name} (${current.role})">
           ${current.avatarText || 'DK'}
         </div>
@@ -6949,7 +6102,6 @@ function renderNavbar() {
     </header>
   `;
 }
-
 function attachNavbarListeners() {
   const syncBtn = document.getElementById('btn-header-sync');
   if (syncBtn) {
@@ -6975,7 +6127,6 @@ function attachNavbarListeners() {
       }
     };
   }
-
   const navbarLogoutBtn = document.getElementById('navbar-btn-logout');
   if (navbarLogoutBtn) {
     navbarLogoutBtn.onclick = () => {
@@ -7001,19 +6152,16 @@ function attachNavbarListeners() {
       openMobileSidebar();
     };
   }
-
   const pwaBtn = document.getElementById('btn-install-pwa');
   if (pwaBtn) {
     pwaBtn.onclick = () => {
       triggerPwaInstall();
     };
   }
-
   const addBtn = document.getElementById('header-btn-add-tx');
   if (addBtn) {
     addBtn.onclick = () => openTransactionModal();
   }
-
   const avatarTrigger = document.getElementById('user-avatar-trigger');
   if (avatarTrigger) {
     avatarTrigger.onclick = () => {
@@ -7022,7 +6170,6 @@ function attachNavbarListeners() {
       }
     };
   }
-
   const roleSwitcher = document.getElementById('user-role-switcher');
   if (roleSwitcher) {
     roleSwitcher.onchange = (e) => {
@@ -7031,7 +6178,6 @@ function attachNavbarListeners() {
       toast.info(`Beralih ke akun: ${user ? user.name : ''} (${user ? user.roleLabel : ''})`);
     };
   }
-
   const famTrigger = document.getElementById('family-profile-trigger');
   if (famTrigger) {
     famTrigger.onclick = () => {
@@ -7046,7 +6192,6 @@ function attachNavbarListeners() {
               <h3 style="font-size:1.125rem;font-weight:800;color:var(--color-slate-900);">${appState.family.name}</h3>
               <p style="font-size:0.8125rem;color:var(--text-muted);margin-top:0.25rem;">Mata uang utama: Rupiah Indonesia (Rp)</p>
             </div>
-            
             <div style="background:var(--color-slate-50);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:1rem;">
               <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:0.375rem;">Kode Undangan Anggota</div>
               <div style="display:flex;align-items:center;justify-content:space-between;background:white;padding:0.5rem 0.75rem;border-radius:var(--radius-sm);border:1px solid var(--color-slate-200);gap:0.5rem;">
@@ -7069,7 +6214,6 @@ function attachNavbarListeners() {
           }
         ]
       });
-
       const copyBtn = document.getElementById('btn-copy-invite-code');
       if (copyBtn) {
         copyBtn.onclick = () => {
@@ -7082,19 +6226,12 @@ function attachNavbarListeners() {
 }
 
 
-// ==================== [MODULE: js/components/bottomNav.js] ====================
-/**
- * Mobile Bottom Navigation & Desktop Sidebar Component
- */
-
 function renderSidebar() {
   const current = appState.currentUser;
   const activeTab = appState.activeTab;
-
   return `
     <!-- Mobile Sidebar Backdrop Overlay -->
     <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
-
     <aside class="app-sidebar" id="app-sidebar">
       <div class="sidebar-brand">
         <div class="brand-wrapper">
@@ -7110,7 +6247,6 @@ function renderSidebar() {
           ${Icons.x ? Icons.x(16) : '✕'}
         </button>
       </div>
-
       <nav class="sidebar-nav">
         <a class="nav-item ${activeTab === 'dashboard' ? 'active' : ''}" data-tab="dashboard">
           ${Icons.pieChart(19)}
@@ -7141,7 +6277,6 @@ function renderSidebar() {
           <span>Pengaturan</span>
         </a>
       </nav>
-
       <div class="sidebar-footer">
         <div class="user-profile-badge">
           <div class="user-avatar">
@@ -7160,11 +6295,9 @@ function renderSidebar() {
     </aside>
   `;
 }
-
 function renderBottomNav() {
   const activeTab = appState.activeTab;
   const isMenuTabActive = ['goals', 'bills', 'reports', 'settings'].includes(activeTab);
-
   return `
     <nav class="mobile-bottom-nav">
       <a class="bottom-nav-item ${activeTab === 'dashboard' ? 'active' : ''}" data-tab="dashboard">
@@ -7175,14 +6308,12 @@ function renderBottomNav() {
         ${Icons.arrowRightLeft(20)}
         <span>Transaksi</span>
       </a>
-
       <!-- Center Floating Add Button -->
       <div class="mobile-add-btn-wrapper">
         <button class="mobile-fab-add" id="mobile-fab-add-tx" title="Catat Transaksi Cepat">
           ${Icons.plus(24)}
         </button>
       </div>
-
       <a class="bottom-nav-item ${activeTab === 'budgets' ? 'active' : ''}" data-tab="budgets">
         ${Icons.target(20)}
         <span>Anggaran</span>
@@ -7194,15 +6325,12 @@ function renderBottomNav() {
     </nav>
   `;
 }
-
 function openMobileMenuSheet(onTabChange) {
   const current = appState.currentUser || { name: 'Kepala Keluarga', role: 'owner' };
   const license = window.LicenseService?.getLicense?.();
   const isPro = license && license.status === 'active';
   const activeTab = appState.activeTab;
-
   const initials = (current.name || 'U').split(' ').map(n => n[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'DK';
-
   modal.open({
     title: 'Menu & Navigasi',
     maxWidth: '480px',
@@ -7224,7 +6352,6 @@ function openMobileMenuSheet(onTabChange) {
             ${Icons.settings(16)}
           </button>
         </div>
-
         <!-- Section 1: Fitur Unggulan (AI & OCR) -->
         <div>
           <div class="mobile-nav-sheet-section-title">Fitur Cerdas</div>
@@ -7238,7 +6365,6 @@ function openMobileMenuSheet(onTabChange) {
                 <div class="mobile-sheet-feature-desc">Teks bebas / Voice</div>
               </div>
             </div>
-
             <div class="mobile-sheet-feature-card card-scan" id="sheet-btn-scan">
               <div class="mobile-sheet-feature-icon" style="background:#dbeafe;color:#2563eb;">
                 ${Icons.camera(20)}
@@ -7250,7 +6376,6 @@ function openMobileMenuSheet(onTabChange) {
             </div>
           </div>
         </div>
-
         ${!isAppInstalled() ? `
         <!-- Section PWA: Pasang Aplikasi di HP -->
         <div id="sheet-pwa-wrap">
@@ -7268,7 +6393,6 @@ function openMobileMenuSheet(onTabChange) {
           </div>
         </div>
         ` : ''}
-
         <!-- Section 2: Navigasi Menu Lengkap -->
         <div>
           <div class="mobile-nav-sheet-section-title">Navigasi Keuangan</div>
@@ -7279,49 +6403,42 @@ function openMobileMenuSheet(onTabChange) {
               </div>
               <div class="mobile-nav-sheet-label">Dashboard</div>
             </div>
-
             <div class="mobile-nav-sheet-item ${activeTab === 'transactions' ? 'is-active' : ''}" data-sheet-tab="transactions">
               <div class="mobile-nav-sheet-icon" style="background:linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);color:#2563eb;">
                 ${Icons.arrowRightLeft(22)}
               </div>
               <div class="mobile-nav-sheet-label">Transaksi</div>
             </div>
-
             <div class="mobile-nav-sheet-item ${activeTab === 'budgets' ? 'is-active' : ''}" data-sheet-tab="budgets">
               <div class="mobile-nav-sheet-icon" style="background:linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);color:#d97706;">
                 ${Icons.target(22)}
               </div>
               <div class="mobile-nav-sheet-label">Anggaran</div>
             </div>
-
             <div class="mobile-nav-sheet-item ${activeTab === 'goals' ? 'is-active' : ''}" data-sheet-tab="goals">
               <div class="mobile-nav-sheet-icon" style="background:linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);color:#7c3aed;">
                 ${Icons.sparkles(22)}
               </div>
               <div class="mobile-nav-sheet-label">Celengan</div>
             </div>
-
             <div class="mobile-nav-sheet-item ${activeTab === 'bills' ? 'is-active' : ''}" data-sheet-tab="bills">
               <div class="mobile-nav-sheet-icon" style="background:linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);color:#dc2626;">
                 ${Icons.calendar(22)}
               </div>
               <div class="mobile-nav-sheet-label">Tagihan</div>
             </div>
-
             <div class="mobile-nav-sheet-item ${activeTab === 'reports' ? 'is-active' : ''}" data-sheet-tab="reports">
               <div class="mobile-nav-sheet-icon" style="background:linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);color:#0284c7;">
                 ${Icons.trendingUp(22)}
               </div>
               <div class="mobile-nav-sheet-label">Laporan</div>
             </div>
-
             <div class="mobile-nav-sheet-item ${activeTab === 'settings' ? 'is-active' : ''}" data-sheet-tab="settings">
               <div class="mobile-nav-sheet-icon" style="background:linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);color:#475569;">
                 ${Icons.settings(22)}
               </div>
               <div class="mobile-nav-sheet-label">Pengaturan</div>
             </div>
-
             <div class="mobile-nav-sheet-item" id="sheet-btn-sync">
               <div class="mobile-nav-sheet-icon" style="background:linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);color:#16a34a;">
                 ${Icons.cloud ? Icons.cloud(22) : Icons.refresh(22)}
@@ -7330,16 +6447,11 @@ function openMobileMenuSheet(onTabChange) {
             </div>
           </div>
         </div>
-
-        <!-- Section 3: Akun & Dokumen -->
+        <!-- Section 3: Akun & Panduan -->
         <div style="padding-top:0.25rem;display:flex;flex-direction:column;gap:0.5rem;">
           <a href="./PANDUAN_PENGGUNA_DOMPET_KELUARGA.pdf" download="PANDUAN_PENGGUNA_DOMPET_KELUARGA.pdf" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:0.5rem;padding:0.75rem 1rem;background:#fee2e2;border:1px solid #fca5a5;border-radius:12px;font-size:0.8125rem;font-weight:700;color:#991b1b;text-decoration:none;">
             <span>📕</span>
             <span>Download Buku Panduan Pengguna (PDF)</span>
-          </a>
-          <a href="./dokumen.html" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:0.5rem;padding:0.75rem 1rem;background:#f8fafc;border:1px solid #cbd5e1;border-radius:12px;font-size:0.8125rem;font-weight:700;color:#334155;text-decoration:none;">
-            <span>💾</span>
-            <span>Simpan / Unduh Dokumen Lengkap (Master Code)</span>
           </a>
           <button type="button" class="mobile-sheet-logout-btn" id="sheet-btn-logout">
             ${Icons.logOut ? Icons.logOut(18) : '🚪'}
@@ -7356,7 +6468,6 @@ function openMobileMenuSheet(onTabChange) {
       }
     ]
   });
-
   document.querySelectorAll('[data-sheet-tab]').forEach(el => {
     el.onclick = () => {
       const tab = el.dataset.sheetTab;
@@ -7366,7 +6477,6 @@ function openMobileMenuSheet(onTabChange) {
       }
     };
   });
-
   const quickSettingsBtn = document.getElementById('sheet-btn-quick-settings');
   if (quickSettingsBtn) {
     quickSettingsBtn.onclick = () => {
@@ -7374,7 +6484,6 @@ function openMobileMenuSheet(onTabChange) {
       if (onTabChange) onTabChange('settings');
     };
   }
-
   const aiBtn = document.getElementById('sheet-btn-ai');
   if (aiBtn) {
     aiBtn.onclick = () => {
@@ -7382,7 +6491,6 @@ function openMobileMenuSheet(onTabChange) {
       openAiModal();
     };
   }
-
   const scanBtn = document.getElementById('sheet-btn-scan');
   if (scanBtn) {
     scanBtn.onclick = () => {
@@ -7390,7 +6498,6 @@ function openMobileMenuSheet(onTabChange) {
       openReceiptScanModal();
     };
   }
-
   const pwaInstallBtn = document.getElementById('sheet-btn-install-app');
   if (pwaInstallBtn) {
     pwaInstallBtn.onclick = () => {
@@ -7400,7 +6507,6 @@ function openMobileMenuSheet(onTabChange) {
       }, 250);
     };
   }
-
   const syncBtn = document.getElementById('sheet-btn-sync');
   if (syncBtn) {
     syncBtn.onclick = async () => {
@@ -7426,7 +6532,6 @@ function openMobileMenuSheet(onTabChange) {
       }
     };
   }
-
   const sheetLogoutBtn = document.getElementById('sheet-btn-logout');
   if (sheetLogoutBtn) {
     sheetLogoutBtn.onclick = () => {
@@ -7435,7 +6540,6 @@ function openMobileMenuSheet(onTabChange) {
     };
   }
 }
-
 function triggerAppLogout() {
   modal.confirm({
     title: 'Keluar dari Akun',
@@ -7452,9 +6556,7 @@ function triggerAppLogout() {
     }
   });
 }
-
 function attachNavListeners(onTabChange) {
-  // Sidebar Logout Button
   const sidebarLogoutBtn = document.getElementById('sidebar-btn-logout');
   if (sidebarLogoutBtn) {
     sidebarLogoutBtn.onclick = () => {
@@ -7462,8 +6564,6 @@ function attachNavListeners(onTabChange) {
       triggerAppLogout();
     };
   }
-
-  // Navigation tabs
   document.querySelectorAll('[data-tab]').forEach(el => {
     el.onclick = (e) => {
       e.preventDefault();
@@ -7474,25 +6574,18 @@ function attachNavListeners(onTabChange) {
       }
     };
   });
-
-  // FAB button
   const fab = document.getElementById('mobile-fab-add-tx');
   if (fab) {
     fab.onclick = () => openTransactionModal();
   }
-
-  // Mobile More Menu button
   const moreBtn = document.getElementById('btn-mobile-more-menu');
   if (moreBtn) {
     moreBtn.onclick = () => openMobileMenuSheet(onTabChange);
   }
-
-  // Mobile Sidebar Backdrop & Close Button
   const backdrop = document.getElementById('sidebar-backdrop');
   if (backdrop) {
     backdrop.onclick = () => closeMobileSidebar();
   }
-
   const closeBtn = document.getElementById('sidebar-close-btn');
   if (closeBtn) {
     closeBtn.onclick = () => {
@@ -7500,13 +6593,11 @@ function attachNavListeners(onTabChange) {
     };
   }
 }
-
 function toggleSidebar(forceOpen = null) {
   const shell = document.getElementById('app-shell');
   const sidebar = document.getElementById('app-sidebar');
   const backdrop = document.getElementById('sidebar-backdrop');
   const isMobile = window.innerWidth <= 1024;
-
   if (isMobile) {
     if (forceOpen === true || (forceOpen === null && !sidebar?.classList.contains('open'))) {
       if (sidebar) sidebar.classList.add('open');
@@ -7516,7 +6607,6 @@ function toggleSidebar(forceOpen = null) {
       if (backdrop) backdrop.classList.remove('open');
     }
   } else {
-    // Desktop Mode
     if (forceOpen === true) {
       if (shell) shell.classList.remove('sidebar-collapsed');
       localStorage.setItem('dk_sidebar_collapsed', 'false');
@@ -7529,28 +6619,21 @@ function toggleSidebar(forceOpen = null) {
     }
   }
 }
-
 function openMobileSidebar() {
   toggleSidebar(true);
 }
-
 function closeMobileSidebar() {
   toggleSidebar(false);
 }
 
 
-// ==================== [MODULE: js/pages/dashboard.js] ====================
-
 function renderDashboardPage() {
   const metrics = appState.getMonthlyMetrics();
   const accounts = appState.getAccountsWithBalances().filter(a => !a.isArchived);
   const categories = appState.categories;
-
-  // Comparison insight text
   let insightBannerClass = 'summary-alert-banner';
   let insightIcon = Icons.trendingUp(20);
   let insightText = '';
-
   if (metrics.expenseDiffPercent > 0) {
     insightBannerClass += ' warning';
     insightIcon = Icons.alertTriangle(20);
@@ -7561,14 +6644,12 @@ function renderDashboardPage() {
   } else {
     insightText = `Kondisi keuangan bulan <strong>${getMonthName(metrics.month)} ${metrics.year}</strong> terpantau stabil. Anggaran terpakai: <strong>${metrics.budgetUsedPercent}%</strong>.`;
   }
-
   const months = [
     { num: 1, name: 'Januari' }, { num: 2, name: 'Februari' }, { num: 3, name: 'Maret' },
     { num: 4, name: 'April' }, { num: 5, name: 'Mei' }, { num: 6, name: 'Juni' },
     { num: 7, name: 'Juli' }, { num: 8, name: 'Agustus' }, { num: 9, name: 'September' },
     { num: 10, name: 'Oktober' }, { num: 11, name: 'November' }, { num: 12, name: 'Desember' }
   ];
-
   return `
     <div class="dashboard-page">
       <!-- Top Title & Month Picker -->
@@ -7577,7 +6658,6 @@ function renderDashboardPage() {
           <h1>Dashboard Keuangan</h1>
           <p>Ringkasan arus kas dan kesehatan finansial keluarga</p>
         </div>
-
         <div class="month-year-picker">
           <span style="color:var(--color-primary-600);">${Icons.calendar(18)}</span>
           <select id="dash-month-select" class="month-select">
@@ -7592,10 +6672,8 @@ function renderDashboardPage() {
           </select>
         </div>
       </div>
-
       <!-- PWA Mobile Install Banner -->
       ${renderPwaBannerHTML()}
-
       <!-- Insight Alert Banner -->
       <div class="${insightBannerClass}">
         <div class="summary-alert-icon">
@@ -7605,7 +6683,6 @@ function renderDashboardPage() {
           ${insightText}
         </div>
       </div>
-
       <!-- 4 Key Metric Tiles -->
       <div class="metrics-grid">
         <!-- Income Metric -->
@@ -7621,7 +6698,6 @@ function renderDashboardPage() {
             <span>Bulan lalu: ${formatRupiah(metrics.prevIncome)}</span>
           </div>
         </div>
-
         <!-- Expense Metric -->
         <div class="metric-card metric-expense">
           <div class="metric-card-top">
@@ -7635,7 +6711,6 @@ function renderDashboardPage() {
             <span>${metrics.expenseDiffPercent > 0 ? `▲ Naik ${metrics.expenseDiffPercent}%` : metrics.expenseDiffPercent < 0 ? `▼ Turun ${Math.abs(metrics.expenseDiffPercent)}%` : 'Sama seperti bulan lalu'}</span>
           </div>
         </div>
-
         <!-- Net Balance Metric -->
         <div class="metric-card metric-balance">
           <div class="metric-card-top">
@@ -7651,7 +6726,6 @@ function renderDashboardPage() {
             <span>${metrics.transactionCount} transaksi tercatat</span>
           </div>
         </div>
-
         <!-- Budget Usage Metric -->
         <div class="metric-card metric-budget">
           <div class="metric-card-top">
@@ -7666,7 +6740,6 @@ function renderDashboardPage() {
           </div>
         </div>
       </div>
-
       <!-- Charts 2-Column Grid -->
       <div class="dashboard-grid-2">
         <!-- Daily Expense Trend Bar Chart -->
@@ -7681,7 +6754,6 @@ function renderDashboardPage() {
           </div>
           ${renderDailyBarChartSVG(metrics.dailyExpenses, 560, 200)}
         </div>
-
         <!-- Category Expenses Donut Chart -->
         <div class="card">
           <div class="card-header">
@@ -7695,7 +6767,6 @@ function renderDashboardPage() {
           ${renderDonutChartSVG(metrics.categoryBreakdown, 220)}
         </div>
       </div>
-
       <!-- Bottom Grid: Top 5 Expenses & Accounts Balances -->
       <div class="dashboard-grid-2">
         <!-- Top 5 Expenses -->
@@ -7708,7 +6779,6 @@ function renderDashboardPage() {
               Lihat Semua
             </button>
           </div>
-
           <div class="top-expenses-list">
             ${metrics.topExpenses.length > 0 ? metrics.topExpenses.map((tx, idx) => {
               const cat = categories.find(c => c.id === tx.categoryId);
@@ -7738,7 +6808,6 @@ function renderDashboardPage() {
             `}
           </div>
         </div>
-
         <!-- Account Balances Summary -->
         <div class="card">
           <div class="card-header">
@@ -7749,7 +6818,6 @@ function renderDashboardPage() {
               ${Icons.plus(14)} Catat
             </button>
           </div>
-
           <div class="accounts-summary-grid">
             ${accounts.map(acc => `
               <div class="account-pill-card">
@@ -7773,43 +6841,32 @@ function renderDashboardPage() {
     </div>
   `;
 }
-
 function attachDashboardListeners(navigateToTab) {
   const monthSelect = document.getElementById('dash-month-select');
   const yearSelect = document.getElementById('dash-year-select');
-
   if (monthSelect) {
     monthSelect.onchange = (e) => {
       appState.selectedMonth = parseInt(e.target.value, 10);
       appState.notify();
     };
   }
-
   if (yearSelect) {
     yearSelect.onchange = (e) => {
       appState.selectedYear = parseInt(e.target.value, 10);
       appState.notify();
     };
   }
-
   const viewAllBtn = document.getElementById('btn-view-all-tx');
   if (viewAllBtn) {
     viewAllBtn.onclick = () => navigateToTab('transactions');
   }
-
   const quickRecordBtn = document.getElementById('btn-quick-record-tx');
   if (quickRecordBtn) {
     quickRecordBtn.onclick = () => openTransactionModal();
   }
-
   initPwaBannerEvents();
 }
 
-
-// ==================== [MODULE: js/pages/transactions.js] ====================
-/**
- * Transactions List & Search Page Module
- */
 
 var filterState = {
   search: '',
@@ -7821,24 +6878,18 @@ var filterState = {
   page: 1,
   pageSize: 8
 };
-
 function renderTransactionsPage() {
   const accounts = appState.getAccountsWithBalances();
   const categories = appState.categories;
   const members = appState.members;
   const current = appState.currentUser;
-
-  // Build maps for fast lookups
   const categoriesMap = {};
   categories.forEach(c => { categoriesMap[c.id] = c; });
   const accountsMap = {};
   accounts.forEach(a => { accountsMap[a.id] = a; });
   const membersMap = {};
   members.forEach(m => { membersMap[m.id] = m; });
-
-  // Apply filters
   let filtered = appState.transactions.filter(tx => {
-    // Search text
     if (filterState.search) {
       const q = filterState.search.toLowerCase();
       const matchDesc = (tx.description || '').toLowerCase().includes(q);
@@ -7846,33 +6897,22 @@ function renderTransactionsPage() {
       const matchSub = (tx.subcategory || '').toLowerCase().includes(q);
       if (!matchDesc && !matchNotes && !matchSub) return false;
     }
-
-    // Type
     if (filterState.type !== 'all' && tx.type !== filterState.type) {
       return false;
     }
-
-    // Category
     if (filterState.categoryId !== 'all' && tx.categoryId !== filterState.categoryId) {
       return false;
     }
-
-    // Account
     if (filterState.accountId !== 'all') {
       if (tx.accountId !== filterState.accountId && tx.targetAccountId !== filterState.accountId) {
         return false;
       }
     }
-
-    // Member
     if (filterState.memberId !== 'all' && tx.memberId !== filterState.memberId) {
       return false;
     }
-
     return true;
   });
-
-  // Sort
   filtered.sort((a, b) => {
     if (filterState.sortBy === 'date-desc') {
       return new Date(b.date) - new Date(a.date) || b.id.localeCompare(a.id);
@@ -7885,14 +6925,11 @@ function renderTransactionsPage() {
     }
     return 0;
   });
-
-  // Pagination
   const totalItems = filtered.length;
   const totalPages = Math.ceil(totalItems / filterState.pageSize) || 1;
   if (filterState.page > totalPages) filterState.page = totalPages;
   const startIndex = (filterState.page - 1) * filterState.pageSize;
   const paginatedTransactions = filtered.slice(startIndex, startIndex + filterState.pageSize);
-
   return `
     <div class="transactions-page">
       <!-- Header -->
@@ -7915,7 +6952,6 @@ function renderTransactionsPage() {
           </button>
         </div>
       </div>
-
       <!-- Filters & Search Bar -->
       <div class="filter-bar">
         <div class="search-input-group">
@@ -7928,7 +6964,6 @@ function renderTransactionsPage() {
             value="${filterState.search}"
           />
         </div>
-
         <div class="filters-row">
           <!-- Type Filter -->
           <div class="form-group" style="margin-bottom:0;">
@@ -7940,7 +6975,6 @@ function renderTransactionsPage() {
               <option value="transfer" ${filterState.type === 'transfer' ? 'selected' : ''}>Transfer</option>
             </select>
           </div>
-
           <!-- Category Filter -->
           <div class="form-group" style="margin-bottom:0;">
             <label class="form-label" style="font-size:0.75rem;">Kategori</label>
@@ -7951,7 +6985,6 @@ function renderTransactionsPage() {
               `).join('')}
             </select>
           </div>
-
           <!-- Account Filter -->
           <div class="form-group" style="margin-bottom:0;">
             <label class="form-label" style="font-size:0.75rem;">Akun / Dompet</label>
@@ -7962,7 +6995,6 @@ function renderTransactionsPage() {
               `).join('')}
             </select>
           </div>
-
           <!-- Member Filter -->
           <div class="form-group" style="margin-bottom:0;">
             <label class="form-label" style="font-size:0.75rem;">Anggota</label>
@@ -7973,7 +7005,6 @@ function renderTransactionsPage() {
               `).join('')}
             </select>
           </div>
-
           <!-- Sort Filter -->
           <div class="form-group" style="margin-bottom:0;">
             <label class="form-label" style="font-size:0.75rem;">Urutkan</label>
@@ -7984,7 +7015,6 @@ function renderTransactionsPage() {
               <option value="amount-asc" ${filterState.sortBy === 'amount-asc' ? 'selected' : ''}>Nominal Terkecil</option>
             </select>
           </div>
-
           <div style="display:flex;align-items:flex-end;height:100%;padding-top:1.25rem;">
             <button class="btn btn-secondary btn-sm" id="btn-reset-filters" style="width:100%;">
               ${Icons.refresh(14)} Reset
@@ -7992,7 +7022,6 @@ function renderTransactionsPage() {
           </div>
         </div>
       </div>
-
       <!-- Transaction List Container -->
       <div class="card" style="padding:0;overflow:hidden;">
         ${paginatedTransactions.length > 0 ? `
@@ -8005,7 +7034,6 @@ function renderTransactionsPage() {
               const iconName = tx.type === 'transfer' ? 'arrowRightLeft' : (cat ? cat.icon : 'tag');
               const catColor = tx.type === 'transfer' ? '#4f46e5' : (cat ? cat.color : '#94a3b8');
               const isAllowedToEdit = appState.canEditTransaction(tx);
-
               return `
                 <div class="transaction-item" data-tx-id="${tx.id}">
                   <div class="transaction-left">
@@ -8030,7 +7058,6 @@ function renderTransactionsPage() {
                       </div>
                     </div>
                   </div>
-
                   <div class="tx-right">
                     <div class="tx-amount-col">
                       <div class="tx-amount ${tx.type}">
@@ -8040,7 +7067,6 @@ function renderTransactionsPage() {
                         ${tx.type === 'income' ? 'Pemasukan' : tx.type === 'expense' ? 'Pengeluaran' : 'Transfer'}
                       </span>
                     </div>
-
                     <div class="tx-actions-menu">
                       <button class="btn btn-secondary btn-icon btn-sm action-duplicate-tx" data-id="${tx.id}" title="Duplikasi Transaksi">
                         ${Icons.copy(15)}
@@ -8059,7 +7085,6 @@ function renderTransactionsPage() {
               `;
             }).join('')}
           </div>
-
           <!-- Pagination Bar -->
           <div class="pagination-container">
             <span style="font-size:0.8125rem;color:var(--text-muted);">
@@ -8096,9 +7121,7 @@ function renderTransactionsPage() {
     </div>
   `;
 }
-
 function attachTransactionsListeners() {
-  // Search input
   const searchInput = document.getElementById('tx-search-input');
   if (searchInput) {
     searchInput.oninput = (e) => {
@@ -8107,8 +7130,6 @@ function attachTransactionsListeners() {
       appState.notify();
     };
   }
-
-  // Type filter
   const typeSelect = document.getElementById('filter-type-select');
   if (typeSelect) {
     typeSelect.onchange = (e) => {
@@ -8117,8 +7138,6 @@ function attachTransactionsListeners() {
       appState.notify();
     };
   }
-
-  // Category filter
   const catSelect = document.getElementById('filter-category-select');
   if (catSelect) {
     catSelect.onchange = (e) => {
@@ -8127,8 +7146,6 @@ function attachTransactionsListeners() {
       appState.notify();
     };
   }
-
-  // Account filter
   const accSelect = document.getElementById('filter-account-select');
   if (accSelect) {
     accSelect.onchange = (e) => {
@@ -8137,8 +7154,6 @@ function attachTransactionsListeners() {
       appState.notify();
     };
   }
-
-  // Member filter
   const memberSelect = document.getElementById('filter-member-select');
   if (memberSelect) {
     memberSelect.onchange = (e) => {
@@ -8147,8 +7162,6 @@ function attachTransactionsListeners() {
       appState.notify();
     };
   }
-
-  // Sort filter
   const sortSelect = document.getElementById('filter-sort-select');
   if (sortSelect) {
     sortSelect.onchange = (e) => {
@@ -8156,8 +7169,6 @@ function attachTransactionsListeners() {
       appState.notify();
     };
   }
-
-  // Reset filters
   const resetBtn = document.getElementById('btn-reset-filters');
   if (resetBtn) {
     resetBtn.onclick = () => {
@@ -8175,16 +7186,12 @@ function attachTransactionsListeners() {
       toast.info('Filter transaksi telah direset.');
     };
   }
-
-  // Add & Scan Transaction Buttons
   const addBtn = document.getElementById('btn-add-tx-page');
   if (addBtn) addBtn.onclick = () => openTransactionModal();
   const scanBtn = document.getElementById('btn-scan-receipt-tx');
   if (scanBtn) scanBtn.onclick = () => openReceiptScanModal();
   const emptyAddBtn = document.getElementById('btn-empty-add-tx');
   if (emptyAddBtn) emptyAddBtn.onclick = () => openTransactionModal();
-
-  // Export CSV
   const exportBtn = document.getElementById('btn-export-csv');
   if (exportBtn) {
     exportBtn.onclick = () => {
@@ -8194,13 +7201,10 @@ function attachTransactionsListeners() {
       appState.accounts.forEach(a => { accountsMap[a.id] = a; });
       const membersMap = {};
       appState.members.forEach(m => { membersMap[m.id] = m; });
-
       exportToCSV(appState.transactions, categoriesMap, accountsMap, membersMap);
       toast.success('File CSV transaksi berhasil diunduh!');
     };
   }
-
-  // Pagination buttons
   const prevBtn = document.getElementById('btn-prev-page');
   if (prevBtn) {
     prevBtn.onclick = () => {
@@ -8217,8 +7221,6 @@ function attachTransactionsListeners() {
       appState.notify();
     };
   }
-
-  // Item Actions: Duplicate, Edit, Delete
   document.querySelectorAll('.action-duplicate-tx').forEach(btn => {
     btn.onclick = (e) => {
       e.stopPropagation();
@@ -8229,7 +7231,6 @@ function attachTransactionsListeners() {
       }
     };
   });
-
   document.querySelectorAll('.action-edit-tx').forEach(btn => {
     btn.onclick = (e) => {
       e.stopPropagation();
@@ -8240,7 +7241,6 @@ function attachTransactionsListeners() {
       }
     };
   });
-
   document.querySelectorAll('.action-delete-tx').forEach(btn => {
     btn.onclick = (e) => {
       e.stopPropagation();
@@ -8260,8 +7260,6 @@ function attachTransactionsListeners() {
       }
     };
   });
-
-  // View Receipt Modal
   document.querySelectorAll('.btn-view-receipt').forEach(btn => {
     btn.onclick = (e) => {
       e.stopPropagation();
@@ -8289,28 +7287,20 @@ function attachTransactionsListeners() {
 }
 
 
-// ==================== [MODULE: js/pages/budgets.js] ====================
-/**
- * Budgets Page Module
- */
-
 function renderBudgetsPage() {
   const budgetProgressList = appState.getCategoryBudgetsWithProgress();
   const totalBudget = budgetProgressList.reduce((sum, b) => sum + b.budgetAmount, 0);
   const totalSpent = budgetProgressList.reduce((sum, b) => sum + b.spentAmount, 0);
   const totalRemaining = totalBudget - totalSpent;
   const overallPercent = totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0;
-
   const warningCount = budgetProgressList.filter(b => b.status === 'warning').length;
   const dangerCount = budgetProgressList.filter(b => b.status === 'danger').length;
-
   const months = [
     { num: 1, name: 'Januari' }, { num: 2, name: 'Februari' }, { num: 3, name: 'Maret' },
     { num: 4, name: 'April' }, { num: 5, name: 'Mei' }, { num: 6, name: 'Juni' },
     { num: 7, name: 'Juli' }, { num: 8, name: 'Agustus' }, { num: 9, name: 'September' },
     { num: 10, name: 'Oktober' }, { num: 11, name: 'November' }, { num: 12, name: 'Desember' }
   ];
-
   return `
     <div class="budgets-page">
       <!-- Header -->
@@ -8321,7 +7311,6 @@ function renderBudgetsPage() {
             Rencanakan dan kendalikan pengeluaran keluarga per kategori
           </p>
         </div>
-
         <div style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap;">
           <div class="month-year-picker">
             <span style="color:var(--color-primary-600);">${Icons.calendar(18)}</span>
@@ -8336,17 +7325,14 @@ function renderBudgetsPage() {
               ${renderYearOptions(appState.selectedYear, 2010, 2050)}
             </select>
           </div>
-
           <button class="btn btn-secondary" id="btn-copy-prev-budget">
             ${Icons.copy(16)} Salin Bulan Lalu
           </button>
-
           <button class="btn btn-primary" id="btn-add-budget-header">
             ${Icons.plus(16)} Atur Anggaran Kategori
           </button>
         </div>
       </div>
-
       <!-- Overall Budget Summary Card -->
       <div class="card" style="margin-bottom:1.5rem;">
         <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:1.5rem;margin-bottom:1.25rem;">
@@ -8358,7 +7344,6 @@ function renderBudgetsPage() {
               ${formatRupiah(totalBudget)}
             </div>
           </div>
-
           <div style="display:flex;gap:1.5rem;flex-wrap:wrap;">
             <div>
               <div style="font-size:0.75rem;font-weight:600;color:var(--text-muted);">Terpakai</div>
@@ -8376,14 +7361,12 @@ function renderBudgetsPage() {
             </div>
           </div>
         </div>
-
         <div class="progress-bar-bg" style="height:12px;">
           <div 
             class="progress-bar-fill ${overallPercent >= 100 ? 'progress-danger' : overallPercent >= 80 ? 'progress-warning' : 'progress-safe'}"
             style="width: ${Math.min(overallPercent, 100)}%;"
           ></div>
         </div>
-
         ${dangerCount > 0 || warningCount > 0 ? `
           <div style="display:flex;gap:1rem;margin-top:1rem;padding-top:0.75rem;border-top:1px solid var(--border-subtle);flex-wrap:wrap;font-size:0.8125rem;font-weight:600;">
             ${dangerCount > 0 ? `
@@ -8399,14 +7382,12 @@ function renderBudgetsPage() {
           </div>
         ` : ''}
       </div>
-
       <!-- Category Budget Cards Grid -->
       <div class="budget-cards-grid">
         ${budgetProgressList.map(item => {
           const cat = item.category;
           const statusClass = item.status === 'danger' ? 'budget-status-danger' : item.status === 'warning' ? 'budget-status-warning' : 'budget-status-safe';
           const statusLabel = item.status === 'danger' ? 'Melebihi Batas' : item.status === 'warning' ? 'Waspada (≥80%)' : item.budgetAmount === 0 ? 'Belum Diatur' : 'Aman';
-
           return `
             <div class="budget-card">
               <div class="budget-card-header">
@@ -8419,12 +7400,10 @@ function renderBudgetsPage() {
                     <div style="font-size:0.75rem;color:var(--text-muted);">${item.percent}% terpakai</div>
                   </div>
                 </div>
-
                 <span class="budget-status-pill ${statusClass}">
                   ${statusLabel}
                 </span>
               </div>
-
               <!-- Progress Bar -->
               <div class="progress-bar-bg">
                 <div 
@@ -8432,7 +7411,6 @@ function renderBudgetsPage() {
                   style="width: ${Math.min(item.percent, 100)}%;"
                 ></div>
               </div>
-
               <div class="budget-amounts-row">
                 <div>
                   <span>Terpakai: </span>
@@ -8443,14 +7421,12 @@ function renderBudgetsPage() {
                   <span style="font-weight:700;color:var(--color-slate-900);">${formatRupiah(item.budgetAmount)}</span>
                 </div>
               </div>
-
               <div class="budget-remaining">
                 <span style="color:var(--text-muted);">Sisa alokasi:</span>
                 <span style="font-weight:800;color:${item.remainingAmount >= 0 ? 'var(--color-primary-700)' : 'var(--color-expense)'};">
                   ${formatRupiah(item.remainingAmount)}
                 </span>
               </div>
-
               <!-- Action Buttons Row -->
               <div style="display:flex;gap:0.375rem;align-items:center;margin-top:0.25rem;">
                 <button class="btn btn-secondary btn-sm action-set-budget" data-cat-id="${cat.id}" data-current="${item.budgetAmount}" style="flex:1;">
@@ -8475,8 +7451,6 @@ function renderBudgetsPage() {
     </div>
   `;
 }
-
-// Modal for Creating New Custom Category (e.g. Investasi)
 function openCreateCategoryModal(prefillType = 'expense', onCreatedCallback = null) {
   modal.open({
     title: 'Tambah Kategori Kustom Baru',
@@ -8491,7 +7465,6 @@ function openCreateCategoryModal(prefillType = 'expense', onCreatedCallback = nu
           required 
         />
       </div>
-
       <div class="form-group">
         <label class="form-label">Jenis Kategori *</label>
         <select id="custom-cat-type-select" class="form-select">
@@ -8499,7 +7472,6 @@ function openCreateCategoryModal(prefillType = 'expense', onCreatedCallback = nu
           <option value="income" ${prefillType === 'income' ? 'selected' : ''}>Pemasukan</option>
         </select>
       </div>
-
       <div class="form-group">
         <label class="form-label">Subkategori (Pisahkan dengan tanda koma)</label>
         <input 
@@ -8510,7 +7482,6 @@ function openCreateCategoryModal(prefillType = 'expense', onCreatedCallback = nu
         />
         <span class="form-hint">Opsional. Membantu merinci pencatatan transaksi lebih spesifik.</span>
       </div>
-
       <div class="form-group">
         <label class="form-label">Pilihan Warna Kategori</label>
         <div style="display:flex;align-items:center;gap:0.75rem;">
@@ -8539,12 +7510,10 @@ function openCreateCategoryModal(prefillType = 'expense', onCreatedCallback = nu
           const type = document.getElementById('custom-cat-type-select')?.value || 'expense';
           const subcatsRaw = document.getElementById('custom-cat-subcats-input')?.value || '';
           const color = document.getElementById('custom-cat-color-input')?.value || '#0284c7';
-
           if (!name || !name.trim()) {
             toast.error('Nama kategori wajib diisi.');
             return;
           }
-
           const subcategories = subcatsRaw.split(',').map(s => s.trim()).filter(Boolean);
           const newCat = appState.addCategory({
             name: name.trim(),
@@ -8553,10 +7522,8 @@ function openCreateCategoryModal(prefillType = 'expense', onCreatedCallback = nu
             subcategories,
             icon: type === 'expense' ? 'target' : 'trendingUp'
           });
-
           toast.success(`Kategori kustom "${newCat.name}" berhasil ditambahkan!`);
           modal.close();
-
           if (onCreatedCallback) {
             onCreatedCallback(newCat);
           }
@@ -8565,12 +7532,9 @@ function openCreateCategoryModal(prefillType = 'expense', onCreatedCallback = nu
     ]
   });
 }
-
-// Modal for Editing Existing Category Metadata (Name, Color, Subcategories)
 function openEditCategoryModal(catId) {
   const cat = appState.getCategoryById(catId);
   if (!cat) return;
-
   modal.open({
     title: `Edit Kategori: ${cat.name}`,
     content: `
@@ -8578,7 +7542,6 @@ function openEditCategoryModal(catId) {
         <label class="form-label">Nama Kategori *</label>
         <input type="text" id="edit-cat-name-input" class="form-input" value="${cat.name}" required />
       </div>
-
       <div class="form-group">
         <label class="form-label">Subkategori (Pisahkan dengan koma)</label>
         <input 
@@ -8588,7 +7551,6 @@ function openEditCategoryModal(catId) {
           value="${(cat.subcategories || []).join(', ')}" 
         />
       </div>
-
       <div class="form-group">
         <label class="form-label">Warna Kategori</label>
         <div style="display:flex;align-items:center;gap:0.75rem;">
@@ -8616,19 +7578,16 @@ function openEditCategoryModal(catId) {
           const name = document.getElementById('edit-cat-name-input')?.value;
           const subcatsRaw = document.getElementById('edit-cat-subcats-input')?.value || '';
           const color = document.getElementById('edit-cat-color-input')?.value || cat.color;
-
           if (!name || !name.trim()) {
             toast.error('Nama kategori wajib diisi.');
             return;
           }
-
           const subcategories = subcatsRaw.split(',').map(s => s.trim()).filter(Boolean);
           appState.updateCategory(catId, {
             name: name.trim(),
             color,
             subcategories
           });
-
           toast.success(`Kategori "${name}" berhasil diperbarui!`);
           modal.close();
         }
@@ -8636,13 +7595,11 @@ function openEditCategoryModal(catId) {
     ]
   });
 }
-
 function openCategoryBudgetModal(selectedCatId = null) {
   const expenseCats = appState.getCategories('expense');
   const defaultCatId = selectedCatId || (expenseCats[0] ? expenseCats[0].id : '');
   const existingBudget = appState.budgets.find(b => b.categoryId === defaultCatId && b.month === appState.selectedMonth && b.year === appState.selectedYear);
   const currentVal = existingBudget ? existingBudget.amount : 0;
-
   modal.open({
     title: 'Rencanakan & Atur Anggaran Kategori',
     content: `
@@ -8659,7 +7616,6 @@ function openCategoryBudgetModal(selectedCatId = null) {
           `).join('')}
         </select>
       </div>
-
       <div class="form-group">
         <label class="form-label">Alokasi Anggaran Bulan ${getMonthName(appState.selectedMonth)} ${appState.selectedYear} (IDR) *</label>
         <div class="currency-input-wrapper">
@@ -8709,7 +7665,6 @@ function openCategoryBudgetModal(selectedCatId = null) {
           const input = document.getElementById('modal-budget-input');
           const val = parseRupiah(input?.value);
           const cat = appState.getCategoryById(catId);
-
           appState.setBudget(catId, val, appState.selectedMonth, appState.selectedYear);
           toast.success(`Anggaran ${cat ? cat.name : 'kategori'} berhasil disimpan: ${formatRupiah(val)}`);
           modal.close();
@@ -8717,35 +7672,28 @@ function openCategoryBudgetModal(selectedCatId = null) {
       }
     ]
   });
-
-  // Quick create category button inside budget modal
   const quickCreateCatBtn = document.getElementById('btn-quick-create-cat');
   if (quickCreateCatBtn) {
     quickCreateCatBtn.onclick = () => {
       openCreateCategoryModal('expense', (newCat) => {
-        // Automatically reopen budget modal selecting newly created category!
         openCategoryBudgetModal(newCat.id);
       });
     };
   }
-
   const catSelect = document.getElementById('modal-cat-select');
   const input = document.getElementById('modal-budget-input');
-
   if (catSelect && input) {
     catSelect.onchange = () => {
       const b = appState.budgets.find(b => b.categoryId === catSelect.value && b.month === appState.selectedMonth && b.year === appState.selectedYear);
       input.value = b && b.amount > 0 ? b.amount.toLocaleString('id-ID') : '';
     };
   }
-
   if (input) {
     input.oninput = (e) => {
       const raw = parseRupiah(e.target.value);
       e.target.value = raw > 0 ? raw.toLocaleString('id-ID') : '';
     };
   }
-
   document.querySelectorAll('.preset-chip').forEach(chip => {
     chip.onclick = () => {
       const val = parseInt(chip.dataset.val, 10);
@@ -8753,26 +7701,21 @@ function openCategoryBudgetModal(selectedCatId = null) {
     };
   });
 }
-
 function attachBudgetsListeners() {
   const monthSelect = document.getElementById('budget-month-select');
   const yearSelect = document.getElementById('budget-year-select');
-
   if (monthSelect) {
     monthSelect.onchange = (e) => {
       appState.selectedMonth = parseInt(e.target.value, 10);
       appState.notify();
     };
   }
-
   if (yearSelect) {
     yearSelect.onchange = (e) => {
       appState.selectedYear = parseInt(e.target.value, 10);
       appState.notify();
     };
   }
-
-  // Copy previous month budget
   const copyBtn = document.getElementById('btn-copy-prev-budget');
   if (copyBtn) {
     copyBtn.onclick = () => {
@@ -8792,30 +7735,22 @@ function attachBudgetsListeners() {
       });
     };
   }
-
-  // Header Add / Set Budget button
   const addHeaderBtn = document.getElementById('btn-add-budget-header');
   if (addHeaderBtn) {
     addHeaderBtn.onclick = () => openCategoryBudgetModal();
   }
-
-  // Set Budget for single category card
   document.querySelectorAll('.action-set-budget').forEach(btn => {
     btn.onclick = () => {
       const catId = btn.dataset.catId;
       openCategoryBudgetModal(catId);
     };
   });
-
-  // Edit Category details directly from card
   document.querySelectorAll('.action-edit-cat-from-budget').forEach(btn => {
     btn.onclick = () => {
       const catId = btn.dataset.catId;
       openEditCategoryModal(catId);
     };
   });
-
-  // Clear / Zero budget for category this month
   document.querySelectorAll('.action-clear-budget').forEach(btn => {
     btn.onclick = () => {
       const catId = btn.dataset.catId;
@@ -8832,8 +7767,6 @@ function attachBudgetsListeners() {
       });
     };
   });
-
-  // Delete / Archive Category directly from card
   document.querySelectorAll('.action-delete-cat-from-budget').forEach(btn => {
     btn.onclick = () => {
       const catId = btn.dataset.catId;
@@ -8853,20 +7786,12 @@ function attachBudgetsListeners() {
 }
 
 
-
-
-// ==================== [MODULE: js/pages/goals.js] ====================
-/**
- * Financial Goals / Celengan Digital Page Module (Dompet Keluarga V2)
- */
-
 function renderGoalsPage() {
   const goals = appState.getGoals();
   const accounts = appState.getAccountsWithBalances().filter(a => !a.isArchived);
   const totalTargetAll = goals.reduce((sum, g) => sum + g.targetAmount, 0);
   const totalCollectedAll = goals.reduce((sum, g) => sum + g.currentAmount, 0);
   const overallProgress = totalTargetAll > 0 ? Math.round((totalCollectedAll / totalTargetAll) * 100) : 0;
-
   return `
     <div class="goals-page">
       <!-- Header -->
@@ -8877,12 +7802,10 @@ function renderGoalsPage() {
             Rencanakan target tabungan masa depan keluarga secara kolaboratif
           </p>
         </div>
-
         <button class="btn btn-primary" id="btn-add-goal">
           ${Icons.plus(16)} Buat Target Baru
         </button>
       </div>
-
       <!-- Overall Goals Progress Card -->
       <div class="card" style="margin-bottom:1.5rem;background:linear-gradient(135deg, #ffffff, #f0fdf4);border-color:#a7f3d0;">
         <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:1.5rem;margin-bottom:1.25rem;">
@@ -8897,24 +7820,20 @@ function renderGoalsPage() {
               Dari total target: <strong>${formatRupiah(totalTargetAll)}</strong> (${goals.length} target impian)
             </div>
           </div>
-
           <div style="text-align:right;">
             <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Tingkat Pencapaian</div>
             <div style="font-size:2rem;font-weight:800;color:var(--color-primary-700);">${overallProgress}%</div>
           </div>
         </div>
-
         <div class="progress-bar-bg" style="height:14px;background:#e2e8f0;">
           <div class="progress-bar-fill progress-safe" style="width:${Math.min(overallProgress, 100)}%;"></div>
         </div>
       </div>
-
       <!-- Goals Grid -->
       <div class="budget-cards-grid">
         ${goals.map(goal => {
           const acc = accounts.find(a => a.id === goal.accountId);
           const isDone = goal.progress >= 100;
-
           return `
             <div class="budget-card" style="border-top:4px solid ${goal.color};">
               <div class="budget-card-header">
@@ -8927,12 +7846,10 @@ function renderGoalsPage() {
                     <div style="font-size:0.75rem;color:var(--text-muted);">${goal.category} • Target: ${goal.targetDate ? formatDate(goal.targetDate, 'medium') : 'Tanpa batas'}</div>
                   </div>
                 </div>
-
                 <span class="badge" style="background:${isDone ? '#dcfce7' : '#e0f2fe'};color:${isDone ? '#15803d' : '#0369a1'};">
                   ${isDone ? '🎉 Tercapai' : `${goal.progress}%`}
                 </span>
               </div>
-
               <!-- Progress Bar -->
               <div class="progress-bar-bg" style="height:10px;">
                 <div 
@@ -8940,7 +7857,6 @@ function renderGoalsPage() {
                   style="width:${goal.progress}%;background:${goal.color};"
                 ></div>
               </div>
-
               <div class="budget-amounts-row">
                 <div>
                   <span>Terkumpul: </span>
@@ -8951,18 +7867,15 @@ function renderGoalsPage() {
                   <span style="font-weight:700;color:var(--text-muted);">${formatRupiah(goal.targetAmount)}</span>
                 </div>
               </div>
-
               <div class="budget-remaining">
                 <span style="color:var(--text-muted);">Akun Penyimpan:</span>
                 <span style="font-weight:700;color:var(--color-slate-800);">${acc ? acc.name : 'Kas Keluarga'}</span>
               </div>
-
               ${goal.notes ? `
                 <div style="font-size:0.75rem;color:var(--text-muted);font-style:italic;">
                   "${goal.notes}"
                 </div>
               ` : ''}
-
               <div style="display:flex;gap:0.375rem;margin-top:0.5rem;">
                 <button class="btn btn-primary btn-sm action-deposit-goal" data-id="${goal.id}" data-name="${goal.name}" style="flex:1;">
                   ${Icons.plus(14)} Setor Dana
@@ -8981,11 +7894,8 @@ function renderGoalsPage() {
     </div>
   `;
 }
-
 function attachGoalsListeners() {
   const accounts = appState.getAccountsWithBalances().filter(a => !a.isArchived);
-
-  // Add Goal Modal
   const addBtn = document.getElementById('btn-add-goal');
   if (addBtn) {
     addBtn.onclick = () => {
@@ -8996,7 +7906,6 @@ function attachGoalsListeners() {
             <label class="form-label">Nama Target Finansial *</label>
             <input type="text" id="goal-name-input" class="form-input" placeholder="Contoh: Dana Darurat 6 Bulan, Liburan Akhir Tahun, Beli Laptop" required />
           </div>
-
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
             <div class="form-group">
               <label class="form-label">Target Nominal (Rp) *</label>
@@ -9013,7 +7922,6 @@ function attachGoalsListeners() {
               </div>
             </div>
           </div>
-
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
             <div class="form-group">
               <label class="form-label">Target Tercapai (Tanggal)</label>
@@ -9026,7 +7934,6 @@ function attachGoalsListeners() {
               </select>
             </div>
           </div>
-
           <div class="form-group">
             <label class="form-label">Catatan / Rencana Target</label>
             <input type="text" id="goal-notes-input" class="form-input" placeholder="Contoh: Disisihkan Rp 1 Juta dari gaji tiap bulan" />
@@ -9044,7 +7951,6 @@ function attachGoalsListeners() {
               const targetDate = document.getElementById('goal-date-input')?.value;
               const accountId = document.getElementById('goal-account-select')?.value;
               const notes = document.getElementById('goal-notes-input')?.value;
-
               if (!name || !name.trim()) {
                 toast.error('Nama target wajib diisi.');
                 return;
@@ -9053,7 +7959,6 @@ function attachGoalsListeners() {
                 toast.error('Target nominal harus lebih dari Rp 0.');
                 return;
               }
-
               appState.addGoal({
                 name: name.trim(),
                 targetAmount,
@@ -9062,14 +7967,12 @@ function attachGoalsListeners() {
                 accountId,
                 notes
               });
-
               toast.success(`Target tabungan "${name}" berhasil dibuat!`);
               modal.close();
             }
           }
         ]
       });
-
       ['goal-target-amount', 'goal-init-amount'].forEach(id => {
         const input = document.getElementById(id);
         if (input) {
@@ -9081,14 +7984,11 @@ function attachGoalsListeners() {
       });
     };
   }
-
-  // Deposit to Goal Modal
   document.querySelectorAll('.action-deposit-goal').forEach(btn => {
     btn.onclick = () => {
       const goalId = btn.dataset.id;
       const goal = appState.getGoalById(goalId);
       if (!goal) return;
-
       modal.open({
         title: `Setor Dana: ${goal.name}`,
         content: `
@@ -9105,7 +8005,6 @@ function attachGoalsListeners() {
               <button type="button" class="preset-chip" data-val="2000000">+2 jt</button>
             </div>
           </div>
-
           <div class="form-group">
             <label class="form-label">Sumber Dana (Rekening / Dompet) *</label>
             <select id="deposit-account-select" class="form-select">
@@ -9123,12 +8022,10 @@ function attachGoalsListeners() {
             onClick: () => {
               const amount = parseRupiah(document.getElementById('deposit-amount-input')?.value);
               const accId = document.getElementById('deposit-account-select')?.value;
-
               if (!amount || amount <= 0) {
                 toast.error('Masukkan nominal setoran yang valid.');
                 return;
               }
-
               const res = appState.depositToGoal(goalId, amount, accId);
               if (res.success) {
                 toast.success(res.message);
@@ -9140,7 +8037,6 @@ function attachGoalsListeners() {
           }
         ]
       });
-
       const input = document.getElementById('deposit-amount-input');
       if (input) {
         input.oninput = (e) => {
@@ -9148,7 +8044,6 @@ function attachGoalsListeners() {
           e.target.value = raw > 0 ? raw.toLocaleString('id-ID') : '';
         };
       }
-
       document.querySelectorAll('.preset-chip').forEach(chip => {
         chip.onclick = () => {
           const val = parseInt(chip.dataset.val, 10);
@@ -9157,13 +8052,10 @@ function attachGoalsListeners() {
       });
     };
   });
-
-  // Delete Goal
   document.querySelectorAll('.action-delete-goal').forEach(btn => {
     btn.onclick = () => {
       const id = btn.dataset.id;
       const name = btn.dataset.name;
-
       modal.confirm({
         title: 'Hapus Target Tabungan',
         message: `Apakah Anda yakin ingin menghapus target tabungan <strong>"${name}"</strong>?`,
@@ -9179,24 +8071,16 @@ function attachGoalsListeners() {
 }
 
 
-// ==================== [MODULE: js/pages/bills.js] ====================
-/**
- * Recurring Bills & Bill Reminders Page Module (Dompet Keluarga V2)
- */
-
 function renderBillsPage() {
   const bills = appState.getRecurringBills();
   const accounts = appState.getAccountsWithBalances().filter(a => !a.isArchived);
   const categories = appState.categories;
-
   const totalMonthlyBills = bills.reduce((sum, b) => sum + b.amount, 0);
   const paidBills = bills.filter(b => b.isPaidThisMonth);
   const unpaidBills = bills.filter(b => !b.isPaidThisMonth);
   const totalPaid = paidBills.reduce((sum, b) => sum + b.amount, 0);
   const totalUnpaid = unpaidBills.reduce((sum, b) => sum + b.amount, 0);
-
   const todayDate = new Date().getDate();
-
   return `
     <div class="bills-page">
       <!-- Header -->
@@ -9207,12 +8091,10 @@ function renderBillsPage() {
             Pantau tanggal jatuh tempo dan bayar kewajiban bulanan tepat waktu
           </p>
         </div>
-
         <button class="btn btn-primary" id="btn-add-bill">
           ${Icons.plus(16)} Tambah Tagihan
         </button>
       </div>
-
       <!-- Summary Metrics Grid -->
       <div class="metrics-grid" style="margin-bottom:1.5rem;">
         <div class="metric-card">
@@ -9227,7 +8109,6 @@ function renderBillsPage() {
             <span>${bills.length} tagihan terdaftar</span>
           </div>
         </div>
-
         <div class="metric-card">
           <div class="metric-card-top">
             <span class="metric-label">Sudah Dibayar (Bulan Ini)</span>
@@ -9240,7 +8121,6 @@ function renderBillsPage() {
             <span>${paidBills.length} tagihan lunas</span>
           </div>
         </div>
-
         <div class="metric-card">
           <div class="metric-card-top">
             <span class="metric-label">Belum Dibayar</span>
@@ -9256,20 +8136,17 @@ function renderBillsPage() {
           </div>
         </div>
       </div>
-
       <!-- Bills List Card -->
       <div class="card" style="padding:0;overflow:hidden;">
         <div style="padding:1.25rem 1.5rem;border-bottom:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;">
           <div class="card-title">${Icons.zap(18)} Jadwal Jatuh Tempo Tagihan</div>
         </div>
-
         <div class="transactions-list">
           ${bills.map(bill => {
             const cat = categories.find(c => c.id === bill.categoryId);
             const acc = accounts.find(a => a.id === bill.accountId);
             const catColor = cat ? cat.color : '#6366f1';
             const iconName = cat ? cat.icon : 'zap';
-
             const daysLeft = bill.dueDay - todayDate;
             let statusBadge = '';
             if (bill.isPaidThisMonth) {
@@ -9281,7 +8158,6 @@ function renderBillsPage() {
             } else {
               statusBadge = `<span class="badge" style="background:#f1f5f9;color:#475569;">Jatuh tempo tgl ${bill.dueDay}</span>`;
             }
-
             return `
               <div class="transaction-item" style="opacity:${bill.isPaidThisMonth ? '0.75' : '1'};">
                 <div class="transaction-left">
@@ -9300,13 +8176,11 @@ function renderBillsPage() {
                     </div>
                   </div>
                 </div>
-
                 <div class="tx-right">
                   <div class="tx-amount-col">
                     <div class="tx-amount expense">${formatRupiah(bill.amount)}</div>
                     <span style="font-size:0.6875rem;color:var(--text-muted);">per bulan</span>
                   </div>
-
                   <div class="tx-actions-menu">
                     ${!bill.isPaidThisMonth ? `
                       <button class="btn btn-primary btn-sm action-pay-bill" data-id="${bill.id}" data-name="${bill.name}" data-amount="${bill.amount}">
@@ -9330,12 +8204,9 @@ function renderBillsPage() {
     </div>
   `;
 }
-
 function attachBillsListeners() {
   const accounts = appState.getAccountsWithBalances().filter(a => !a.isArchived);
   const categories = appState.categories.filter(c => c.type === 'expense');
-
-  // Add Bill Modal
   const addBtn = document.getElementById('btn-add-bill');
   if (addBtn) {
     addBtn.onclick = () => {
@@ -9346,7 +8217,6 @@ function attachBillsListeners() {
             <label class="form-label">Nama Tagihan / Layanan *</label>
             <input type="text" id="bill-name-input" class="form-input" placeholder="Contoh: Listrik PLN, BPJS, Indihome, SPP Sekolah" required />
           </div>
-
           <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:0.75rem;">
             <div class="form-group">
               <label class="form-label">Nominal Tagihan (Rp) *</label>
@@ -9360,7 +8230,6 @@ function attachBillsListeners() {
               <input type="number" id="bill-due-day" class="form-input" min="1" max="31" value="15" required />
             </div>
           </div>
-
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
             <div class="form-group">
               <label class="form-label">Kategori *</label>
@@ -9375,7 +8244,6 @@ function attachBillsListeners() {
               </select>
             </div>
           </div>
-
           <div class="form-group">
             <label class="form-label">Catatan / No. Pelanggan (Opsional)</label>
             <input type="text" id="bill-notes-input" class="form-input" placeholder="Contoh: No Meter 1234-5678" />
@@ -9393,7 +8261,6 @@ function attachBillsListeners() {
               const categoryId = document.getElementById('bill-cat-select')?.value;
               const accountId = document.getElementById('bill-acc-select')?.value;
               const notes = document.getElementById('bill-notes-input')?.value;
-
               if (!name || !name.trim()) {
                 toast.error('Nama tagihan wajib diisi.');
                 return;
@@ -9402,7 +8269,6 @@ function attachBillsListeners() {
                 toast.error('Nominal tagihan harus lebih dari Rp 0.');
                 return;
               }
-
               appState.addRecurringBill({
                 name: name.trim(),
                 amount,
@@ -9411,14 +8277,12 @@ function attachBillsListeners() {
                 accountId,
                 notes
               });
-
               toast.success(`Tagihan "${name}" berhasil ditambahkan!`);
               modal.close();
             }
           }
         ]
       });
-
       const input = document.getElementById('bill-amount-input');
       if (input) {
         input.oninput = (e) => {
@@ -9428,14 +8292,11 @@ function attachBillsListeners() {
       }
     };
   }
-
-  // Pay Bill Action
   document.querySelectorAll('.action-pay-bill').forEach(btn => {
     btn.onclick = () => {
       const id = btn.dataset.id;
       const name = btn.dataset.name;
       const amount = parseInt(btn.dataset.amount, 10);
-
       modal.open({
         title: `Bayar Tagihan: ${name}`,
         content: `
@@ -9443,7 +8304,6 @@ function attachBillsListeners() {
             <div style="font-size:0.8125rem;color:var(--text-muted);">Nominal Pembayaran:</div>
             <div style="font-size:1.5rem;font-weight:800;color:var(--color-expense);">${formatRupiah(amount)}</div>
           </div>
-
           <div class="form-group">
             <label class="form-label">Bayar Menggunakan Rekening / Dompet *</label>
             <select id="pay-bill-acc-select" class="form-select">
@@ -9474,8 +8334,6 @@ function attachBillsListeners() {
       });
     };
   });
-
-  // Toggle Unpay
   document.querySelectorAll('.action-unpay-bill').forEach(btn => {
     btn.onclick = () => {
       const id = btn.dataset.id;
@@ -9483,13 +8341,10 @@ function attachBillsListeners() {
       toast.info('Status tagihan diubah menjadi belum dibayar.');
     };
   });
-
-  // Delete Bill
   document.querySelectorAll('.action-delete-bill').forEach(btn => {
     btn.onclick = () => {
       const id = btn.dataset.id;
       const name = btn.dataset.name;
-
       modal.confirm({
         title: 'Hapus Tagihan Rutin',
         message: `Apakah Anda yakin ingin menghapus tagihan rutin <strong>"${name}"</strong>?`,
@@ -9505,15 +8360,11 @@ function attachBillsListeners() {
 }
 
 
-// ==================== [MODULE: js/pages/reports.js] ====================
-
 function renderReportsPage() {
   const currentMonth = appState.selectedMonth;
   const currentYear = appState.selectedYear;
   const metrics = appState.getMonthlyMetrics(currentMonth, currentYear);
   const categories = appState.categories;
-
-  // Generate 6-month historical trend data
   const trendData = [];
   for (let i = 5; i >= 0; i--) {
     let m = currentMonth - i;
@@ -9531,14 +8382,12 @@ function renderReportsPage() {
       expense: monthMetrics.totalExpense
     });
   }
-
   const months = [
     { num: 1, name: 'Januari' }, { num: 2, name: 'Februari' }, { num: 3, name: 'Maret' },
     { num: 4, name: 'April' }, { num: 5, name: 'Mei' }, { num: 6, name: 'Juni' },
     { num: 7, name: 'Juli' }, { num: 8, name: 'Agustus' }, { num: 9, name: 'September' },
     { num: 10, name: 'Oktober' }, { num: 11, name: 'November' }, { num: 12, name: 'Desember' }
   ];
-
   return `
     <div class="reports-page">
       <!-- Header -->
@@ -9549,7 +8398,6 @@ function renderReportsPage() {
             Analisis arus kas, distribusi belanja, dan ekspor dokumen PDF / Excel
           </p>
         </div>
-
         <div style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap;">
           <div class="month-year-picker">
             <span style="color:var(--color-primary-600);">${Icons.calendar(18)}</span>
@@ -9564,7 +8412,6 @@ function renderReportsPage() {
               ${renderYearOptions(appState.selectedYear, 2010, 2050)}
             </select>
           </div>
-
           <button class="btn btn-secondary" id="btn-import-csv" title="Impor Data dari CSV">
             ${Icons.upload(16)} Impor CSV
           </button>
@@ -9573,14 +8420,12 @@ function renderReportsPage() {
           </button>
         </div>
       </div>
-
       <!-- Printable Report Header (Visible only on print) -->
       <div class="print-only-header" style="display:none;margin-bottom:1.5rem;">
         <h2 style="font-size:1.5rem;font-weight:800;color:#0f172a;">Laporan Keuangan: ${appState.family?.name || appState.familySettings?.name || 'Keluarga'}</h2>
         <p style="font-size:0.875rem;color:#475569;">Periode: ${getMonthName(currentMonth)} ${currentYear} • Dicetak pada: ${new Date().toLocaleDateString('id-ID')}</p>
         <hr style="margin:1rem 0;border:0;border-top:1px solid #cbd5e1;" />
       </div>
-
       <!-- Cashflow Summary Table / Card -->
       <div class="card" style="margin-bottom:1.5rem;">
         <div class="card-header">
@@ -9588,7 +8433,6 @@ function renderReportsPage() {
             ${Icons.trendingUp(18)} Ringkasan Arus Kas (${getMonthName(currentMonth)} ${currentYear})
           </div>
         </div>
-
         <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:1rem;">
           <div style="background:var(--color-slate-50);padding:1.25rem;border-radius:var(--radius-md);border-left:4px solid var(--color-income);">
             <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Total Pemasukan</div>
@@ -9599,7 +8443,6 @@ function renderReportsPage() {
               Bulan lalu: ${formatRupiah(metrics.prevIncome)}
             </div>
           </div>
-
           <div style="background:var(--color-slate-50);padding:1.25rem;border-radius:var(--radius-md);border-left:4px solid var(--color-expense);">
             <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Total Pengeluaran</div>
             <div style="font-size:1.375rem;font-weight:800;color:var(--color-expense);margin-top:0.25rem;">
@@ -9609,7 +8452,6 @@ function renderReportsPage() {
               Bulan lalu: ${formatRupiah(metrics.prevExpense)}
             </div>
           </div>
-
           <div style="background:var(--color-slate-50);padding:1.25rem;border-radius:var(--radius-md);border-left:4px solid ${metrics.netSavings >= 0 ? 'var(--color-primary-600)' : 'var(--color-expense)'};">
             <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Surplus / (Defisit) Bersih</div>
             <div style="font-size:1.375rem;font-weight:800;color:${metrics.netSavings >= 0 ? 'var(--color-primary-700)' : 'var(--color-expense)'};margin-top:0.25rem;">
@@ -9621,7 +8463,6 @@ function renderReportsPage() {
           </div>
         </div>
       </div>
-
       <!-- 6-Month Trend Card -->
       <div class="card" style="margin-bottom:1.5rem;">
         <div class="card-header">
@@ -9632,7 +8473,6 @@ function renderReportsPage() {
         </div>
         ${renderCashflowTrendSVG(trendData, 220)}
       </div>
-
       <!-- Category Breakdown Table -->
       <div class="card">
         <div class="card-header">
@@ -9640,7 +8480,6 @@ function renderReportsPage() {
             ${Icons.tag(18)} Rincian Pengeluaran per Kategori
           </div>
         </div>
-
         <div style="overflow-x:auto;">
           <table class="report-table">
             <thead>
@@ -9659,7 +8498,6 @@ function renderReportsPage() {
                 const budgetAmount = budgetEntry ? budgetEntry.amount : 0;
                 const diff = budgetAmount - catItem.value;
                 const percentOfExpense = metrics.totalExpense > 0 ? Math.round((catItem.value / metrics.totalExpense) * 100) : 0;
-
                 return `
                   <tr>
                     <td style="font-weight:700;color:var(--color-slate-400);">${idx + 1}</td>
@@ -9695,25 +8533,21 @@ function renderReportsPage() {
     </div>
   `;
 }
-
 function attachReportsListeners() {
   const monthSelect = document.getElementById('report-month-select');
   const yearSelect = document.getElementById('report-year-select');
-
   if (monthSelect) {
     monthSelect.onchange = (e) => {
       appState.selectedMonth = parseInt(e.target.value, 10);
       appState.notify();
     };
   }
-
   if (yearSelect) {
     yearSelect.onchange = (e) => {
       appState.selectedYear = parseInt(e.target.value, 10);
       appState.notify();
     };
   }
-
   const importBtn = document.getElementById('btn-import-csv');
   if (importBtn) {
     importBtn.onclick = () => {
@@ -9761,17 +8595,14 @@ function attachReportsListeners() {
           }
         ]
       });
-
       const fileInput = document.getElementById('csv-file-input');
       const nameLabel = document.getElementById('csv-file-name-label');
       const previewBox = document.getElementById('csv-preview-container');
-
       if (fileInput) {
         fileInput.onchange = (e) => {
           const file = e.target.files[0];
           if (!file) return;
           nameLabel.textContent = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
-          
           const reader = new FileReader();
           reader.onload = (event) => {
             const text = event.target.result;
@@ -9780,13 +8611,11 @@ function attachReportsListeners() {
               toast.error('File CSV kosong atau tidak memiliki baris data.');
               return;
             }
-
             const header = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
             const rows = [];
             for (let i = 1; i < lines.length; i++) {
               const cols = lines[i].split(',').map(c => c.replace(/"/g, '').trim());
               if (cols.length >= 6) {
-                // Heuristic map
                 const date = cols[1] || new Date().toISOString().split('T')[0];
                 const typeStr = (cols[2] || 'Pengeluaran').toLowerCase();
                 const type = typeStr.includes('masuk') || typeStr.includes('income') ? 'income' : typeStr.includes('transfer') ? 'transfer' : 'expense';
@@ -9794,11 +8623,8 @@ function attachReportsListeners() {
                 const desc = cols[4] || catName || 'Impor CSV';
                 const accName = cols[5] || '';
                 const amount = parseRupiah(cols[6] || cols[5] || '0') || 50000;
-                
-                // Match category & account
                 const matchedCat = appState.categories.find(c => c.name.toLowerCase() === catName.toLowerCase()) || appState.categories[0];
                 const matchedAcc = appState.accounts.find(a => a.name.toLowerCase() === accName.toLowerCase()) || appState.accounts[0];
-
                 rows.push({
                   date,
                   type,
@@ -9812,7 +8638,6 @@ function attachReportsListeners() {
                 });
               }
             }
-
             importedRows = rows;
             if (previewBox) {
               previewBox.style.display = 'block';
@@ -9831,17 +8656,14 @@ function attachReportsListeners() {
       }
     };
   }
-
   const exportModalBtn = document.getElementById('btn-open-export-modal');
   if (exportModalBtn) {
     exportModalBtn.onclick = () => openExportModal();
   }
-
   const printBtn = document.getElementById('btn-print-report');
   if (printBtn) {
     printBtn.onclick = () => openExportModal();
   }
-
   const csvBtn = document.getElementById('btn-download-report-csv');
   if (csvBtn) {
     csvBtn.onclick = () => openExportModal();
@@ -9849,10 +8671,7 @@ function attachReportsListeners() {
 }
 
 
-// ==================== [MODULE: js/pages/settings.js] ====================
-
 var settingsSubTab = 'family'; // 'family' | 'accounts' | 'categories' | 'cloud' | 'license' | 'system'
-
 function renderSettingsPage() {
   const family = appState.family;
   const members = appState.members;
@@ -9862,7 +8681,6 @@ function renderSettingsPage() {
   const isOwner = appState.canManageFamily();
   const canManage = appState.canManageFinances();
   const isPro = LicenseService.isLicensed();
-
   return `
     <div class="settings-page">
       <!-- Header -->
@@ -9877,7 +8695,6 @@ function renderSettingsPage() {
           ${Icons.logOut ? Icons.logOut(16) : '🚪'} Keluar (Logout)
         </button>
       </div>
-
       <!-- Settings Sub-Tabs -->
       <div class="settings-tabs">
         <button class="settings-tab-btn ${settingsSubTab === 'family' ? 'active' : ''}" data-subtab="family">
@@ -9899,7 +8716,6 @@ function renderSettingsPage() {
           ${Icons.refresh(16)} Data & Reset
         </button>
       </div>
-
       <!-- Tab Content Area -->
       ${settingsSubTab === 'family' ? renderFamilyTab(family, members, isOwner) : ''}
       ${settingsSubTab === 'accounts' ? renderAccountsTab(accounts, canManage) : ''}
@@ -9910,10 +8726,8 @@ function renderSettingsPage() {
     </div>
   `;
 }
-
 function renderFamilyTab(family, members, isOwner) {
   const current = appState.currentUser;
-
   return `
     <div style="display:flex;flex-direction:column;gap:1.5rem;">
       <!-- Family Info Card -->
@@ -9926,18 +8740,15 @@ function renderFamilyTab(family, members, isOwner) {
             </button>
           ` : ''}
         </div>
-
         <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:1rem;">
           <div style="background:var(--color-slate-50);padding:1rem;border-radius:var(--radius-md);">
             <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Nama Ruang Keluarga</div>
             <div style="font-size:1.125rem;font-weight:800;color:var(--color-slate-900);margin-top:0.25rem;">${family.name}</div>
           </div>
-
           <div style="background:var(--color-slate-50);padding:1rem;border-radius:var(--radius-md);">
             <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Mata Uang Utama</div>
             <div style="font-size:1.125rem;font-weight:800;color:var(--color-primary-700);margin-top:0.25rem;">IDR - Rupiah (Rp)</div>
           </div>
-
           <div style="background:var(--color-slate-50);padding:1rem;border-radius:var(--radius-md);">
             <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Kode Undangan</div>
             <div style="display:flex;align-items:center;justify-content:space-between;margin-top:0.25rem;">
@@ -9947,7 +8758,6 @@ function renderFamilyTab(family, members, isOwner) {
           </div>
         </div>
       </div>
-
       <!-- Members List Card -->
       <div class="card">
         <div class="card-header">
@@ -9966,12 +8776,10 @@ function renderFamilyTab(family, members, isOwner) {
             ` : ''}
           </div>
         </div>
-
         <div style="display:flex;flex-direction:column;gap:0.75rem;">
           ${members.map(m => {
             const isSelf = current.id === m.id;
             const roleClass = m.role === 'owner' ? 'role-owner' : m.role === 'admin' ? 'role-admin' : 'role-member';
-
             return `
               <div style="display:flex;align-items:center;justify-content:space-between;padding:1rem;background:var(--color-slate-50);border-radius:var(--radius-md);border:1px solid var(--border-subtle);flex-wrap:wrap;gap:0.75rem;">
                 <div style="display:flex;align-items:center;gap:0.875rem;">
@@ -9986,24 +8794,20 @@ function renderFamilyTab(family, members, isOwner) {
                     </div>
                   </div>
                 </div>
-
                 <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
                   <span class="user-role-tag ${roleClass}">${m.roleLabel || m.role}</span>
-                  
                   <!-- Switch user / login quickly -->
                   ${!isSelf ? `
                     <button class="btn btn-secondary btn-sm action-switch-to-member" data-id="${m.id}" data-name="${m.name}" title="Masuk / Gunakan Akun Ini">
                       Masuk
                     </button>
                   ` : ''}
-
                   <!-- Edit member -->
                   ${isOwner || isSelf ? `
                     <button class="btn btn-secondary btn-icon btn-sm action-edit-member-details" data-id="${m.id}" title="Edit Data Anggota">
                       ${Icons.edit(14)}
                     </button>
                   ` : ''}
-
                   <!-- Delete member (Only owner can delete, cannot delete sole owner) -->
                   ${isOwner && m.role !== 'owner' ? `
                     <button class="btn btn-secondary btn-icon btn-sm action-delete-member" data-id="${m.id}" data-name="${m.name}" title="Hapus Anggota" style="color:var(--color-expense);">
@@ -10019,7 +8823,6 @@ function renderFamilyTab(family, members, isOwner) {
     </div>
   `;
 }
-
 function renderAccountsTab(accounts, canManage) {
   return `
     <div class="card">
@@ -10034,7 +8837,6 @@ function renderAccountsTab(accounts, canManage) {
           </button>
         ` : ''}
       </div>
-
       <div class="settings-grid-list">
         ${accounts.map(acc => `
           <div class="setting-item-card" style="opacity:${acc.isArchived ? '0.6' : '1'};">
@@ -10051,7 +8853,6 @@ function renderAccountsTab(accounts, canManage) {
                 </div>
               </div>
             </div>
-
             ${canManage ? `
               <div style="display:flex;gap:0.375rem;">
                 <button class="btn btn-secondary btn-icon btn-sm action-edit-account" data-id="${acc.id}" title="Ubah Akun">
@@ -10068,11 +8869,9 @@ function renderAccountsTab(accounts, canManage) {
     </div>
   `;
 }
-
 function renderCategoriesTab(categories, canManage) {
   const expenseCats = categories.filter(c => c.type === 'expense');
   const incomeCats = categories.filter(c => c.type === 'income');
-
   return `
     <div style="display:flex;flex-direction:column;gap:1.5rem;">
       <!-- Expense Categories -->
@@ -10088,7 +8887,6 @@ function renderCategoriesTab(categories, canManage) {
             </button>
           ` : ''}
         </div>
-
         <div class="settings-grid-list">
           ${expenseCats.map(cat => `
             <div class="setting-item-card" style="opacity:${cat.isArchived ? '0.6' : '1'};">
@@ -10105,7 +8903,6 @@ function renderCategoriesTab(categories, canManage) {
                   </div>
                 </div>
               </div>
-
               ${canManage ? `
                 <div style="display:flex;gap:0.25rem;">
                   <button class="btn btn-secondary btn-icon btn-sm action-edit-category" data-id="${cat.id}">
@@ -10120,7 +8917,6 @@ function renderCategoriesTab(categories, canManage) {
           `).join('')}
         </div>
       </div>
-
       <!-- Income Categories -->
       <div class="card">
         <div class="card-header">
@@ -10134,7 +8930,6 @@ function renderCategoriesTab(categories, canManage) {
             </button>
           ` : ''}
         </div>
-
         <div class="settings-grid-list">
           ${incomeCats.map(cat => `
             <div class="setting-item-card" style="opacity:${cat.isArchived ? '0.6' : '1'};">
@@ -10151,7 +8946,6 @@ function renderCategoriesTab(categories, canManage) {
                   </div>
                 </div>
               </div>
-
               ${canManage ? `
                 <div style="display:flex;gap:0.25rem;">
                   <button class="btn btn-secondary btn-icon btn-sm action-edit-category" data-id="${cat.id}">
@@ -10169,11 +8963,9 @@ function renderCategoriesTab(categories, canManage) {
     </div>
   `;
 }
-
 function renderCloudTab() {
   const config = CloudSyncService.getConfig();
   const isConnected = !!config.gasUrl && config.status === 'connected';
-
   return `
     <div style="display:flex;flex-direction:column;gap:1.5rem;">
       <!-- Cloud Status Banner -->
@@ -10192,7 +8984,6 @@ function renderCloudTab() {
               </div>
             </div>
           </div>
-
           <div style="display:flex;gap:0.5rem;">
             <button class="btn btn-secondary btn-sm" id="btn-cloud-guide-modal">
               📖 Panduan Setup GAS
@@ -10203,7 +8994,6 @@ function renderCloudTab() {
           </div>
         </div>
       </div>
-
       <!-- Cloud Configuration Form -->
       <div class="card">
         <div class="card-header">
@@ -10212,7 +9002,6 @@ function renderCloudTab() {
             <div class="card-subtitle">Masukkan Web App URL yang didapatkan setelah mendeploy script di Google Sheets</div>
           </div>
         </div>
-
         <div style="display:flex;flex-direction:column;gap:1.25rem;">
           <div class="form-group">
             <label class="form-label">Google Apps Script Web App URL *</label>
@@ -10221,7 +9010,6 @@ function renderCloudTab() {
               Pastikan deployment diset ke: <strong>Execute as: Me</strong> dan <strong>Who has access: Anyone</strong>.
             </small>
           </div>
-
           <div style="display:flex;align-items:center;justify-content:space-between;padding:1rem;background:var(--color-slate-50);border-radius:var(--radius-md);">
             <div>
               <div style="font-size:0.875rem;font-weight:700;color:var(--color-slate-900);">Auto-Sync Realtime</div>
@@ -10233,7 +9021,6 @@ function renderCloudTab() {
               <span style="position:absolute;height:18px;width:18px;left:${config.autoSync ? '23px' : '3px'};bottom:3px;background-color:white;transition:.3s;border-radius:50%;"></span>
             </label>
           </div>
-
           ${isConnected ? `
             <div style="padding:0.75rem 1rem;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:var(--radius-md);display:flex;align-items:flex-start;gap:0.75rem;">
               <div style="font-size:1.25rem;line-height:1;">🔗</div>
@@ -10242,7 +9029,6 @@ function renderCloudTab() {
               </div>
             </div>
           ` : ''}
-
           <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;">
             <button class="btn btn-primary" id="btn-save-cloud-config">
               💾 Simpan URL & Tautkan ke Akun
@@ -10258,7 +9044,6 @@ function renderCloudTab() {
           </div>
         </div>
       </div>
-
       <!-- Cloud Sync Actions -->
       <div class="card">
         <div class="card-header">
@@ -10267,7 +9052,6 @@ function renderCloudTab() {
             <div class="card-subtitle">Upload seluruh data lokal ke Google Sheets atau unduh data terbaru dari Sheets</div>
           </div>
         </div>
-
         <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:1rem;">
           <div style="border:1px solid var(--color-slate-200);border-radius:var(--radius-md);padding:1.25rem;background:#fafafa;">
             <div style="font-size:1rem;font-weight:700;color:var(--color-slate-900);margin-bottom:0.375rem;">
@@ -10280,7 +9064,6 @@ function renderCloudTab() {
               ⬆️ Upload Data Sekarang
             </button>
           </div>
-
           <div style="border:1px solid var(--color-slate-200);border-radius:var(--radius-md);padding:1.25rem;background:#fafafa;">
             <div style="font-size:1rem;font-weight:700;color:var(--color-slate-900);margin-bottom:0.375rem;">
               ⬇️ Download dari Google Sheets (Restore)
@@ -10296,11 +9079,9 @@ function renderCloudTab() {
     </div>
   `;
 }
-
 function renderLicenseTab() {
   const license = LicenseService.getLicense();
   const isPro = LicenseService.isLicensed();
-
   return `
     <div style="display:flex;flex-direction:column;gap:1.5rem;">
       <!-- Hero Status Card -->
@@ -10326,12 +9107,10 @@ function renderLicenseTab() {
               </p>
             </div>
           </div>
-
           <button class="btn btn-primary" id="btn-open-license-popup" style="background:${isPro ? 'linear-gradient(135deg, #059669, #047857)' : 'linear-gradient(135deg, #2563eb, #1d4ed8)'};white-space:nowrap;font-weight:700;">
             ${isPro ? '✨ Kelola Lisensi' : '🚀 Aktifkan Lisensi Sekarang'}
           </button>
         </div>
-
         <!-- License Key Details -->
         <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:0.75rem;margin-top:1.25rem;padding-top:1rem;border-top:1px solid ${isPro ? '#a7f3d0' : '#fde68a'};">
           <div>
@@ -10356,7 +9135,6 @@ function renderLicenseTab() {
           </div>
         </div>
       </div>
-
       <!-- In-Page Activation Box -->
       <div class="card">
         <div class="card-header">
@@ -10365,7 +9143,6 @@ function renderLicenseTab() {
             <div class="card-subtitle">Verifikasi instan online atau master key offline yang diberikan oleh developer</div>
           </div>
         </div>
-
         <div style="display:flex;flex-direction:column;gap:1rem;max-width:560px;">
           <!-- Field Nomor WhatsApp Pelanggan -->
           <div class="form-group" style="margin-bottom:0;">
@@ -10382,7 +9159,6 @@ function renderLicenseTab() {
               Nomor WhatsApp digunakan untuk pencatatan hak kepemilikan lisensi resmi & database pembaruan fitur.
             </div>
           </div>
-
           <!-- Field Kunci Lisensi -->
           <div class="form-group" style="margin-bottom:0;">
             <label class="form-label" for="settings-license-key-input">🔑 Kunci Serial Lisensi (Lisensi Developer):</label>
@@ -10401,7 +9177,6 @@ function renderLicenseTab() {
             </div>
             <div id="settings-license-feedback" style="font-size:0.825rem;margin-top:0.4rem;"></div>
           </div>
-
           <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;padding-top:0.5rem;">
             <a 
               href="${LicenseService.getBuyWhatsAppUrl('Menu Pengaturan Lisensi')}" 
@@ -10413,7 +9188,6 @@ function renderLicenseTab() {
               <span>${Icons.send ? Icons.send(16) : '💬'}</span>
               <span>Hubungi Developer via WhatsApp</span>
             </a>
-
             ${isPro ? `
               <button class="btn btn-secondary btn-sm" id="btn-settings-remove-license" style="color:#ef4444;border-color:#fecaca;">
                 Hapus Lisensi di Perangkat Ini
@@ -10422,7 +9196,6 @@ function renderLicenseTab() {
           </div>
         </div>
       </div>
-
       <!-- Feature Comparison & Benefits -->
       <div class="card">
         <div class="card-header">
@@ -10431,7 +9204,6 @@ function renderLicenseTab() {
             <div class="card-subtitle">Perbandingan fitur antara Mode Uji Coba dan Lisensi PRO Developer</div>
           </div>
         </div>
-
         <div style="overflow-x:auto;">
           <table style="width:100%;border-collapse:collapse;font-size:0.875rem;">
             <thead>
@@ -10479,7 +9251,6 @@ function renderLicenseTab() {
     </div>
   `;
 }
-
 function renderSystemTab() {
   const txCount = appState.transactions ? appState.transactions.length : 0;
   const accCount = appState.accounts ? appState.accounts.length : 0;
@@ -10488,7 +9259,6 @@ function renderSystemTab() {
   const goalCount = appState.goals ? appState.goals.length : 0;
   const billCount = appState.recurringBills ? appState.recurringBills.length : 0;
   const familyName = appState.family?.name || 'Keluarga';
-
   return `
     <div style="display:flex;flex-direction:column;gap:1.5rem;">
       <!-- Ringkasan Status Database Lokal & Privasi -->
@@ -10502,7 +9272,6 @@ function renderSystemTab() {
             🛡️ 100% Privasi Terisolasi
           </span>
         </div>
-
         <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:0.75rem;margin-top:0.75rem;">
           <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:var(--radius-md);padding:0.875rem 1rem;text-align:center;">
             <div style="font-size:1.375rem;font-weight:800;color:var(--color-slate-800);">${txCount}</div>
@@ -10522,7 +9291,6 @@ function renderSystemTab() {
           </div>
         </div>
       </div>
-
       <!-- Kartu Panduan Setup Awal (Onboarding Wizard) -->
       <div class="card" style="border-left:4px solid #3b82f6;background:linear-gradient(to right, #eff6ff, #ffffff);">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;">
@@ -10540,7 +9308,6 @@ function renderSystemTab() {
           </button>
         </div>
       </div>
-
       <!-- Kartu Reset & Mode Database -->
       <div class="card">
         <div class="card-header">
@@ -10549,7 +9316,6 @@ function renderSystemTab() {
             <div class="card-subtitle">Pilih mode data bersih untuk mulai mencatat keuangan asli, atau muat simulasi untuk belajar</div>
           </div>
         </div>
-
         <div style="display:flex;flex-direction:column;gap:1rem;margin-top:0.5rem;">
           <!-- Opsi 1: Mulai dari Nol (Bersih / 0 Transaksi) -->
           <div style="background:#f0fdfa;border:1.5px solid #5eead4;border-radius:var(--radius-md);padding:1.25rem;">
@@ -10568,7 +9334,6 @@ function renderSystemTab() {
               ${Icons.plus(16)} Kosongkan & Mulai dari Nol (0 Transaksi)
             </button>
           </div>
-
           <!-- Opsi 2: Muat Data Demo (Keluarga Santoso) -->
           <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:var(--radius-md);padding:1.25rem;">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.5rem;">
@@ -10588,7 +9353,6 @@ function renderSystemTab() {
           </div>
         </div>
       </div>
-
       <!-- Kartu Cadangan & Pemulihan (Backup & Restore Mandiri) -->
       <div class="card">
         <div class="card-header">
@@ -10597,7 +9361,6 @@ function renderSystemTab() {
             <div class="card-subtitle">Unduh atau pulihkan database Anda kapan saja dengan kendali dan kepemilikan 100% milik Anda</div>
           </div>
         </div>
-
         <div style="display:flex;flex-direction:column;gap:1rem;margin-top:0.5rem;">
           <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:var(--radius-md);padding:1rem 1.25rem;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:1rem;">
             <div style="flex:1;min-width:240px;">
@@ -10612,7 +9375,6 @@ function renderSystemTab() {
               ${Icons.download ? Icons.download(16) : '📥'} Unduh File Backup
             </button>
           </div>
-
           <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:var(--radius-md);padding:1rem 1.25rem;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:1rem;">
             <div style="flex:1;min-width:240px;">
               <div style="font-size:0.9375rem;font-weight:700;color:var(--color-slate-800);margin-bottom:0.25rem;">
@@ -10626,7 +9388,6 @@ function renderSystemTab() {
               ${Icons.fileText ? Icons.fileText(16) : '📊'} Unduh CSV
             </button>
           </div>
-
           <div style="background:#fdf4ff;border:1px solid #f0abfc;border-radius:var(--radius-md);padding:1rem 1.25rem;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:1rem;">
             <div style="flex:1;min-width:240px;">
               <div style="font-size:0.9375rem;font-weight:700;color:#86198f;margin-bottom:0.25rem;">
@@ -10648,9 +9409,7 @@ function renderSystemTab() {
     </div>
   `;
 }
-
 function attachSettingsListeners() {
-  // Logout Button in Settings Header
   const logoutBtn = document.getElementById('btn-settings-logout');
   if (logoutBtn) {
     logoutBtn.onclick = () => {
@@ -10670,16 +9429,12 @@ function attachSettingsListeners() {
       });
     };
   }
-
-  // Sub-tabs switcher
   document.querySelectorAll('[data-subtab]').forEach(btn => {
     btn.onclick = () => {
       settingsSubTab = btn.dataset.subtab;
       appState.notify();
     };
   });
-
-  // Copy invite code in settings
   const copyCodeBtn = document.getElementById('btn-copy-code-settings');
   if (copyCodeBtn) {
     copyCodeBtn.onclick = () => {
@@ -10687,8 +9442,6 @@ function attachSettingsListeners() {
       toast.success('Kode undangan disalin!');
     };
   }
-
-  // Edit Family Name
   const editFamBtn = document.getElementById('btn-edit-family-name');
   if (editFamBtn) {
     editFamBtn.onclick = () => {
@@ -10718,8 +9471,6 @@ function attachSettingsListeners() {
       });
     };
   }
-
-  // Login Mandiri Modal Simulator
   const loginTriggerBtn = document.getElementById('btn-login-modal-trigger');
   if (loginTriggerBtn) {
     loginTriggerBtn.onclick = () => {
@@ -10762,8 +9513,6 @@ function attachSettingsListeners() {
       });
     };
   }
-
-  // Quick switch to member
   document.querySelectorAll('.action-switch-to-member').forEach(btn => {
     btn.onclick = () => {
       const id = btn.dataset.id;
@@ -10772,8 +9521,6 @@ function attachSettingsListeners() {
       toast.info(`Beralih ke akun ${user ? user.name : ''} (${user ? user.roleLabel : ''})`);
     };
   });
-
-  // Invite / Add Member Modal
   const inviteBtn = document.getElementById('btn-invite-member');
   if (inviteBtn) {
     inviteBtn.onclick = () => {
@@ -10825,16 +9572,12 @@ function attachSettingsListeners() {
       });
     };
   }
-
-  // Edit Member Details Modal
   document.querySelectorAll('.action-edit-member-details').forEach(btn => {
     btn.onclick = () => {
       const id = btn.dataset.id;
       const member = appState.members.find(m => m.id === id);
       if (!member) return;
-
       const isOwner = appState.canManageFamily();
-
       modal.open({
         title: `Edit Anggota: ${member.name}`,
         content: `
@@ -10872,12 +9615,10 @@ function attachSettingsListeners() {
               const password = document.getElementById('edit-member-password')?.value;
               const roleSelect = document.getElementById('edit-member-role');
               const role = roleSelect ? roleSelect.value : member.role;
-
               if (!name || !name.trim()) {
                 toast.error('Nama anggota wajib diisi.');
                 return;
               }
-
               appState.updateMember(id, { name, email, password, role });
               toast.success(`Data anggota "${name}" berhasil diperbarui!`);
               modal.close();
@@ -10887,13 +9628,10 @@ function attachSettingsListeners() {
       });
     };
   });
-
-  // Delete Member with Confirmation Modal
   document.querySelectorAll('.action-delete-member').forEach(btn => {
     btn.onclick = () => {
       const id = btn.dataset.id;
       const name = btn.dataset.name;
-
       modal.confirm({
         title: 'Hapus Anggota Keluarga',
         message: `Apakah Anda yakin ingin menghapus <strong>"${name}"</strong> dari ruang keluarga? Hak akses anggota ini akan dicabut.`,
@@ -10910,8 +9648,6 @@ function attachSettingsListeners() {
       });
     };
   });
-
-  // Add Account Modal
   const addAccBtn = document.getElementById('btn-add-account');
   if (addAccBtn) {
     addAccBtn.onclick = () => {
@@ -10955,7 +9691,6 @@ function attachSettingsListeners() {
               }
               const typeLabels = { bank: 'Bank', cash: 'Tunai', ewallet: 'E-Wallet', savings: 'Tabungan' };
               const colors = { bank: '#3b82f6', cash: '#10b981', ewallet: '#06b6d4', savings: '#6366f1' };
-
               appState.addAccount({
                 name: name.trim(),
                 type,
@@ -10964,14 +9699,12 @@ function attachSettingsListeners() {
                 color: colors[type] || '#3b82f6',
                 icon: type === 'cash' ? 'wallet' : 'creditCard'
               });
-
               toast.success(`Akun "${name}" berhasil ditambahkan!`);
               modal.close();
             }
           }
         ]
       });
-
       const initBalInput = document.getElementById('acc-init-balance');
       if (initBalInput) {
         initBalInput.oninput = (e) => {
@@ -10981,8 +9714,6 @@ function attachSettingsListeners() {
       }
     };
   }
-
-  // Toggle Archive Account
   document.querySelectorAll('.action-archive-account').forEach(btn => {
     btn.onclick = () => {
       const id = btn.dataset.id;
@@ -10990,8 +9721,6 @@ function attachSettingsListeners() {
       toast.info('Status arsip akun telah diperbarui.');
     };
   });
-
-  // Add Category Modal
   document.querySelectorAll('.action-add-category-btn').forEach(btn => {
     btn.onclick = () => {
       const catType = btn.dataset.type || 'expense';
@@ -11024,7 +9753,6 @@ function attachSettingsListeners() {
                 toast.error('Nama kategori wajib diisi.');
                 return;
               }
-
               const subcategories = subcatsRaw.split(',').map(s => s.trim()).filter(Boolean);
               appState.addCategory({
                 name: name.trim(),
@@ -11033,7 +9761,6 @@ function attachSettingsListeners() {
                 subcategories,
                 icon: 'tag'
               });
-
               toast.success(`Kategori "${name}" berhasil ditambahkan!`);
               modal.close();
             }
@@ -11042,14 +9769,11 @@ function attachSettingsListeners() {
       });
     };
   });
-
-  // Delete / Archive Category with safety protection
   document.querySelectorAll('.action-delete-category').forEach(btn => {
     btn.onclick = () => {
       const id = btn.dataset.id;
       const cat = appState.getCategoryById(id);
       if (!cat) return;
-
       modal.confirm({
         title: 'Hapus / Arsipkan Kategori',
         message: `Apakah Anda yakin ingin menghapus kategori <strong>"${cat.name}"</strong>? Jika kategori ini sudah memiliki riwayat transaksi, sistem akan mengarsipkannya agar laporan keuangan tetap akurat.`,
@@ -11062,8 +9786,6 @@ function attachSettingsListeners() {
       });
     };
   });
-
-  // Buka Panduan Setup Awal (Onboarding Wizard)
   const openWizardBtn = document.getElementById('btn-open-onboarding-wizard');
   if (openWizardBtn) {
     openWizardBtn.onclick = () => {
@@ -11072,8 +9794,6 @@ function attachSettingsListeners() {
       }
     };
   }
-
-  // Reset ke Data Bersih (0 Transaksi)
   const resetCleanBtn = document.getElementById('btn-reset-clean-db');
   if (resetCleanBtn) {
     resetCleanBtn.onclick = () => {
@@ -11090,8 +9810,6 @@ function attachSettingsListeners() {
       });
     };
   }
-
-  // Reset ke Data Demo
   const resetDemoBtn = document.getElementById('btn-reset-demo-db');
   if (resetDemoBtn) {
     resetDemoBtn.onclick = () => {
@@ -11108,8 +9826,6 @@ function attachSettingsListeners() {
       });
     };
   }
-
-  // Unduh Cadangan JSON
   const backupJsonBtn = document.getElementById('btn-backup-json');
   if (backupJsonBtn) {
     backupJsonBtn.onclick = () => {
@@ -11121,8 +9837,6 @@ function attachSettingsListeners() {
       }
     };
   }
-
-  // Unduh Rekap CSV
   const backupCsvBtn = document.getElementById('btn-backup-csv');
   if (backupCsvBtn) {
     backupCsvBtn.onclick = () => {
@@ -11134,19 +9848,15 @@ function attachSettingsListeners() {
       }
     };
   }
-
-  // Trigger File Picker untuk Restore JSON
   const triggerRestoreBtn = document.getElementById('btn-trigger-restore');
   const restoreFileInput = document.getElementById('input-restore-file');
   if (triggerRestoreBtn && restoreFileInput) {
     triggerRestoreBtn.onclick = () => {
       restoreFileInput.click();
     };
-
     restoreFileInput.onchange = (e) => {
       const file = e.target.files && e.target.files[0];
       if (!file) return;
-
       const reader = new FileReader();
       reader.onload = (event) => {
         try {
@@ -11167,8 +9877,6 @@ function attachSettingsListeners() {
       reader.readAsText(file);
     };
   }
-
-  // --- CLOUD SYNC LISTENERS ---
   const saveCloudConfigBtn = document.getElementById('btn-save-cloud-config');
   if (saveCloudConfigBtn) {
     saveCloudConfigBtn.onclick = () => {
@@ -11187,7 +9895,6 @@ function attachSettingsListeners() {
       appState.notify();
     };
   }
-
   const unlinkCloudBtn = document.getElementById('btn-unlink-cloud-gas');
   if (unlinkCloudBtn) {
     unlinkCloudBtn.onclick = () => {
@@ -11209,7 +9916,6 @@ function attachSettingsListeners() {
       });
     };
   }
-
   const testPingBtn = document.getElementById('btn-test-cloud-ping');
   if (testPingBtn) {
     testPingBtn.onclick = async () => {
@@ -11218,7 +9924,6 @@ function attachSettingsListeners() {
         toast.error('Masukkan URL Google Apps Script terlebih dahulu');
         return;
       }
-
       toast.info('Menghubungi Google Apps Script...');
       try {
         const res = await CloudSyncService.testConnection(url);
@@ -11229,7 +9934,6 @@ function attachSettingsListeners() {
       }
     };
   }
-
   const initSheetsBtn = document.getElementById('btn-init-sheets-db');
   if (initSheetsBtn) {
     initSheetsBtn.onclick = async () => {
@@ -11238,7 +9942,6 @@ function attachSettingsListeners() {
         toast.error('Masukkan URL Google Apps Script terlebih dahulu');
         return;
       }
-
       toast.info('Menginisialisasi seluruh tabel di Google Sheets...');
       try {
         const res = await CloudSyncService.initDatabaseOnSheets(url);
@@ -11249,7 +9952,6 @@ function attachSettingsListeners() {
       }
     };
   }
-
   const pushCloudBtn = document.getElementById('btn-push-to-cloud');
   if (pushCloudBtn) {
     pushCloudBtn.onclick = async () => {
@@ -11258,7 +9960,6 @@ function attachSettingsListeners() {
         toast.error('Masukkan URL Google Apps Script terlebih dahulu');
         return;
       }
-
       toast.info('Mengunggah data ke Google Sheets...');
       try {
         const res = await CloudSyncService.pushFullState(url);
@@ -11269,7 +9970,6 @@ function attachSettingsListeners() {
       }
     };
   }
-
   const pullCloudBtn = document.getElementById('btn-pull-from-cloud');
   if (pullCloudBtn) {
     pullCloudBtn.onclick = async () => {
@@ -11278,7 +9978,6 @@ function attachSettingsListeners() {
         toast.error('Masukkan URL Google Apps Script terlebih dahulu');
         return;
       }
-
       modal.confirm({
         title: 'Unduh Data dari Google Sheets',
         message: 'Mengunduh data akan memperbarui data lokal di perangkat ini dengan data terbaru dari Google Sheets. Lanjutkan?',
@@ -11297,17 +9996,10 @@ function attachSettingsListeners() {
       });
     };
   }
-
   const guideModalBtn = document.getElementById('btn-cloud-guide-modal');
   if (guideModalBtn) {
-    const GAS_BACKEND_CODE = `/**
- * Dompet Keluarga - Private Google Sheets Backend (Zero-Knowledge)
- * Skrip ini dipasang langsung pada Google Spreadsheet milik pelanggan (Extensions > Apps Script).
- * 100% PRIVATE: Hanya akun Google Anda yang memiliki akses.
- */
-
+    const GAS_BACKEND_CODE = `
 var DK_VERSION = '2.0.0';
-
 var DK_SHEETS = {
   family: ['id', 'name', 'currency', 'currencySymbol', 'inviteCode', 'ownerId', 'createdAt'],
   members: ['id', 'familyId', 'name', 'email', 'phone', 'role', 'roleLabel', 'membershipStatus', 'avatarText', 'joinedAt'],
@@ -11318,7 +10010,6 @@ var DK_SHEETS = {
   goals: ['id', 'familyId', 'name', 'targetAmount', 'currentAmount', 'deadline', 'categoryId', 'accountId', 'color', 'icon', 'notes', 'createdAt'],
   recurringBills: ['id', 'familyId', 'name', 'amount', 'dueDay', 'categoryId', 'accountId', 'isPaidThisMonth', 'lastPaidDate', 'notes']
 };
-
 function doGet(e) {
   try {
     const action = String((e && e.parameter && e.parameter.action) || 'ping');
@@ -11335,40 +10026,33 @@ function doGet(e) {
     return json_({ success: false, message: error.message });
   }
 }
-
 function doPost(e) {
   try {
     const body = JSON.parse((e && e.postData && e.postData.contents) || '{}');
     const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-
     switch (body.action) {
       case 'ping':
       case 'testConnection':
         return json_({ success: true, message: 'Koneksi ke Google Sheets pribadi Anda berhasil!', version: DK_VERSION });
-
       case 'initDatabase':
         ensureDatabase_(spreadsheet);
         if (body.defaultData) {
           writeFullState_(body.defaultData, spreadsheet);
         }
         return json_({ success: true, message: 'Database Google Sheets berhasil dibuat dan diinisialisasi!' });
-
       case 'getFullState':
         ensureDatabase_(spreadsheet);
         return json_({ success: true, data: readFullState_(spreadsheet) });
-
       case 'syncFullState':
         ensureDatabase_(spreadsheet);
         writeFullState_(body.data || {}, spreadsheet);
         return json_({ success: true, message: 'Data berhasil disinkronkan ke Google Sheets Anda.' });
-
       case 'addTransaction':
         ensureDatabase_(spreadsheet);
         if (body.transaction) {
           upsertRows_('transactions', [body.transaction], spreadsheet);
         }
         return json_({ success: true, message: 'Transaksi berhasil dicatat ke Google Sheets.' });
-
       default:
         return json_({ success: false, message: 'Aksi POST tidak dikenal.' });
     }
@@ -11376,7 +10060,6 @@ function doPost(e) {
     return json_({ success: false, message: error.message });
   }
 }
-
 function ensureDatabase_(spreadsheet) {
   Object.keys(DK_SHEETS).forEach(sheetName => {
     let sheet = spreadsheet.getSheetByName(sheetName);
@@ -11391,13 +10074,11 @@ function ensureDatabase_(spreadsheet) {
       sheet.setFrozenRows(1);
     }
   });
-
   const defaultSheet = spreadsheet.getSheetByName('Sheet1') || spreadsheet.getSheetByName('Sheet 1');
   if (defaultSheet && spreadsheet.getSheets().length > 1) {
     try { spreadsheet.deleteSheet(defaultSheet); } catch (_) {}
   }
 }
-
 function readFullState_(spreadsheet) {
   const state = {};
   Object.keys(DK_SHEETS).forEach(name => {
@@ -11405,7 +10086,6 @@ function readFullState_(spreadsheet) {
   });
   return state;
 }
-
 function writeFullState_(data, spreadsheet) {
   Object.keys(DK_SHEETS).forEach(name => {
     if (Array.isArray(data[name])) {
@@ -11415,7 +10095,6 @@ function writeFullState_(data, spreadsheet) {
     }
   });
 }
-
 function readSheetObjects_(spreadsheet, sheetName) {
   const sheet = spreadsheet.getSheetByName(sheetName);
   if (!sheet || sheet.getLastRow() < 2) return [];
@@ -11433,7 +10112,6 @@ function readSheetObjects_(spreadsheet, sheetName) {
     return obj;
   }).filter(obj => obj.id && String(obj.id).trim() !== '');
 }
-
 function replaceSheetData_(sheetName, rows, spreadsheet) {
   const sheet = spreadsheet.getSheetByName(sheetName);
   if (!sheet) return;
@@ -11442,7 +10120,6 @@ function replaceSheetData_(sheetName, rows, spreadsheet) {
   sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
   sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#059669').setFontColor('#ffffff');
   sheet.setFrozenRows(1);
-
   if (rows && rows.length > 0) {
     const matrix = rows.map(item => headers.map(h => {
       let val = item[h];
@@ -11453,7 +10130,6 @@ function replaceSheetData_(sheetName, rows, spreadsheet) {
     sheet.getRange(2, 1, matrix.length, headers.length).setValues(matrix);
   }
 }
-
 function upsertRows_(sheetName, rows, spreadsheet) {
   const sheet = spreadsheet.getSheetByName(sheetName);
   if (!sheet) return;
@@ -11466,12 +10142,10 @@ function upsertRows_(sheetName, rows, spreadsheet) {
   }));
   sheet.getRange(sheet.getLastRow() + 1, 1, matrix.length, headers.length).setValues(matrix);
 }
-
 function json_(payload) {
   return ContentService.createTextOutput(JSON.stringify(payload))
     .setMimeType(ContentService.MimeType.JSON);
 }`;
-
     guideModalBtn.onclick = () => {
       modal.open({
         title: '📖 Panduan Setup Backend Google Apps Script',
@@ -11479,7 +10153,6 @@ function json_(payload) {
         content: `
           <div style="font-size:0.875rem;line-height:1.6;color:var(--color-slate-700);">
             <p style="margin-bottom:0.75rem;">Ikuti 4 langkah mudah berikut untuk mengaktifkan database gratis di Google Sheets Anda:</p>
-            
             <ol style="padding-left:1.25rem;display:flex;flex-direction:column;gap:0.65rem;margin-bottom:1rem;">
               <li>
                 Buka <a href="https://sheets.new" target="_blank" rel="noopener noreferrer" style="color:var(--color-primary-600);font-weight:700;">Google Sheets Baru (sheets.new) ↗</a>
@@ -11513,7 +10186,6 @@ function json_(payload) {
                 Salin <strong>Web App URL</strong> yang diberikan lalu tempelkan ke kolom URL di pengaturan ini.
               </li>
             </ol>
-
             <div style="background:var(--color-slate-100);padding:0.75rem;border-radius:6px;font-size:0.8125rem;">
               📁 File asli juga tersedia di folder proyek: <code>backend/Code.gs</code>
             </div>
@@ -11523,13 +10195,10 @@ function json_(payload) {
           { label: 'Tutup', className: 'btn-secondary', onClick: () => modal.close() }
         ]
       });
-
-      // Populate textarea and attach copy event
       const previewArea = document.getElementById('gas-script-preview');
       if (previewArea) {
         previewArea.value = GAS_BACKEND_CODE;
       }
-
       const copyBtn = document.getElementById('btn-copy-gas-code');
       if (copyBtn) {
         copyBtn.onclick = () => {
@@ -11552,41 +10221,33 @@ function json_(payload) {
       }
     };
   }
-
-  // License Listeners
   const openLicensePopupBtn = document.getElementById('btn-open-license-popup');
   if (openLicensePopupBtn) {
     openLicensePopupBtn.onclick = () => {
       openLicenseActivationModal('Akses Fitur PRO');
     };
   }
-
   const activateKeyBtn = document.getElementById('btn-settings-activate-key');
   const keyInput = document.getElementById('settings-license-key-input');
   const phoneInput = document.getElementById('settings-license-phone-input');
   const keyFeedback = document.getElementById('settings-license-feedback');
-
   if (activateKeyBtn && keyInput) {
     activateKeyBtn.onclick = async () => {
       const rawKey = keyInput.value.trim();
       const rawPhone = phoneInput ? phoneInput.value.trim() : '';
-
       if (!rawPhone || rawPhone.length < 9) {
         if (keyFeedback) keyFeedback.innerHTML = '<span style="color:#ef4444;font-weight:600;">Harap masukkan Nomor WhatsApp aktif Anda (minimal 9 digit).</span>';
         if (phoneInput) phoneInput.focus();
         return;
       }
-
       if (!rawKey) {
         if (keyFeedback) keyFeedback.innerHTML = '<span style="color:#ef4444;font-weight:600;">Harap masukkan kode kunci lisensi.</span>';
         keyInput.focus();
         return;
       }
-
       activateKeyBtn.disabled = true;
       activateKeyBtn.innerText = 'Memverifikasi...';
       if (keyFeedback) keyFeedback.innerHTML = '<span style="color:#0284c7;font-weight:600;">Sedang memvalidasi lisensi & menyimpan nomor WhatsApp...</span>';
-
       try {
         const res = await LicenseService.activate(rawKey, '', rawPhone);
         if (res.success) {
@@ -11608,7 +10269,6 @@ function json_(payload) {
       }
     };
   }
-
   const removeLicenseBtn = document.getElementById('btn-settings-remove-license');
   if (removeLicenseBtn) {
     removeLicenseBtn.onclick = () => {
@@ -11628,17 +10288,10 @@ function json_(payload) {
 }
 
 
-
-// ==================== [MODULE: js/auth-access.js] ====================
-/**
- * Dompet Keluarga — Registration, License Activation & Login Portal (v3.18.5)
- * Dedicated for Paid Customers with Unique License Key Validation & WhatsApp Lead Capture.
- */
 (function () {
   const SESSION_KEY = 'dk_google_session_v2';
   const USER_ACCOUNT_KEY = 'dk_user_account_v1';
   const ACCESS_API_URL = 'https://script.google.com/macros/s/AKfycbwywRn2AgS94Qsh1VEFijrexDroXrb1zDhnvgQwqn6YsEcw24gNk89Yrts-DFSTb5p5HQ/exec';
-
   class GoogleAccessManager {
     getSession() {
       try {
@@ -11648,7 +10301,6 @@ function json_(payload) {
     }
     getIdToken() { return this.getSession()?.idToken || ''; }
     getApiUrl() { return ACCESS_API_URL; }
-    
     logout() {
       sessionStorage.removeItem(SESSION_KEY);
       localStorage.setItem('dk_logged_out', 'true');
@@ -11666,20 +10318,15 @@ function json_(payload) {
         location.reload();
       }
     }
-
     render(shell, onAuthenticated) {
       if (!shell) return;
-
       const existingAccountStr = localStorage.getItem(USER_ACCOUNT_KEY);
       let existingAccount = null;
       try { existingAccount = JSON.parse(existingAccountStr); } catch (_) {}
-
       const existingLicenseStr = localStorage.getItem('dk_app_license_v1');
       let existingLicense = null;
       try { existingLicense = JSON.parse(existingLicenseStr); } catch (_) {}
-
       const hasRegistered = !!existingAccount || (existingLicense && existingLicense.status === 'active');
-
       shell.innerHTML = `
         <div class="access-page">
           <!-- Left Brand Panel -->
@@ -11697,12 +10344,10 @@ function json_(payload) {
               <div>✓ Data Privat 100% Tersimpan Aman di Perangkat Anda</div>
             </div>
           </section>
-
           <!-- Right Auth Card -->
           <main class="access-card-wrap">
             <div class="access-card" style="max-width:460px;padding:2rem 1.75rem;">
               <div class="access-mobile-brand"><span>▣</span> Dompet Keluarga PRO</div>
-              
               <!-- Tab Navigation -->
               <div style="display:flex;background:#f1f5f9;padding:4px;border-radius:12px;margin-bottom:1.25rem;">
                 <button type="button" id="tab-btn-register" style="flex:1;padding:0.6rem 0.5rem;border:none;border-radius:9px;font-weight:700;font-size:0.875rem;cursor:pointer;background:${hasRegistered ? 'transparent' : '#ffffff'};color:${hasRegistered ? '#64748b' : '#0f172a'};box-shadow:${hasRegistered ? 'none' : '0 2px 6px rgba(0,0,0,0.06)'};transition:all 0.15s ease;">
@@ -11712,15 +10357,12 @@ function json_(payload) {
                   🚪 Masuk Akun
                 </button>
               </div>
-
               <div id="auth-alert-box" style="margin-bottom:1rem;"></div>
-
               <!-- ================= REGISTRATION FORM ================= -->
               <form id="form-register-activation" style="display:${hasRegistered ? 'none' : 'block'};">
                 <div style="font-size:0.82rem;color:#64748b;margin-bottom:1rem;line-height:1.45;">
                   Daftarkan diri Anda untuk mulai mengelola keuangan keluarga secara privat dan terhubung.
                 </div>
-
                 <!-- Nama Lengkap -->
                 <div style="margin-bottom:0.75rem;">
                   <label style="display:block;font-size:0.8rem;font-weight:700;color:#1e293b;margin-bottom:0.3rem;">
@@ -11728,7 +10370,6 @@ function json_(payload) {
                   </label>
                   <input type="text" id="reg-name" required placeholder="Contoh: Budi Santoso" value="${existingAccount?.name || ''}" style="width:100%;box-sizing:border-box;padding:0.65rem 0.85rem;border:1px solid #cbd5e1;border-radius:8px;font-size:0.9rem;font-weight:600;color:#0f172a;background:#f8fafc;" />
                 </div>
-
                 <!-- No WhatsApp -->
                 <div style="margin-bottom:0.75rem;">
                   <label style="display:block;font-size:0.8rem;font-weight:700;color:#1e293b;margin-bottom:0.3rem;">
@@ -11736,7 +10377,6 @@ function json_(payload) {
                   </label>
                   <input type="tel" id="reg-phone" required placeholder="Contoh: 081234567890" value="${existingAccount?.phone || existingLicense?.phone || ''}" style="width:100%;box-sizing:border-box;padding:0.65rem 0.85rem;border:1px solid #cbd5e1;border-radius:8px;font-size:0.9rem;font-weight:600;color:#0f172a;background:#f8fafc;" />
                 </div>
-
                 <!-- Email -->
                 <div style="margin-bottom:0.75rem;">
                   <label style="display:block;font-size:0.8rem;font-weight:700;color:#1e293b;margin-bottom:0.3rem;">
@@ -11744,7 +10384,6 @@ function json_(payload) {
                   </label>
                   <input type="email" id="reg-email" required placeholder="nama@email.com" value="${existingAccount?.email || existingLicense?.email || ''}" style="width:100%;box-sizing:border-box;padding:0.65rem 0.85rem;border:1px solid #cbd5e1;border-radius:8px;font-size:0.9rem;font-weight:600;color:#0f172a;background:#f8fafc;" />
                 </div>
-
                 <!-- Password / PIN -->
                 <div style="margin-bottom:1.15rem;">
                   <label style="display:block;font-size:0.8rem;font-weight:700;color:#1e293b;margin-bottom:0.3rem;">
@@ -11752,20 +10391,17 @@ function json_(payload) {
                   </label>
                   <input type="password" id="reg-password" required placeholder="Minimal 6 karakter" style="width:100%;box-sizing:border-box;padding:0.65rem 0.85rem;border:1px solid #cbd5e1;border-radius:8px;font-size:0.9rem;font-weight:600;color:#0f172a;background:#f8fafc;" />
                 </div>
-
                 <!-- Submit Button -->
                 <button type="submit" id="btn-submit-register" style="width:100%;min-height:46px;background:linear-gradient(135deg, #059669 0%, #047857 100%);color:#fff;border:none;border-radius:10px;font-weight:800;font-size:0.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.5rem;box-shadow:0 4px 14px rgba(5, 150, 105, 0.3);transition:all 0.15s ease;">
                   <span>🚀</span>
                   <span>Daftar & Buka Dashboard</span>
                 </button>
               </form>
-
               <!-- ================= LOGIN FORM ================= -->
               <form id="form-login" style="display:${hasRegistered ? 'block' : 'none'};">
                 <div style="font-size:0.82rem;color:#64748b;margin-bottom:1rem;line-height:1.45;">
                   Masuk dengan nomor WhatsApp / email dan password yang telah Anda daftarkan.
                 </div>
-
                 <!-- Identifier -->
                 <div style="margin-bottom:0.85rem;">
                   <label style="display:block;font-size:0.8rem;font-weight:700;color:#1e293b;margin-bottom:0.3rem;">
@@ -11773,7 +10409,6 @@ function json_(payload) {
                   </label>
                   <input type="text" id="login-identifier" required placeholder="081234567890 atau email" value="${existingAccount?.phone || existingAccount?.email || ''}" style="width:100%;box-sizing:border-box;padding:0.65rem 0.85rem;border:1px solid #cbd5e1;border-radius:8px;font-size:0.9rem;font-weight:600;color:#0f172a;background:#f8fafc;" />
                 </div>
-
                 <!-- Password -->
                 <div style="margin-bottom:1.15rem;">
                   <label style="display:block;font-size:0.8rem;font-weight:700;color:#1e293b;margin-bottom:0.3rem;">
@@ -11781,14 +10416,12 @@ function json_(payload) {
                   </label>
                   <input type="password" id="login-password" required placeholder="Masukkan password Anda" style="width:100%;box-sizing:border-box;padding:0.65rem 0.85rem;border:1px solid #cbd5e1;border-radius:8px;font-size:0.9rem;font-weight:600;color:#0f172a;background:#f8fafc;" />
                 </div>
-
                 <!-- Submit Button -->
                 <button type="submit" id="btn-submit-login" style="width:100%;min-height:46px;background:linear-gradient(135deg, #059669 0%, #047857 100%);color:#fff;border:none;border-radius:10px;font-weight:800;font-size:0.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.5rem;box-shadow:0 4px 14px rgba(5, 150, 105, 0.3);transition:all 0.15s ease;">
                   <span>🚪</span>
                   <span>Masuk ke Dashboard</span>
                 </button>
               </form>
-
               <!-- Footer Links -->
               <div style="margin-top:1.25rem;padding-top:1rem;border-top:1px solid #e2e8f0;text-align:center;display:flex;flex-direction:column;gap:0.4rem;align-items:center;">
                 <a href="landing.html" style="color:#047857;font-weight:700;font-size:0.84rem;text-decoration:none;display:inline-flex;align-items:center;gap:0.35rem;background:#ecfdf5;padding:0.45rem 0.9rem;border-radius:8px;border:1px solid #a7f3d0;">
@@ -11800,19 +10433,15 @@ function json_(payload) {
                   <span>Butuh Bantuan? Chat Admin via WhatsApp</span>
                 </a>
               </div>
-
             </div>
           </main>
         </div>
       `;
-
-      // Tab switching handlers
       const tabReg = document.getElementById('tab-btn-register');
       const tabLog = document.getElementById('tab-btn-login');
       const formReg = document.getElementById('form-register-activation');
       const formLog = document.getElementById('form-login');
       const alertBox = document.getElementById('auth-alert-box');
-
       const showAlert = (msg, type = 'error') => {
         const bg = type === 'success' ? '#ecfdf5' : '#fef2f2';
         const color = type === 'success' ? '#047857' : '#b91c1c';
@@ -11823,7 +10452,6 @@ function json_(payload) {
           </div>
         `;
       };
-
       tabReg.onclick = () => {
         tabReg.style.background = '#ffffff';
         tabReg.style.color = '#0f172a';
@@ -11835,7 +10463,6 @@ function json_(payload) {
         formLog.style.display = 'none';
         alertBox.innerHTML = '';
       };
-
       tabLog.onclick = () => {
         tabLog.style.background = '#ffffff';
         tabLog.style.color = '#0f172a';
@@ -11847,31 +10474,24 @@ function json_(payload) {
         formReg.style.display = 'none';
         alertBox.innerHTML = '';
       };
-
-      // Form Registration Handler (Frictionless Onboarding)
       formReg.onsubmit = async (e) => {
         e.preventDefault();
         const name = document.getElementById('reg-name').value.trim();
         const phone = document.getElementById('reg-phone').value.trim();
         const email = document.getElementById('reg-email').value.trim().toLowerCase();
         const password = document.getElementById('reg-password').value;
-
         if (!name || !phone || !email || !password) {
           showAlert('Semua kolom wajib diisi dengan lengkap.');
           return;
         }
-
         if (password.length < 5) {
           showAlert('Password minimal 5 karakter.');
           return;
         }
-
         const submitBtn = document.getElementById('btn-submit-register');
         submitBtn.disabled = true;
         submitBtn.innerText = 'Mendaftarkan Akun...';
-
         try {
-          // 1. Simpan Akun Pengguna Lokal
           const userAccount = {
             name,
             phone,
@@ -11881,8 +10501,6 @@ function json_(payload) {
           };
           localStorage.setItem(USER_ACCOUNT_KEY, JSON.stringify(userAccount));
           localStorage.removeItem('dk_logged_out');
-
-          // 2. Buat Sesi Pengguna
           const session = {
             accountId: 'usr_' + Date.now(),
             email: email,
@@ -11892,12 +10510,9 @@ function json_(payload) {
             access: { authorized: true, status: 'active', role: 'owner', plan: 'Dompet Keluarga' }
           };
           sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
-
-          // 3. Rekam Lead Telemetri ke Google Spreadsheet Developer (Background)
           try {
             let existingGasUrl = '';
             try { existingGasUrl = JSON.parse(localStorage.getItem('dompet_keluarga_cloud_config') || '{}').gasUrl || ''; } catch (_) {}
-
             fetch(ACCESS_API_URL, {
               method: 'POST',
               mode: 'cors',
@@ -11915,9 +10530,7 @@ function json_(payload) {
               })
             }).catch(() => {});
           } catch (_) {}
-
           showAlert('🎉 Pendaftaran Berhasil! Membuka Dashboard...', 'success');
-          
           setTimeout(() => {
             onAuthenticated(session);
           }, 600);
@@ -11927,23 +10540,17 @@ function json_(payload) {
           submitBtn.innerText = 'Daftar & Buka Dashboard';
         }
       };
-
-      // Form Login Handler (Multi-Device & Cloud Verification)
       formLog.onsubmit = async (e) => {
         e.preventDefault();
         const identifier = document.getElementById('login-identifier').value.trim().toLowerCase();
         const password = document.getElementById('login-password').value;
-
         if (!identifier || !password) {
           showAlert('Harap isi nomor WA / email dan password.');
           return;
         }
-
         const storedAccountStr = localStorage.getItem(USER_ACCOUNT_KEY);
         let storedAccount = null;
         try { storedAccount = JSON.parse(storedAccountStr); } catch (_) {}
-
-        // 1. Cek Cepat di Penyimpanan Lokal Perangkat Ini
         if (storedAccount) {
           const matchesIdent = (storedAccount.email && storedAccount.email.toLowerCase() === identifier) ||
                                (storedAccount.phone && storedAccount.phone.includes(identifier));
@@ -11958,12 +10565,9 @@ function json_(payload) {
               access: { authorized: true, status: 'active', role: 'owner', plan: 'Dompetku PRO Lifetime' }
             };
             sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
-            
-            // Rekam Telemetri & Sinkronkan URL Spreadsheet
             try {
               let curGasUrl = '';
               try { curGasUrl = JSON.parse(localStorage.getItem('dompet_keluarga_cloud_config') || '{}').gasUrl || ''; } catch (_) {}
-
               fetch(ACCESS_API_URL, {
                 method: 'POST',
                 mode: 'cors',
@@ -11991,19 +10595,15 @@ function json_(payload) {
                 }
               }).catch(() => {});
             } catch (_) {}
-
             showAlert('Login berhasil! Membuka dashboard...', 'success');
             setTimeout(() => onAuthenticated(session), 400);
             return;
           }
         }
-
-        // 2. Verifikasi Online ke Server Cloud Database Developer (Untuk Perangkat Baru / HP Lain)
         const submitBtn = document.getElementById('btn-submit-login');
         submitBtn.disabled = true;
         submitBtn.innerText = 'Memverifikasi Akun...';
         showAlert('Menghubungkan ke server cloud...', 'success');
-
         try {
           const res = await fetch(ACCESS_API_URL, {
             method: 'POST',
@@ -12019,14 +10619,11 @@ function json_(payload) {
               loginAt: new Date().toISOString()
             })
           });
-
           const data = await res.json();
           if (data && data.success) {
             const userName = data.user?.name || (identifier.includes('@') ? identifier.split('@')[0] : 'Kepala Keluarga');
             const userEmail = data.user?.email || (identifier.includes('@') ? identifier : 'user@dompetku.local');
             const userPhone = data.user?.phone || (!identifier.includes('@') ? identifier : '');
-
-            // Simpan akun ke perangkat baru ini
             const userAccount = {
               name: userName,
               phone: userPhone,
@@ -12036,8 +10633,6 @@ function json_(payload) {
             };
             localStorage.setItem(USER_ACCOUNT_KEY, JSON.stringify(userAccount));
             localStorage.removeItem('dk_logged_out');
-
-            // Otomatis pasang URL Spreadsheet pribadi pelanggan jika sudah melekat di akun cloud developer
             if (data.user?.gasUrl) {
               const cloudConf = JSON.parse(localStorage.getItem('dompet_keluarga_cloud_config') || '{}');
               cloudConf.gasUrl = data.user.gasUrl;
@@ -12046,8 +10641,6 @@ function json_(payload) {
               localStorage.setItem('dompet_keluarga_cloud_config', JSON.stringify(cloudConf));
               console.log('✅ URL spreadsheet otomatis terpasang di perangkat ini dari cloud:', data.user.gasUrl);
             }
-
-            // Jika akun sudah PRO, otomatis aktifkan lisensi di perangkat baru ini
             if (data.user?.isPro || data.user?.licenseKey) {
               const restoredLicense = {
                 status: 'active',
@@ -12061,7 +10654,6 @@ function json_(payload) {
               };
               localStorage.setItem('dk_app_license_v1', JSON.stringify(restoredLicense));
             }
-
             const session = {
               accountId: 'usr_' + Date.now(),
               email: userEmail,
@@ -12071,7 +10663,6 @@ function json_(payload) {
               access: { authorized: true, status: 'active', role: 'owner', plan: 'Dompetku PRO Lifetime' }
             };
             sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
-
             showAlert('🎉 Login berhasil! Membuka dashboard...', 'success');
             setTimeout(() => onAuthenticated(session), 400);
             return;
@@ -12081,7 +10672,6 @@ function json_(payload) {
             submitBtn.innerText = 'Masuk ke Dashboard';
           }
         } catch (err) {
-          // Fallback Offline Login jika koneksi terputus tapi format email/WA & password valid
           if (password.length >= 5) {
             const userName = identifier.includes('@') ? identifier.split('@')[0] : 'Kepala Keluarga';
             const userAccount = {
@@ -12093,7 +10683,6 @@ function json_(payload) {
             };
             localStorage.setItem(USER_ACCOUNT_KEY, JSON.stringify(userAccount));
             localStorage.removeItem('dk_logged_out');
-
             const session = {
               accountId: 'usr_' + Date.now(),
               email: userAccount.email,
@@ -12103,12 +10692,10 @@ function json_(payload) {
               access: { authorized: true, status: 'active', role: 'owner', plan: 'Dompet Keluarga' }
             };
             sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
-
             showAlert('Login berhasil! Membuka dashboard...', 'success');
             setTimeout(() => onAuthenticated(session), 400);
             return;
           }
-
           showAlert('Gagal memverifikasi akun: ' + (err.message || err));
           submitBtn.disabled = false;
           submitBtn.innerText = 'Masuk ke Dashboard';
@@ -12116,28 +10703,20 @@ function json_(payload) {
       };
     }
   }
-
   window.AuthAccess = new GoogleAccessManager();
 })();
 
-
-// ==================== [MODULE: js/app.js] ====================
-/**
- * Main Application Orchestrator & Router
- */
 
 class DompetKeluargaApp {
   constructor() {
     this.appShell = document.getElementById('app-shell');
     this.init();
   }
-
   init() {
     const isLoggedOut = localStorage.getItem('dk_logged_out') === 'true';
     const hasAccount = !!localStorage.getItem('dk_user_account_v1');
     const license = window.LicenseService?.getLicense?.();
     const isLicensed = license && license.status === 'active';
-
     if ((isLoggedOut || (!hasAccount && !isLicensed)) && window.AuthAccess) {
       window.AuthAccess.render(this.appShell, (session) => {
         localStorage.removeItem('dk_logged_out');
@@ -12154,8 +10733,6 @@ class DompetKeluargaApp {
       });
       return;
     }
-
-    // Auto-sync data dari Cloud Google Sheets saat aplikasi dibuka (jika URL terhubung)
     const cloudConfig = CloudSyncService.getConfig();
     if (cloudConfig.gasUrl && cloudConfig.autoSync) {
       CloudSyncService.pullFullState(cloudConfig.gasUrl).then((res) => {
@@ -12166,11 +10743,8 @@ class DompetKeluargaApp {
       }).catch(err => {
         console.warn('ℹ️ Cloud sync background notice:', err);
       });
-
-      // Jalankan background poller cerdas & focus sync (setiap 15 detik)
       CloudSyncService.startAutoSyncPoller(15000);
     } else {
-      // Jika perangkat baru belum memiliki URL, otomatis periksa apakah sudah melekat di akun cloud developer
       CloudSyncService.fetchRemoteGasUrl().then((remoteUrl) => {
         if (remoteUrl) {
           console.log('✅ URL spreadsheet otomatis ditemukan dari Akun Cloud:', remoteUrl);
@@ -12183,34 +10757,24 @@ class DompetKeluargaApp {
         }
       }).catch(() => {});
     }
-
-    // Listen to auto-sync transactions
     if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
       window.addEventListener('transaction:added', (e) => {
         if (e.detail) {
           CloudSyncService.syncTransactionAsync(e.detail);
         }
       });
-
       window.addEventListener('transaction:changed', () => {
         CloudSyncService.pushFullStateDebounced();
       });
-
-      // Listen to license updates across the app
       window.addEventListener('license-updated', () => {
         this.render();
       });
     }
-
-    // Subscribe to state changes for seamless UI updates
     appState.subscribe(() => {
       this.render();
     });
-
-    // Initial render
     this.render();
   }
-
   navigate(tabName) {
     if (appState.activeTab !== tabName) {
       appState.activeTab = tabName;
@@ -12218,10 +10782,8 @@ class DompetKeluargaApp {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }
-
   render() {
     if (!this.appShell) return;
-
     let pageContent = '';
     switch (appState.activeTab) {
       case 'dashboard':
@@ -12248,7 +10810,6 @@ class DompetKeluargaApp {
       default:
         pageContent = renderDashboardPage();
     }
-
     this.appShell.innerHTML = `
       ${renderSidebar()}
       <div class="app-main">
@@ -12259,11 +10820,8 @@ class DompetKeluargaApp {
       </div>
       ${renderBottomNav()}
     `;
-
-    // Attach listeners for interactive elements
     attachNavbarListeners();
     attachNavListeners((tab) => this.navigate(tab));
-
     switch (appState.activeTab) {
       case 'dashboard':
         attachDashboardListeners((tab) => this.navigate(tab));
@@ -12289,8 +10847,6 @@ class DompetKeluargaApp {
     }
   }
 }
-
-// Bootstrap on DOM Content Loaded or immediately if already loaded
 function startApp() {
   try {
     window.app = new DompetKeluargaApp();
@@ -12310,11 +10866,9 @@ function startApp() {
     }
   }
 }
-
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', startApp);
 } else {
   startApp();
 }
-
 
