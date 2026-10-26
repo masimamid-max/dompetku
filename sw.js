@@ -1,7 +1,7 @@
 /**
  * Dompet Keluarga Service Worker (PWA Offline First)
  */
-const CACHE_NAME = 'dompetku-v3.18.6-sec';
+const CACHE_NAME = 'dompetku-v3.18.7-ocr';
 
 const STATIC_ASSETS = [
   './',

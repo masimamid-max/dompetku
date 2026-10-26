@@ -2010,10 +2010,10 @@ var SAMPLE_RECEIPTS = [
     name: '🛒 Superindo Supermarket',
     badge: 'Belanja Bulanan',
     merchant: 'SUPERINDO CABANG BINTARO',
-    category: 'cat_groceries',
+    category: 'cat-exp-2', // Rumah Tangga & Belanja
     amount: 184500,
     date: new Date().toISOString().split('T')[0],
-    account: 'acc_bca',
+    account: 'acc-2', // BCA
     items: [
       { name: 'Minyak Goreng Sania 2L', qty: 1, price: 34500 },
       { name: 'Beras Premium Ramos 5kg', qty: 1, price: 74000 },
@@ -2027,10 +2027,10 @@ var SAMPLE_RECEIPTS = [
     name: '🏪 Indomaret / Alfamart',
     badge: 'Kebutuhan Harian',
     merchant: 'INDOMARET POINT JKT',
-    category: 'cat_food',
+    category: 'cat-exp-2', // Rumah Tangga & Belanja
     amount: 58500,
     date: new Date().toISOString().split('T')[0],
-    account: 'acc_gopay',
+    account: 'acc-4', // GoPay
     items: [
       { name: 'Roti Gandum Sari Roti', qty: 1, price: 21500 },
       { name: 'Kopi Kenangan Ready-to-drink', qty: 2, price: 19000 },
@@ -2043,10 +2043,10 @@ var SAMPLE_RECEIPTS = [
     name: '⛽ SPBU Pertamina',
     badge: 'Bahan Bakar',
     merchant: 'SPBU 34-12345 PERTAMINA',
-    category: 'cat_transport',
+    category: 'cat-exp-4', // Transportasi
     amount: 150000,
     date: new Date().toISOString().split('T')[0],
-    account: 'acc_cash',
+    account: 'acc-1', // Kas Tunai
     items: [
       { name: 'Pertamax (92) - 11.58 Liter', qty: 1, price: 150000 }
     ],
@@ -2057,10 +2057,10 @@ var SAMPLE_RECEIPTS = [
     name: '🍽️ Restoran & Kuliner',
     badge: 'Makan Keluarga',
     merchant: 'WARUNG PADANG SEDAP',
-    category: 'cat_food',
+    category: 'cat-exp-1', // Makanan & Kuliner
     amount: 112000,
     date: new Date().toISOString().split('T')[0],
-    account: 'acc_qris',
+    account: 'acc-4', // GoPay/QRIS
     items: [
       { name: 'Nasi Rendang Daging', qty: 2, price: 56000 },
       { name: 'Ayam Pop Sambalado', qty: 1, price: 24000 },
@@ -2073,10 +2073,10 @@ var SAMPLE_RECEIPTS = [
     name: '💊 Apotek & Obat',
     badge: 'Kesehatan',
     merchant: 'APOTEK KIMIA FARMA',
-    category: 'cat_health',
+    category: 'cat-exp-6', // Kesehatan & Medis
     amount: 87500,
     date: new Date().toISOString().split('T')[0],
-    account: 'acc_mandiri',
+    account: 'acc-2', // BCA
     items: [
       { name: 'Enervon C Multivitamin 30s', qty: 1, price: 48500 },
       { name: 'Panadol Extra Paracetamol', qty: 2, price: 26000 },
@@ -2085,42 +2085,378 @@ var SAMPLE_RECEIPTS = [
     previewGradient: 'linear-gradient(135deg, #8b5cf6, #6d28d9)'
   }
 ];
-async function analyzeReceiptImage(dataUrl, fileName = '') {
-  await new Promise(resolve => setTimeout(resolve, 750));
-  const lowerName = (fileName || '').toLowerCase();
-  let matchedPreset = SAMPLE_RECEIPTS[0];
-  if (lowerName.includes('bensin') || lowerName.includes('spbu') || lowerName.includes('pertamina') || lowerName.includes('shell')) {
-    matchedPreset = SAMPLE_RECEIPTS[2];
-  } else if (lowerName.includes('resto') || lowerName.includes('makan') || lowerName.includes('cafe') || lowerName.includes('kopi') || lowerName.includes('padang')) {
-    matchedPreset = SAMPLE_RECEIPTS[3];
-  } else if (lowerName.includes('obat') || lowerName.includes('apotek') || lowerName.includes('farma') || lowerName.includes('sehat')) {
-    matchedPreset = SAMPLE_RECEIPTS[4];
-  } else if (lowerName.includes('indo') || lowerName.includes('alfa') || lowerName.includes('mart')) {
-    matchedPreset = SAMPLE_RECEIPTS[1];
-  } else {
-    matchedPreset = SAMPLE_RECEIPTS[Math.floor(Math.random() * SAMPLE_RECEIPTS.length)];
+var CATEGORY_RULES = [
+  {
+    id: 'cat-exp-1',
+    name: 'Makanan & Kuliner',
+    keywords: [
+      'makan', 'minum', 'resto', 'restaurant', 'cafe', 'kafe', 'kopi', 'coffee', 'teh', 'tea',
+      'ayam', 'nasi', 'soto', 'bakso', 'mie', 'burger', 'pizza', 'roti', 'bakery', 'daging',
+      'sayur', 'ikan', 'seafood', 'snack', 'biskuit', 'chiki', 'kuliner', 'kitchen', 'bistro',
+      'warung', 'warkop', 'gacoan', 'kfc', 'mcdonald', 'mcd', 'solaria', 'hokben', 'richeese',
+      'dcrepes', 'jco', 'chatime', 'starbucks', 'kenangan', 'janji jiwa', 'fore', 'mixue',
+      'haus', 'teguk', 'padang', 'sederhana', 'ampera', 'steak', 'donat', 'cake', 'piring',
+      'sambal', 'lele', 'bebek', 'gorengan', 'martabak', 'pempek', 'siomay', 'dimsum', 'food'
+    ],
+    weight: 1.2
+  },
+  {
+    id: 'cat-exp-2',
+    name: 'Rumah Tangga & Belanja',
+    keywords: [
+      'superindo', 'indomaret', 'alfamart', 'alfamidi', 'hypermart', 'transmart', 'lotte',
+      'swalayan', 'minimarket', 'supermarket', 'mart', 'sabun', 'shampoo', 'deterjen', 'pewangi',
+      'rinso', 'molto', 'daia', 'soklin', 'downy', 'tisu', 'tissue', 'odol', 'pepsodent',
+      'sikat gigi', 'minyak goreng', 'beras', 'gula', 'garam', 'bumbu', 'dapur', 'perabot',
+      'piring', 'wajan', 'panci', 'hardware', 'diy', 'miniso', 'informa', 'ace', 'mr diy',
+      'uniqlo', 'zara', 'h&m', 'pakaian', 'baju', 'celana', 'kaos', 'belanja', 'toko kelontong'
+    ],
+    weight: 1.0
+  },
+  {
+    id: 'cat-exp-3',
+    name: 'Tagihan & Utilitas',
+    keywords: [
+      'pln', 'listrik', 'token', 'pdam', 'air', 'wifi', 'indihome', 'biznet', 'first media',
+      'myrepublic', 'pulsa', 'kuota', 'telkomsel', 'indosat', 'xl', 'tri', 'smartfren',
+      'tagihan', 'ipl', 'iuran', 'bpjs', 'pajak', 'pbb', 'retribusi', 'keamanan', 'kebersihan'
+    ],
+    weight: 1.3
+  },
+  {
+    id: 'cat-exp-4',
+    name: 'Transportasi',
+    keywords: [
+      'spbu', 'pertamina', 'shell', 'bp akr', 'vivo', 'pertamax', 'pertalite', 'solar',
+      'dexlite', 'bensin', 'bbm', 'liter', 'parkir', 'parking', 'toll', 'etoll', 'e-toll',
+      'tarif tol', 'jasa marga', 'gojek', 'gocar', 'goride', 'grab', 'grabcar', 'ojek',
+      'taxi', 'bluebird', 'servis', 'bengkel', 'oli', 'ban', 'tambal', 'cuci mobil', 'cuci motor'
+    ],
+    weight: 1.3
+  },
+  {
+    id: 'cat-exp-5',
+    name: 'Pendidikan Anak',
+    keywords: [
+      'sekolah', 'spp', 'buku', 'gramedia', 'alat tulis', 'pensil', 'pulpen', 'kursus',
+      'les', 'kumon', 'seragam', 'biaya ujian', 'kuliah', 'kampus', 'pendidikan', 'formulir'
+    ],
+    weight: 1.3
+  },
+  {
+    id: 'cat-exp-6',
+    name: 'Kesehatan & Medis',
+    keywords: [
+      'apotek', 'apotik', 'pharmacy', 'kimia farma', 'k24', 'k-24', 'century', 'guardian',
+      'watsons', 'obat', 'paracetamol', 'panadol', 'bodrex', 'vitamin', 'enervon', 'stimuno',
+      'imboost', 'sanmol', 'betadine', 'plester', 'masker', 'dokter', 'klinik', 'rumah sakit',
+      'rs', 'puskesmas', 'laboratorium', 'prodia', 'resep', 'medis', 'tensi', 'termometer'
+    ],
+    weight: 1.3
+  },
+  {
+    id: 'cat-exp-7',
+    name: 'Hiburan & Liburan',
+    keywords: [
+      'bioskop', 'cinema', 'xxi', 'cgv', 'cinepolis', 'tiket', 'taman', 'wisata', 'ancol',
+      'dufan', 'kebun binatang', 'museum', 'hotel', 'resort', 'villa', 'staycation',
+      'tiket.com', 'traveloka', 'netflix', 'spotify', 'game', 'playstation', 'karaoke'
+    ],
+    weight: 1.2
+  },
+  {
+    id: 'cat-exp-8',
+    name: 'Donasi & Sosial',
+    keywords: [
+      'zakat', 'sedekah', 'infaq', 'donasi', 'kitabisa', 'baznas', 'dompet dhuafa',
+      'masjid', 'musholla', 'panti', 'yayasan', 'amal', 'qurban', 'kurban'
+    ],
+    weight: 1.3
   }
-  const categories = appState.categories;
-  const accounts = appState.getAccountsWithBalances();
-  const matchedCat = categories.find(c => c.id === matchedPreset.category) || categories[0];
-  const matchedAcc = accounts.find(a => a.id === matchedPreset.account) || accounts[0];
+];
+var KNOWN_MERCHANTS = [
+  { pattern: /indomaret/i, name: 'Indomaret', catId: 'cat-exp-2' },
+  { pattern: /alfamart/i, name: 'Alfamart', catId: 'cat-exp-2' },
+  { pattern: /alfamidi/i, name: 'Alfamidi', catId: 'cat-exp-2' },
+  { pattern: /super\s*indo/i, name: 'Super Indo Supermarket', catId: 'cat-exp-2' },
+  { pattern: /hypermart/i, name: 'Hypermart', catId: 'cat-exp-2' },
+  { pattern: /transmart/i, name: 'Transmart', catId: 'cat-exp-2' },
+  { pattern: /pertamina|spbu/i, name: 'SPBU Pertamina', catId: 'cat-exp-4' },
+  { pattern: /shell/i, name: 'SPBU Shell', catId: 'cat-exp-4' },
+  { pattern: /kfc/i, name: 'KFC Restaurant', catId: 'cat-exp-1' },
+  { pattern: /mcdonald|mcd/i, name: "McDonald's", catId: 'cat-exp-1' },
+  { pattern: /pizza\s*hut/i, name: 'Pizza Hut', catId: 'cat-exp-1' },
+  { pattern: /burger\s*king/i, name: 'Burger King', catId: 'cat-exp-1' },
+  { pattern: /solaria/i, name: 'Solaria Resto', catId: 'cat-exp-1' },
+  { pattern: /hokben/i, name: 'HokBen Bento', catId: 'cat-exp-1' },
+  { pattern: /mie\s*gacoan/i, name: 'Mie Gacoan', catId: 'cat-exp-1' },
+  { pattern: /starbucks/i, name: 'Starbucks Coffee', catId: 'cat-exp-1' },
+  { pattern: /kopi\s*kenangan/i, name: 'Kopi Kenangan', catId: 'cat-exp-1' },
+  { pattern: /janji\s*jiwa/i, name: 'Kopi Janji Jiwa', catId: 'cat-exp-1' },
+  { pattern: /fore\s*coffee/i, name: 'Fore Coffee', catId: 'cat-exp-1' },
+  { pattern: /kimia\s*farma/i, name: 'Apotek Kimia Farma', catId: 'cat-exp-6' },
+  { pattern: /k-?24|k\s*24/i, name: 'Apotek K-24', catId: 'cat-exp-6' },
+  { pattern: /guardian/i, name: 'Guardian Pharmacy', catId: 'cat-exp-6' },
+  { pattern: /watsons/i, name: 'Watsons', catId: 'cat-exp-6' },
+  { pattern: /century/i, name: 'Apotek Century', catId: 'cat-exp-6' },
+  { pattern: /cinema\s*xxi|xxi/i, name: 'Cinema XXI', catId: 'cat-exp-7' },
+  { pattern: /cgv/i, name: 'CGV Cinemas', catId: 'cat-exp-7' },
+  { pattern: /gramedia/i, name: 'Toko Buku Gramedia', catId: 'cat-exp-5' },
+  { pattern: /pln/i, name: 'Tagihan Listrik PLN', catId: 'cat-exp-3' }
+];
+var tesseractLoadingPromise = null;
+function loadTesseract() {
+  if (typeof window !== 'undefined' && window.Tesseract) {
+    return Promise.resolve(window.Tesseract);
+  }
+  if (tesseractLoadingPromise) return tesseractLoadingPromise;
+  tesseractLoadingPromise = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+    script.async = true;
+    script.onload = () => {
+      resolve(window.Tesseract);
+    };
+    script.onerror = (err) => {
+      console.warn('Gagal memuat Tesseract dari CDN:', err);
+      reject(err);
+    };
+    document.head.appendChild(script);
+  });
+  return tesseractLoadingPromise;
+}
+function preprocessImage(dataUrl, maxWidth = 1200) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      let width = img.width;
+      let height = img.height;
+      if (width > maxWidth) {
+        height = Math.round((height * maxWidth) / width);
+        width = maxWidth;
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      try {
+        const imgData = ctx.getImageData(0, 0, width, height);
+        const data = imgData.data;
+        for (let i = 0; i < data.length; i += 4) {
+          const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+          const contrasted = gray > 140 ? Math.min(255, gray * 1.15) : Math.max(0, gray * 0.85);
+          data[i] = contrasted;
+          data[i + 1] = contrasted;
+          data[i + 2] = contrasted;
+        }
+        ctx.putImageData(imgData, 0, 0);
+      } catch (_) {}
+      resolve(canvas);
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+}
+async function performOCR(dataUrl, onProgress) {
+  try {
+    if (onProgress) onProgress('Memuat mesin OCR AI...', 15);
+    const Tesseract = await loadTesseract();
+    if (onProgress) onProgress('Mengoptimalkan kualitas gambar struk...', 30);
+    const preprocessedCanvas = await preprocessImage(dataUrl);
+    if (onProgress) onProgress('Membaca tulisan pada struk belanja...', 45);
+    const result = await Tesseract.recognize(preprocessedCanvas, 'ind+eng', {
+      logger: (m) => {
+        if (m.status === 'recognizing text' && onProgress) {
+          const pct = 45 + Math.round((m.progress || 0) * 45);
+          onProgress(`Membaca karakter teks (${Math.min(90, pct)}%)...`, pct);
+        }
+      }
+    });
+    return result?.data?.text || '';
+  } catch (err) {
+    console.warn('OCR processing notice (fallback triggered):', err);
+    return '';
+  }
+}
+function parseReceiptText(rawText, fileName = '') {
+  const text = (rawText || '').replace(/\r/g, '');
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  const lowerText = text.toLowerCase();
+  const lowerFile = (fileName || '').toLowerCase();
+  let detectedMerchant = '';
+  let merchantCatId = '';
+  for (const km of KNOWN_MERCHANTS) {
+    if (km.pattern.test(text) || km.pattern.test(fileName)) {
+      detectedMerchant = km.name;
+      merchantCatId = km.catId;
+      break;
+    }
+  }
+  if (!detectedMerchant) {
+    for (let i = 0; i < Math.min(4, lines.length); i++) {
+      const candidate = lines[i].replace(/[^a-zA-Z0-9\s.,&'-]/g, '').trim();
+      if (candidate.length >= 3 && !/^\d+$/.test(candidate) && !/\d{2}[\/-]\d{2}/.test(candidate)) {
+        detectedMerchant = candidate;
+        break;
+      }
+    }
+  }
+  if (!detectedMerchant) {
+    detectedMerchant = 'Struk Pembelian';
+  }
+  let detectedAmount = 0;
+  const amountCandidates = [];
+  lines.forEach((line) => {
+    const lLower = line.toLowerCase();
+    const isTotalLine = lLower.includes('total') || lLower.includes('grand') || lLower.includes('jumlah') || 
+                        lLower.includes('bayar') || lLower.includes('tunai') || lLower.includes('cash') ||
+                        lLower.includes('subtotal') || lLower.includes('tagihan');
+    const matches = line.match(/(?:rp\.?\s*)?(\d{1,3}(?:[.,]\d{3})+(?:[.,]\d{2})?|\d{4,9})/gi);
+    if (matches) {
+      matches.forEach(m => {
+        const clean = m.replace(/[^0-9]/g, '');
+        const val = parseInt(clean, 10);
+        if (val >= 500 && val <= 100000000) {
+          amountCandidates.push({
+            value: val,
+            priority: isTotalLine ? 10 : 1,
+            line: line
+          });
+        }
+      });
+    }
+  });
+  if (amountCandidates.length > 0) {
+    amountCandidates.sort((a, b) => {
+      if (b.priority !== a.priority) return b.priority - a.priority;
+      return b.value - a.value;
+    });
+    detectedAmount = amountCandidates[0].value;
+  }
+  let detectedDate = new Date().toISOString().split('T')[0];
+  const dateMatch = text.match(/(?:\b(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})\b)|(?:\b(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})\b)/);
+  if (dateMatch) {
+    try {
+      if (dateMatch[1] && dateMatch[2] && dateMatch[3]) {
+        let day = parseInt(dateMatch[1], 10);
+        let month = parseInt(dateMatch[2], 10);
+        let year = parseInt(dateMatch[3], 10);
+        if (year < 100) year += 2000;
+        if (month >= 1 && month <= 12 && day >= 1 && day <= 31 && year >= 2010 && year <= 2050) {
+          detectedDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        }
+      }
+    } catch (_) {}
+  }
+  const detectedItems = [];
+  lines.forEach(line => {
+    const itemMatch = line.match(/^([a-zA-Z0-9\s.,&-]{3,30})\s+(?:(\d+)\s*[xX]\s*)?(?:rp\.?\s*)?(\d{1,3}(?:[.,]\d{3})+|\d{4,8})$/i);
+    if (itemMatch) {
+      const name = itemMatch[1].trim();
+      const qty = parseInt(itemMatch[2] || '1', 10);
+      const price = parseInt(itemMatch[3].replace(/[^0-9]/g, ''), 10);
+      if (name.length > 2 && !name.toLowerCase().includes('total') && price > 0) {
+        detectedItems.push({ name, qty, price });
+      }
+    }
+  });
+  if (detectedItems.length === 0) {
+    detectedItems.push({
+      name: detectedMerchant,
+      qty: 1,
+      price: detectedAmount || 0
+    });
+  }
+  const categories = appState.categories.filter(c => c.type === 'expense');
+  let bestCategoryId = merchantCatId || '';
+  let bestScore = merchantCatId ? 5 : 0;
+  let matchedKeyword = '';
+  const fullCorpus = `${lowerText} ${lowerFile} ${detectedMerchant.toLowerCase()}`;
+  CATEGORY_RULES.forEach(rule => {
+    let score = 0;
+    let foundKw = '';
+    rule.keywords.forEach(kw => {
+      if (fullCorpus.includes(kw)) {
+        score += rule.weight;
+        if (!foundKw) foundKw = kw;
+      }
+    });
+    if (score > bestScore) {
+      bestScore = score;
+      bestCategoryId = rule.id;
+      matchedKeyword = foundKw;
+    }
+  });
+  if (!bestCategoryId) {
+    bestCategoryId = 'cat-exp-2'; // Default ke Rumah Tangga & Belanja
+  }
+  const matchedCat = categories.find(c => c.id === bestCategoryId) || categories[0];
+  const accounts = appState.getAccountsWithBalances().filter(a => !a.isArchived);
+  let matchedAcc = accounts[0];
+  if (lowerText.includes('bca') || lowerText.includes('debit bca')) {
+    matchedAcc = accounts.find(a => a.name.toLowerCase().includes('bca')) || matchedAcc;
+  } else if (lowerText.includes('mandiri')) {
+    matchedAcc = accounts.find(a => a.name.toLowerCase().includes('mandiri')) || matchedAcc;
+  } else if (lowerText.includes('qris') || lowerText.includes('gopay') || lowerText.includes('ovo') || lowerText.includes('shopee')) {
+    matchedAcc = accounts.find(a => a.type === 'ewallet' || a.name.toLowerCase().includes('gopay')) || matchedAcc;
+  } else if (lowerText.includes('cash') || lowerText.includes('tunai')) {
+    matchedAcc = accounts.find(a => a.type === 'cash') || matchedAcc;
+  }
   const now = new Date();
-  const dateStr = now.toISOString().split('T')[0];
   const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   return {
-    merchant: matchedPreset.merchant,
-    date: dateStr,
+    merchant: detectedMerchant,
+    date: detectedDate,
     time: timeStr,
-    amount: matchedPreset.amount,
-    items: matchedPreset.items,
+    amount: detectedAmount,
+    items: detectedItems,
     category: matchedCat,
+    categoryReason: matchedKeyword ? `Kata kunci terdeteksi: "${matchedKeyword}"` : `Kategori disesuaikan: ${matchedCat.name}`,
     account: matchedAcc,
     member: appState.currentUser,
-    confidenceScore: 98.4,
-    description: `Belanja di ${matchedPreset.merchant}`,
-    notes: `Rincian item: ${matchedPreset.items.map(i => `${i.name} (x${i.qty})`).join(', ')}`,
-    rawReceiptUrl: dataUrl
+    confidenceScore: bestScore > 0 ? Math.min(99, Math.round(75 + bestScore * 5)) : 70,
+    description: `Belanja di ${detectedMerchant}`,
+    notes: `Rincian: ${detectedItems.slice(0, 4).map(i => `${i.name} (x${i.qty})`).join(', ')}`,
+    rawText: text
   };
+}
+async function analyzeReceiptImage(dataUrl, fileName = '', onProgress) {
+  const sample = SAMPLE_RECEIPTS.find(s => s.merchant.toLowerCase() === (fileName || '').toLowerCase());
+  if (sample) {
+    if (onProgress) onProgress('Memproses contoh struk...', 80);
+    await new Promise(r => setTimeout(r, 400));
+    const categories = appState.categories.filter(c => c.type === 'expense');
+    const accounts = appState.getAccountsWithBalances();
+    const cat = categories.find(c => c.id === sample.category) || categories[0];
+    const acc = accounts.find(a => a.id === sample.account) || accounts[0];
+    return {
+      merchant: sample.merchant,
+      date: sample.date,
+      time: '12:00',
+      amount: sample.amount,
+      items: sample.items,
+      category: cat,
+      categoryReason: `Contoh struk resmi: ${cat.name}`,
+      account: acc,
+      member: appState.currentUser,
+      confidenceScore: 99,
+      description: `Belanja di ${sample.merchant}`,
+      notes: `Rincian: ${sample.items.map(i => `${i.name} (x${i.qty})`).join(', ')}`,
+      rawReceiptUrl: dataUrl
+    };
+  }
+  let recognizedText = '';
+  try {
+    recognizedText = await performOCR(dataUrl, onProgress);
+  } catch (err) {
+    console.warn('OCR fallback:', err);
+  }
+  if (onProgress) onProgress('Mengklasifikasi kategori dan item belanja...', 95);
+  const parsed = parseReceiptText(recognizedText, fileName);
+  parsed.rawReceiptUrl = dataUrl;
+  return parsed;
 }
 
 
@@ -4007,6 +4343,8 @@ function openReceiptScanModal() {
   let currentStep = 'upload'; // 'upload' | 'scanning' | 'confirm'
   let currentImageDataUrl = null;
   let analysisResult = null;
+  let scanStatusText = 'Memuat model AI OCR...';
+  let scanProgressPct = 20;
   function renderModalContent() {
     const categories = appState.categories.filter(c => c.type === 'expense');
     const accounts = appState.getAccountsWithBalances().filter(a => !a.isArchived);
@@ -4063,18 +4401,24 @@ function openReceiptScanModal() {
     }
     if (currentStep === 'scanning') {
       return `
-        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2.5rem 1rem;gap:1.5rem;text-align:center;">
-          <div style="position:relative;width:240px;height:240px;border-radius:var(--radius-lg);overflow:hidden;border:2px solid #3b82f6;box-shadow:0 8px 24px rgba(59,130,246,0.25);background:#0f172a;">
-            <img src="${currentImageDataUrl}" alt="Struk Scanned" style="width:100%;height:100%;object-fit:cover;opacity:0.75;" />
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem 1rem;gap:1.25rem;text-align:center;">
+          <div style="position:relative;width:220px;height:220px;border-radius:var(--radius-lg);overflow:hidden;border:2px solid #3b82f6;box-shadow:0 8px 24px rgba(59,130,246,0.25);background:#0f172a;">
+            <img src="${currentImageDataUrl}" alt="Struk Scanned" style="width:100%;height:100%;object-fit:cover;opacity:0.8;" />
             <!-- Glowing Laser Line -->
             <div style="position:absolute;top:0;left:0;right:0;height:4px;background:#60a5fa;box-shadow:0 0 14px #3b82f6, 0 0 24px #93c5fd;animation:laserScan 1.6s ease-in-out infinite;"></div>
           </div>
-          <div>
-            <div style="font-size:1.125rem;font-weight:800;color:var(--color-slate-900);display:flex;align-items:center;justify-content:center;gap:0.5rem;">
-              <span style="color:#2563eb;">${Icons.sparkles(20)}</span> AI Sedang Menganalisis Struk...
+          <div style="width:100%;max-width:320px;">
+            <div style="font-size:1rem;font-weight:800;color:var(--color-slate-900);display:flex;align-items:center;justify-content:center;gap:0.5rem;">
+              <span style="color:#2563eb;">${Icons.sparkles(20)}</span> Memindai Teks Struk...
             </div>
-            <p style="font-size:0.8125rem;color:var(--text-muted);margin-top:0.375rem;">
-              Mengekstrak nama toko, rincian barang belanjaan, tanggal transaksi, dan total pembayaran.
+            <div style="width:100%;height:8px;background:#e2e8f0;border-radius:99px;overflow:hidden;margin:0.75rem auto 0.35rem;">
+              <div id="scan-progress-bar" style="width:${scanProgressPct}%;height:100%;background:linear-gradient(90deg, #3b82f6, #10b981);transition:width 0.25s ease;"></div>
+            </div>
+            <div id="scan-status-text" style="font-size:0.8125rem;font-weight:700;color:#2563eb;">
+              ${scanStatusText}
+            </div>
+            <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.35rem;">
+              Membaca nama merchant, nominal, tanggal, dan mencocokkan kategori keuangan secara otomatis.
             </p>
           </div>
           <style>
@@ -4133,7 +4477,7 @@ function openReceiptScanModal() {
                   type="text" 
                   id="confirm-tx-amount" 
                   class="form-input currency-input" 
-                  value="${res.amount.toLocaleString('id-ID')}" 
+                  value="${(res.amount || 0).toLocaleString('id-ID')}" 
                   style="font-size:1.125rem;font-weight:800;color:var(--color-expense);"
                   required 
                 />
@@ -4162,27 +4506,46 @@ function openReceiptScanModal() {
                 />
               </div>
             </div>
-            <!-- Category & Account -->
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
-              <div class="form-group" style="margin-bottom:0;">
-                <label class="form-label" style="font-size:0.8125rem;">Kategori Pengeluaran *</label>
-                <select id="confirm-tx-cat" class="form-select">
-                  ${categories.map(c => `
-                    <option value="${c.id}" ${c.id === (res.category ? res.category.id : '') ? 'selected' : ''}>
-                      ${c.name}
-                    </option>
-                  `).join('')}
-                </select>
+            <!-- Category & Account with Reason Badge & Quick Chips -->
+            <div style="display:flex;flex-direction:column;gap:0.75rem;">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label" style="font-size:0.8125rem;display:flex;justify-content:space-between;">
+                    <span>Kategori Pengeluaran *</span>
+                    <span style="color:#059669;font-weight:700;font-size:0.7rem;">AI Auto-Match</span>
+                  </label>
+                  <select id="confirm-tx-cat" class="form-select" style="font-weight:700;color:#0f172a;border-color:#10b981;">
+                    ${categories.map(c => `
+                      <option value="${c.id}" ${c.id === (res.category ? res.category.id : '') ? 'selected' : ''}>
+                        ${c.name}
+                      </option>
+                    `).join('')}
+                  </select>
+                  <div style="font-size:0.7rem;color:#059669;margin-top:0.25rem;font-weight:600;">
+                    ✨ ${res.categoryReason || 'Kategori terdeteksi otomatis'}
+                  </div>
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label" style="font-size:0.8125rem;">Rekening / Dompet Asal *</label>
+                  <select id="confirm-tx-acc" class="form-select">
+                    ${accounts.map(a => `
+                      <option value="${a.id}" ${a.id === (res.account ? res.account.id : '') ? 'selected' : ''}>
+                        ${a.name} (${formatRupiah(a.currentBalance)})
+                      </option>
+                    `).join('')}
+                  </select>
+                </div>
               </div>
-              <div class="form-group" style="margin-bottom:0;">
-                <label class="form-label" style="font-size:0.8125rem;">Rekening / Dompet Asal *</label>
-                <select id="confirm-tx-acc" class="form-select">
-                  ${accounts.map(a => `
-                    <option value="${a.id}" ${a.id === (res.account ? res.account.id : '') ? 'selected' : ''}>
-                      ${a.name} (${formatRupiah(a.currentBalance)})
-                    </option>
+              <!-- Quick Category Chips -->
+              <div>
+                <div style="font-size:0.7rem;font-weight:700;color:var(--text-muted);margin-bottom:0.35rem;">Ganti Kategori Cepat (1 Klik):</div>
+                <div style="display:flex;flex-wrap:wrap;gap:0.35rem;">
+                  ${categories.slice(0, 6).map(c => `
+                    <button type="button" class="btn-quick-cat" data-cat-id="${c.id}" style="padding:0.25rem 0.6rem;background:${c.id === (res.category ? res.category.id : '') ? '#ecfdf5' : '#f8fafc'};border:1px solid ${c.id === (res.category ? res.category.id : '') ? '#10b981' : '#cbd5e1'};color:${c.id === (res.category ? res.category.id : '') ? '#065f46' : '#475569'};font-size:0.72rem;font-weight:700;border-radius:99px;cursor:pointer;">
+                      ${c.name}
+                    </button>
                   `).join('')}
-                </select>
+                </div>
               </div>
             </div>
             <!-- Member & Notes -->
@@ -4207,6 +4570,11 @@ function openReceiptScanModal() {
                 />
               </div>
             </div>
+            <!-- OCR Raw Text Transparency (Collapsible) -->
+            <details style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:0.5rem 0.75rem;font-size:0.75rem;color:#64748b;margin-top:0.25rem;">
+              <summary style="cursor:pointer;font-weight:700;color:#334155;">🔍 Lihat Teks Asli yang Terbaca dari Struk (OCR)</summary>
+              <pre style="white-space:pre-wrap;font-family:monospace;font-size:0.7rem;margin:0.5rem 0 0;max-height:110px;overflow-y:auto;background:#ffffff;padding:0.5rem;border-radius:6px;border:1px solid #cbd5e1;color:#1e293b;">${res.rawText || '(Teks tidak terbaca jelas atau struk sampel)'}</pre>
+            </details>
           </div>
         </form>
       `;
@@ -4301,20 +4669,20 @@ function openReceiptScanModal() {
     ctx.fillText(sample.merchant, 200, 45);
     ctx.fillStyle = '#64748b';
     ctx.font = '12px sans-serif';
-    ctx.fillText(`Tanggal: ${sample.date}  •  Kasir: #04`, 200, 70);
-    ctx.fillText('========================================', 200, 90);
+    ctx.fillText(sample.date + '  12:30 WIB', 200, 70);
+    ctx.fillText('----------------------------------------', 200, 90);
     let y = 120;
     ctx.textAlign = 'left';
+    ctx.font = '13px sans-serif';
     sample.items.forEach(item => {
-      ctx.fillStyle = '#0f172a';
-      ctx.font = 'bold 13px sans-serif';
-      ctx.fillText(item.name, 30, y);
+      ctx.fillStyle = '#1e293b';
+      ctx.fillText(`${item.name}`, 30, y);
       ctx.fillStyle = '#64748b';
-      ctx.font = '12px sans-serif';
+      ctx.fillText(`x${item.qty}`, 250, y);
       ctx.textAlign = 'right';
       ctx.fillText(`Rp ${item.price.toLocaleString('id-ID')}`, 370, y);
       ctx.textAlign = 'left';
-      y += 26;
+      y += 28;
     });
     ctx.fillStyle = '#64748b';
     ctx.fillText('----------------------------------------', 200, y);
@@ -4334,14 +4702,24 @@ function openReceiptScanModal() {
   async function processImage(dataUrl, fileName = '') {
     currentImageDataUrl = dataUrl;
     currentStep = 'scanning';
+    scanStatusText = 'Memuat model AI OCR...';
+    scanProgressPct = 20;
     updateModal();
     try {
-      analysisResult = await analyzeReceiptImage(dataUrl, fileName);
+      analysisResult = await analyzeReceiptImage(dataUrl, fileName, (msg, pct) => {
+        scanStatusText = msg;
+        scanProgressPct = pct;
+        const bar = document.getElementById('scan-progress-bar');
+        const textEl = document.getElementById('scan-status-text');
+        if (bar) bar.style.width = `${pct}%`;
+        if (textEl) textEl.textContent = msg;
+      });
       currentStep = 'confirm';
       updateModal();
       toast.success('Struk berhasil dianalisis! Silakan periksa dan konfirmasi.');
     } catch (e) {
-      toast.error('Gagal menganalisis struk, silakan coba foto lain.');
+      console.error('Scan error:', e);
+      toast.error('Gagal membaca struk, silakan coba foto lain atau masukkan manual.');
       currentStep = 'upload';
       updateModal();
     }
@@ -4386,6 +4764,21 @@ function openReceiptScanModal() {
           e.target.value = raw > 0 ? raw.toLocaleString('id-ID') : '';
         };
       }
+      document.querySelectorAll('.btn-quick-cat').forEach(chip => {
+        chip.onclick = () => {
+          const catId = chip.dataset.catId;
+          const select = document.getElementById('confirm-tx-cat');
+          if (select) {
+            select.value = catId;
+          }
+          document.querySelectorAll('.btn-quick-cat').forEach(c => {
+            const isMatch = c.dataset.catId === catId;
+            c.style.background = isMatch ? '#ecfdf5' : '#f8fafc';
+            c.style.borderColor = isMatch ? '#10b981' : '#cbd5e1';
+            c.style.color = isMatch ? '#065f46' : '#475569';
+          });
+        };
+      });
     }
   }
   updateModal();

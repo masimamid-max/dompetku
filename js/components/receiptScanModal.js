@@ -1,6 +1,6 @@
 /**
  * Smart Receipt Scan, OCR Analysis & Confirmation Modal Component
- * Dompet Keluarga V2
+ * Dompet Keluarga V3.18.7
  */
 import { appState } from '../state.js';
 import { analyzeReceiptImage, SAMPLE_RECEIPTS } from '../utils/receiptScanner.js';
@@ -20,6 +20,8 @@ export function openReceiptScanModal() {
   let currentStep = 'upload'; // 'upload' | 'scanning' | 'confirm'
   let currentImageDataUrl = null;
   let analysisResult = null;
+  let scanStatusText = 'Memuat model AI OCR...';
+  let scanProgressPct = 20;
 
   function renderModalContent() {
     const categories = appState.categories.filter(c => c.type === 'expense');
@@ -81,20 +83,27 @@ export function openReceiptScanModal() {
 
     if (currentStep === 'scanning') {
       return `
-        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2.5rem 1rem;gap:1.5rem;text-align:center;">
-          <div style="position:relative;width:240px;height:240px;border-radius:var(--radius-lg);overflow:hidden;border:2px solid #3b82f6;box-shadow:0 8px 24px rgba(59,130,246,0.25);background:#0f172a;">
-            <img src="${currentImageDataUrl}" alt="Struk Scanned" style="width:100%;height:100%;object-fit:cover;opacity:0.75;" />
-            
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem 1rem;gap:1.25rem;text-align:center;">
+          <div style="position:relative;width:220px;height:220px;border-radius:var(--radius-lg);overflow:hidden;border:2px solid #3b82f6;box-shadow:0 8px 24px rgba(59,130,246,0.25);background:#0f172a;">
+            <img src="${currentImageDataUrl}" alt="Struk Scanned" style="width:100%;height:100%;object-fit:cover;opacity:0.8;" />
             <!-- Glowing Laser Line -->
             <div style="position:absolute;top:0;left:0;right:0;height:4px;background:#60a5fa;box-shadow:0 0 14px #3b82f6, 0 0 24px #93c5fd;animation:laserScan 1.6s ease-in-out infinite;"></div>
           </div>
 
-          <div>
-            <div style="font-size:1.125rem;font-weight:800;color:var(--color-slate-900);display:flex;align-items:center;justify-content:center;gap:0.5rem;">
-              <span style="color:#2563eb;">${Icons.sparkles(20)}</span> AI Sedang Menganalisis Struk...
+          <div style="width:100%;max-width:320px;">
+            <div style="font-size:1rem;font-weight:800;color:var(--color-slate-900);display:flex;align-items:center;justify-content:center;gap:0.5rem;">
+              <span style="color:#2563eb;">${Icons.sparkles(20)}</span> Memindai Teks Struk...
             </div>
-            <p style="font-size:0.8125rem;color:var(--text-muted);margin-top:0.375rem;">
-              Mengekstrak nama toko, rincian barang belanjaan, tanggal transaksi, dan total pembayaran.
+            
+            <div style="width:100%;height:8px;background:#e2e8f0;border-radius:99px;overflow:hidden;margin:0.75rem auto 0.35rem;">
+              <div id="scan-progress-bar" style="width:${scanProgressPct}%;height:100%;background:linear-gradient(90deg, #3b82f6, #10b981);transition:width 0.25s ease;"></div>
+            </div>
+
+            <div id="scan-status-text" style="font-size:0.8125rem;font-weight:700;color:#2563eb;">
+              ${scanStatusText}
+            </div>
+            <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.35rem;">
+              Membaca nama merchant, nominal, tanggal, dan mencocokkan kategori keuangan secara otomatis.
             </p>
           </div>
 
@@ -158,7 +167,7 @@ export function openReceiptScanModal() {
                   type="text" 
                   id="confirm-tx-amount" 
                   class="form-input currency-input" 
-                  value="${res.amount.toLocaleString('id-ID')}" 
+                  value="${(res.amount || 0).toLocaleString('id-ID')}" 
                   style="font-size:1.125rem;font-weight:800;color:var(--color-expense);"
                   required 
                 />
@@ -189,28 +198,48 @@ export function openReceiptScanModal() {
               </div>
             </div>
 
-            <!-- Category & Account -->
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
-              <div class="form-group" style="margin-bottom:0;">
-                <label class="form-label" style="font-size:0.8125rem;">Kategori Pengeluaran *</label>
-                <select id="confirm-tx-cat" class="form-select">
-                  ${categories.map(c => `
-                    <option value="${c.id}" ${c.id === (res.category ? res.category.id : '') ? 'selected' : ''}>
-                      ${c.name}
-                    </option>
-                  `).join('')}
-                </select>
+            <!-- Category & Account with Reason Badge & Quick Chips -->
+            <div style="display:flex;flex-direction:column;gap:0.75rem;">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label" style="font-size:0.8125rem;display:flex;justify-content:space-between;">
+                    <span>Kategori Pengeluaran *</span>
+                    <span style="color:#059669;font-weight:700;font-size:0.7rem;">AI Auto-Match</span>
+                  </label>
+                  <select id="confirm-tx-cat" class="form-select" style="font-weight:700;color:#0f172a;border-color:#10b981;">
+                    ${categories.map(c => `
+                      <option value="${c.id}" ${c.id === (res.category ? res.category.id : '') ? 'selected' : ''}>
+                        ${c.name}
+                      </option>
+                    `).join('')}
+                  </select>
+                  <div style="font-size:0.7rem;color:#059669;margin-top:0.25rem;font-weight:600;">
+                    ✨ ${res.categoryReason || 'Kategori terdeteksi otomatis'}
+                  </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label" style="font-size:0.8125rem;">Rekening / Dompet Asal *</label>
+                  <select id="confirm-tx-acc" class="form-select">
+                    ${accounts.map(a => `
+                      <option value="${a.id}" ${a.id === (res.account ? res.account.id : '') ? 'selected' : ''}>
+                        ${a.name} (${formatRupiah(a.currentBalance)})
+                      </option>
+                    `).join('')}
+                  </select>
+                </div>
               </div>
 
-              <div class="form-group" style="margin-bottom:0;">
-                <label class="form-label" style="font-size:0.8125rem;">Rekening / Dompet Asal *</label>
-                <select id="confirm-tx-acc" class="form-select">
-                  ${accounts.map(a => `
-                    <option value="${a.id}" ${a.id === (res.account ? res.account.id : '') ? 'selected' : ''}>
-                      ${a.name} (${formatRupiah(a.currentBalance)})
-                    </option>
+              <!-- Quick Category Chips -->
+              <div>
+                <div style="font-size:0.7rem;font-weight:700;color:var(--text-muted);margin-bottom:0.35rem;">Ganti Kategori Cepat (1 Klik):</div>
+                <div style="display:flex;flex-wrap:wrap;gap:0.35rem;">
+                  ${categories.slice(0, 6).map(c => `
+                    <button type="button" class="btn-quick-cat" data-cat-id="${c.id}" style="padding:0.25rem 0.6rem;background:${c.id === (res.category ? res.category.id : '') ? '#ecfdf5' : '#f8fafc'};border:1px solid ${c.id === (res.category ? res.category.id : '') ? '#10b981' : '#cbd5e1'};color:${c.id === (res.category ? res.category.id : '') ? '#065f46' : '#475569'};font-size:0.72rem;font-weight:700;border-radius:99px;cursor:pointer;">
+                      ${c.name}
+                    </button>
                   `).join('')}
-                </select>
+                </div>
               </div>
             </div>
 
@@ -237,6 +266,12 @@ export function openReceiptScanModal() {
                 />
               </div>
             </div>
+
+            <!-- OCR Raw Text Transparency (Collapsible) -->
+            <details style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:0.5rem 0.75rem;font-size:0.75rem;color:#64748b;margin-top:0.25rem;">
+              <summary style="cursor:pointer;font-weight:700;color:#334155;">🔍 Lihat Teks Asli yang Terbaca dari Struk (OCR)</summary>
+              <pre style="white-space:pre-wrap;font-family:monospace;font-size:0.7rem;margin:0.5rem 0 0;max-height:110px;overflow-y:auto;background:#ffffff;padding:0.5rem;border-radius:6px;border:1px solid #cbd5e1;color:#1e293b;">${res.rawText || '(Teks tidak terbaca jelas atau struk sampel)'}</pre>
+            </details>
           </div>
         </form>
       `;
@@ -330,7 +365,6 @@ export function openReceiptScanModal() {
   }
 
   function createSyntheticReceiptImage(sample) {
-    // Generate a clean simulated receipt dataUrl using canvas
     const canvas = document.createElement('canvas');
     canvas.width = 400;
     canvas.height = 520;
@@ -348,23 +382,23 @@ export function openReceiptScanModal() {
 
     ctx.fillStyle = '#64748b';
     ctx.font = '12px sans-serif';
-    ctx.fillText(`Tanggal: ${sample.date}  •  Kasir: #04`, 200, 70);
-    ctx.fillText('========================================', 200, 90);
+    ctx.fillText(sample.date + '  12:30 WIB', 200, 70);
+    ctx.fillText('----------------------------------------', 200, 90);
 
     // Items
     let y = 120;
     ctx.textAlign = 'left';
+    ctx.font = '13px sans-serif';
+
     sample.items.forEach(item => {
-      ctx.fillStyle = '#0f172a';
-      ctx.font = 'bold 13px sans-serif';
-      ctx.fillText(item.name, 30, y);
-      
+      ctx.fillStyle = '#1e293b';
+      ctx.fillText(`${item.name}`, 30, y);
       ctx.fillStyle = '#64748b';
-      ctx.font = '12px sans-serif';
+      ctx.fillText(`x${item.qty}`, 250, y);
       ctx.textAlign = 'right';
       ctx.fillText(`Rp ${item.price.toLocaleString('id-ID')}`, 370, y);
       ctx.textAlign = 'left';
-      y += 26;
+      y += 28;
     });
 
     ctx.fillStyle = '#64748b';
@@ -390,15 +424,26 @@ export function openReceiptScanModal() {
   async function processImage(dataUrl, fileName = '') {
     currentImageDataUrl = dataUrl;
     currentStep = 'scanning';
+    scanStatusText = 'Memuat model AI OCR...';
+    scanProgressPct = 20;
     updateModal();
 
     try {
-      analysisResult = await analyzeReceiptImage(dataUrl, fileName);
+      analysisResult = await analyzeReceiptImage(dataUrl, fileName, (msg, pct) => {
+        scanStatusText = msg;
+        scanProgressPct = pct;
+        const bar = document.getElementById('scan-progress-bar');
+        const textEl = document.getElementById('scan-status-text');
+        if (bar) bar.style.width = `${pct}%`;
+        if (textEl) textEl.textContent = msg;
+      });
+
       currentStep = 'confirm';
       updateModal();
       toast.success('Struk berhasil dianalisis! Silakan periksa dan konfirmasi.');
     } catch (e) {
-      toast.error('Gagal menganalisis struk, silakan coba foto lain.');
+      console.error('Scan error:', e);
+      toast.error('Gagal membaca struk, silakan coba foto lain atau masukkan manual.');
       currentStep = 'upload';
       updateModal();
     }
@@ -448,6 +493,23 @@ export function openReceiptScanModal() {
           e.target.value = raw > 0 ? raw.toLocaleString('id-ID') : '';
         };
       }
+
+      // Quick Category Chips Click Listener
+      document.querySelectorAll('.btn-quick-cat').forEach(chip => {
+        chip.onclick = () => {
+          const catId = chip.dataset.catId;
+          const select = document.getElementById('confirm-tx-cat');
+          if (select) {
+            select.value = catId;
+          }
+          document.querySelectorAll('.btn-quick-cat').forEach(c => {
+            const isMatch = c.dataset.catId === catId;
+            c.style.background = isMatch ? '#ecfdf5' : '#f8fafc';
+            c.style.borderColor = isMatch ? '#10b981' : '#cbd5e1';
+            c.style.color = isMatch ? '#065f46' : '#475569';
+          });
+        };
+      });
     }
   }
 
