@@ -3,13 +3,156 @@
  * Dompet Keluarga V3.18.7
  */
 import { appState } from '../state.js';
-import { analyzeReceiptImage, SAMPLE_RECEIPTS } from '../utils/receiptScanner.js';
+import { analyzeReceiptImage, SAMPLE_RECEIPTS, getGeminiApiKey, setGeminiApiKey, hasGeminiApiKey, verifyGeminiApiKey } from '../utils/receiptScanner.js';
 import { modal } from './modal.js';
 import { toast } from './toast.js';
 import { Icons, getCategoryIcon } from './icons.js';
 import { formatRupiah, parseRupiah } from '../utils.js';
 import { LicenseService } from '../utils/licenseService.js';
 import { openLicenseActivationModal } from './licenseModal.js';
+
+/**
+ * Modal Popup untuk Memasang / Mengelola Kunci Google Gemini AI Vision
+ */
+export function openGeminiKeyModal(onSuccess) {
+  const currentKey = getGeminiApiKey();
+
+  const content = `
+    <div style="display:flex;flex-direction:column;gap:1.25rem;">
+      <div style="background:linear-gradient(135deg, #eff6ff, #f5f3ff);border:1px solid #c7d2fe;border-radius:var(--radius-lg);padding:1rem 1.25rem;display:flex;align-items:flex-start;gap:0.875rem;">
+        <div style="width:40px;height:40px;border-radius:var(--radius-full);background:white;color:#4f46e5;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(79,70,229,0.2);flex-shrink:0;font-size:1.25rem;">
+          ✨
+        </div>
+        <div>
+          <div style="font-size:0.9375rem;font-weight:800;color:var(--color-slate-900);">Google Gemini 2.5 Flash Vision AI</div>
+          <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.2rem;line-height:1.4;">
+            Gunakan API Key resmi Google Gemini agar pembacaan foto struk belanjaan, nota kasir, bon BBM SPBU, dan invoice berjalan dengan akurasi 99% tanpa salah kategori. 
+            <strong>Gratis selamanya dari Google AI Studio!</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label" for="input-gemini-key" style="font-size:0.8125rem;font-weight:700;display:flex;justify-content:space-between;">
+          <span>Kunci API Google Gemini (API Key) *</span>
+          <span style="color:${currentKey ? '#059669' : '#d97706'};font-size:0.7rem;font-weight:700;">
+            ${currentKey ? '● Kunci Aktif' : '○ Belum Diatur'}
+          </span>
+        </label>
+        <div style="position:relative;">
+          <input 
+            type="password" 
+            id="input-gemini-key" 
+            class="form-input" 
+            placeholder="AIzaSy..." 
+            value="${currentKey}" 
+            style="font-family:monospace;font-size:0.85rem;padding-right:75px;"
+          />
+          <button 
+            type="button" 
+            id="btn-toggle-gemini-key-vis" 
+            style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:#64748b;font-size:0.75rem;font-weight:700;cursor:pointer;padding:4px 8px;"
+          >
+            Lihat
+          </button>
+        </div>
+        <p style="font-size:0.72rem;color:var(--text-muted);margin-top:0.35rem;">
+          Kunci disimpan aman di memori lokal peramban Anda (localStorage) dan langsung dipakai untuk menghubungi API resmi Google.
+        </p>
+      </div>
+
+      <!-- Quick 1-Click Guide -->
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:var(--radius-md);padding:0.875rem 1rem;">
+        <div style="font-size:0.75rem;font-weight:800;color:var(--color-slate-800);margin-bottom:0.35rem;display:flex;align-items:center;gap:0.35rem;">
+          💡 Cara Dapatkan Kunci Gratis dalam 1 Menit:
+        </div>
+        <ol style="margin:0;padding-left:1.2rem;font-size:0.75rem;color:#475569;line-height:1.5;">
+          <li>Klik tombol biru di bawah untuk membuka <strong>Google AI Studio</strong>.</li>
+          <li>Login dengan Akun Google Anda, lalu klik tombol <strong>"Create API Key"</strong>.</li>
+          <li>Salin kuncinya (diawali <code>AIzaSy...</code>) dan tempel di formulir atas, lalu klik <strong>Uji & Simpan</strong>.</li>
+        </ol>
+
+        <div style="margin-top:0.75rem;">
+          <a 
+            href="https://aistudio.google.com/app/apikey" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            class="btn btn-secondary btn-sm" 
+            style="display:inline-flex;align-items:center;gap:0.375rem;font-size:0.75rem;color:#2563eb;border-color:#93c5fd;background:#eff6ff;text-decoration:none;font-weight:700;"
+          >
+            🚀 Buka Google AI Studio (Dapatkan Kunci Gratis) ↗
+          </a>
+        </div>
+      </div>
+    </div>
+  `;
+
+  modal.open({
+    title: 'Pengaturan Kunci Google Gemini AI Vision',
+    content: content,
+    maxWidth: '520px',
+    footerButtons: [
+      ...(currentKey ? [
+        {
+          label: 'Hapus Kunci',
+          className: 'btn-secondary',
+          style: 'color:#dc2626;',
+          onClick: () => {
+            setGeminiApiKey('');
+            toast.info('Kunci Google Gemini AI telah dihapus.');
+            modal.close();
+            if (onSuccess) onSuccess();
+          }
+        }
+      ] : []),
+      {
+        label: 'Batal',
+        className: 'btn-secondary',
+        onClick: () => modal.close()
+      },
+      {
+        label: '⚡ Uji & Simpan Kunci',
+        className: 'btn-primary',
+        onClick: async () => {
+          const input = document.getElementById('input-gemini-key');
+          const keyVal = input ? input.value.trim() : '';
+
+          if (!keyVal) {
+            toast.error('Harap masukkan kunci API Gemini Anda.');
+            return;
+          }
+
+          toast.info('Menguji koneksi ke server Google AI...');
+          const verify = await verifyGeminiApiKey(keyVal);
+
+          if (!verify.success) {
+            toast.error(`Kunci tidak valid: ${verify.message}`);
+            return;
+          }
+
+          setGeminiApiKey(keyVal);
+          toast.success('✨ Kunci Google Gemini AI aktif & berhasil diverifikasi!');
+          modal.close();
+          if (onSuccess) onSuccess();
+        }
+      }
+    ]
+  });
+
+  const toggleBtn = document.getElementById('btn-toggle-gemini-key-vis');
+  const inputEl = document.getElementById('input-gemini-key');
+  if (toggleBtn && inputEl) {
+    toggleBtn.onclick = () => {
+      if (inputEl.type === 'password') {
+        inputEl.type = 'text';
+        toggleBtn.textContent = 'Sembunyikan';
+      } else {
+        inputEl.type = 'password';
+        toggleBtn.textContent = 'Lihat';
+      }
+    };
+  }
+}
 
 export function openReceiptScanModal() {
   if (!LicenseService.isLicensed()) {
@@ -20,7 +163,7 @@ export function openReceiptScanModal() {
   let currentStep = 'upload'; // 'upload' | 'scanning' | 'confirm'
   let currentImageDataUrl = null;
   let analysisResult = null;
-  let scanStatusText = 'Memuat model AI OCR...';
+  let scanStatusText = hasGeminiApiKey() ? 'Menghubungi Google Gemini Vision AI...' : 'Menganalisis foto struk...';
   let scanProgressPct = 20;
 
   function renderModalContent() {
@@ -29,6 +172,8 @@ export function openReceiptScanModal() {
     const members = appState.members;
 
     if (currentStep === 'upload') {
+      const isAiActive = hasGeminiApiKey();
+
       return `
         <div style="display:flex;flex-direction:column;gap:1.25rem;">
           <!-- Top Description Banner -->
@@ -42,6 +187,24 @@ export function openReceiptScanModal() {
                 Foto atau unggah struk belanjaan, AI otomatis membaca toko, nominal, item belanja, lalu Anda tinggal konfirmasi.
               </div>
             </div>
+          </div>
+
+          <!-- Gemini AI Engine Status Bar -->
+          <div style="background:${isAiActive ? '#ecfdf5' : 'linear-gradient(135deg, #eff6ff, #f5f3ff)'};border:1px solid ${isAiActive ? '#6ee7b7' : '#c7d2fe'};border-radius:var(--radius-lg);padding:0.75rem 1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
+            <div style="display:flex;align-items:center;gap:0.625rem;">
+              <span style="font-size:1.25rem;">${isAiActive ? '✨' : '🤖'}</span>
+              <div>
+                <div style="font-size:0.8125rem;font-weight:800;color:${isAiActive ? '#065f46' : '#1e40af'};">
+                  ${isAiActive ? 'Google Gemini 2.5 Flash Vision AI Aktif' : 'Mode AI Vision Siap Pakai'}
+                </div>
+                <div style="font-size:0.7rem;color:${isAiActive ? '#047857' : '#4338ca'};">
+                  ${isAiActive ? 'Akurasi 99% • Nama toko, nominal & kategori akurat otomatis' : 'Pasang kunci Gemini gratis untuk akurasi foto maksimal'}
+                </div>
+              </div>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-modal-gemini-config" style="font-size:0.75rem;padding:0.3rem 0.65rem;font-weight:700;color:${isAiActive ? '#065f46' : '#4338ca'};border-color:${isAiActive ? '#a7f3d0' : '#c7d2fe'};background:white;">
+              ${isAiActive ? '⚙️ Kunci AI' : '🔑 Kunci AI Gratis'}
+            </button>
           </div>
 
           <!-- Dropzone Upload Area -->
@@ -120,16 +283,26 @@ export function openReceiptScanModal() {
 
     if (currentStep === 'confirm' && analysisResult) {
       const res = analysisResult;
+      const isGeminiEngine = res.engineUsed === 'gemini';
+
       return `
         <form id="receipt-confirm-form" onsubmit="return false;" style="display:flex;flex-direction:column;gap:1.25rem;">
           <!-- Success AI Banner -->
-          <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:var(--radius-md);padding:0.75rem 1rem;display:flex;align-items:center;justify-content:space-between;">
+          <div style="background:${isGeminiEngine ? '#ecfdf5' : '#f0fdf4'};border:1px solid ${isGeminiEngine ? '#6ee7b7' : '#a7f3d0'};border-radius:var(--radius-md);padding:0.75rem 1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
             <div style="display:flex;align-items:center;gap:0.5rem;color:#065f46;font-size:0.8125rem;font-weight:700;">
-              ${Icons.checkCircle(18)} Hasil Analisis AI Berhasil (Akurasi ${res.confidenceScore}%)
+              ${Icons.checkCircle(18)} 
+              <span>Hasil Analisis ${res.engineLabel || 'AI'} Berhasil (Akurasi ${res.confidenceScore}%)</span>
             </div>
-            <button type="button" class="btn btn-secondary btn-sm" id="btn-re-scan" style="font-size:0.75rem;padding:0.25rem 0.5rem;">
-              ${Icons.camera(12)} Ganti Foto
-            </button>
+            <div style="display:flex;align-items:center;gap:0.5rem;">
+              ${!hasGeminiApiKey() ? `
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-upgrade-ai-key" style="font-size:0.72rem;padding:0.25rem 0.5rem;color:#4338ca;border-color:#c7d2fe;background:#eef2ff;">
+                  ✨ Kunci Gemini
+                </button>
+              ` : ''}
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-re-scan" style="font-size:0.75rem;padding:0.25rem 0.5rem;">
+                ${Icons.camera(12)} Ganti Foto
+              </button>
+            </div>
           </div>
 
           <!-- Struk Preview & Items Breakdown -->
@@ -473,9 +646,28 @@ export function openReceiptScanModal() {
           processImage(syntheticDataUrl, sample.merchant);
         };
       });
+
+      // Gemini AI Key Config Button
+      const geminiConfigBtn = document.getElementById('btn-modal-gemini-config');
+      if (geminiConfigBtn) {
+        geminiConfigBtn.onclick = () => {
+          openGeminiKeyModal(() => {
+            updateModal();
+          });
+        };
+      }
     }
 
     if (currentStep === 'confirm') {
+      const upgradeAiBtn = document.getElementById('btn-upgrade-ai-key');
+      if (upgradeAiBtn) {
+        upgradeAiBtn.onclick = () => {
+          openGeminiKeyModal(() => {
+            updateModal();
+          });
+        };
+      }
+
       const reScanBtn = document.getElementById('btn-re-scan');
       if (reScanBtn) {
         reScanBtn.onclick = () => {

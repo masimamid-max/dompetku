@@ -19,6 +19,7 @@ function onOpen() {
     .addItem('🔑 Buat 10 Kunci Lisensi Unik Baru', 'menuGenerate10Keys')
     .addItem('🔑 Buat 50 Kunci Lisensi Unik Baru', 'menuGenerate50Keys')
     .addSeparator()
+    .addItem('🤖 Atur Kunci Google Gemini AI Vision', 'menuSetGeminiKey')
     .addItem('📱 Format & Bersihkan Nomor WhatsApp', 'formatAllPhoneNumbers')
     .addItem('⚙️ Inisialisasi Ulang Header Sheet', 'initializeSheets')
     .addToUi();
@@ -67,6 +68,10 @@ function doPost(e) {
 
     if (action === 'get_stats') {
       return handleGetStats();
+    }
+
+    if (action === 'ai_scan_receipt') {
+      return handleAiScanReceipt(payload);
     }
 
     return handleResponse({ success: false, message: 'Action tidak dikenali: ' + action });
@@ -639,4 +644,142 @@ function handleResponse(payload) {
   return ContentService
     .createTextOutput(JSON.stringify(payload))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+/**
+ * Menu Admin Spreadsheet untuk Menyimpan API Key Google Gemini
+ */
+function menuSetGeminiKey() {
+  const ui = SpreadsheetApp.getUi();
+  const scriptProps = PropertiesService.getScriptProperties();
+  const currentKey = scriptProps.getProperty('GEMINI_API_KEY') || '';
+
+  const resp = ui.prompt(
+    '🤖 Konfigurasi Google Gemini Vision API Key',
+    'Masukkan API Key Google Gemini (dari https://aistudio.google.com/app/apikey) agar seluruh pengguna Dompetku dapat scan struk secara otomatis:\n\nKunci Saat Ini: ' + (currentKey ? (currentKey.slice(0, 8) + '...' + currentKey.slice(-4)) : '(Belum Diatur)'),
+    ui.ButtonSet.OK_CANCEL
+  );
+
+  if (resp.getSelectedButton() === ui.Button.OK) {
+    const newKey = resp.getResponseText().trim();
+    if (newKey) {
+      scriptProps.setProperty('GEMINI_API_KEY', newKey);
+      ui.alert('✅ Kunci Google Gemini API berhasil disimpan! Seluruh pengguna sekarang dapat scan struk otomatis dengan AI Vision.');
+    } else {
+      scriptProps.deleteProperty('GEMINI_API_KEY');
+      ui.alert('ℹ️ Kunci Google Gemini API telah dihapus dari server.');
+    }
+  }
+}
+
+/**
+ * Backend Proxy: Menganalisis Foto Struk Menggunakan Google Gemini Vision API
+ */
+function handleAiScanReceipt(payload) {
+  try {
+    const base64Image = payload.imageBase64 || '';
+    const mimeType = payload.mimeType || 'image/jpeg';
+    
+    if (!base64Image) {
+      return handleResponse({ success: false, message: 'Tidak ada data gambar diterima.' });
+    }
+
+    const scriptProps = PropertiesService.getScriptProperties();
+    const apiKey = scriptProps.getProperty('GEMINI_API_KEY') || payload.apiKey || '';
+
+    if (!apiKey) {
+      return handleResponse({
+        success: false,
+        message: 'Kunci Gemini API belum diatur pada server Apps Script. Pengguna dapat memasukkan kunci di aplikasi (Pengaturan > AI Vision) atau admin dapat mengaturnya via menu Admin spreadsheet.'
+      });
+    }
+
+    const promptText = 'Anda adalah asisten akuntan & ahli finansial AI untuk aplikasi keuangan keluarga Indonesia (Dompetku).\n'
+      + 'Analisis foto struk / nota / bon / bukti pembayaran ini secara cermat dan teliti.\n\n'
+      + 'TUGAS ANDA:\n'
+      + '1. Identifikasi Nama Toko / Tempat Usaha / Merchant / SPBU / Restoran / Rumah Sakit / Apotek / Lembaga.\n'
+      + '2. Identifikasi Total Pembayaran Akhir (Total / Grand Total / Jumlah Bayar) dalam angka integer Rupiah bulat (misal: 184500).\n'
+      + '3. Identifikasi Tanggal Transaksi format YYYY-MM-DD.\n'
+      + '4. Ekstrak Daftar Item yang dibeli: nama item, jumlah (qty), dan harga subtotal per item.\n'
+      + '5. PILIH KATEGORI PENGELUARAN YANG PALING TEPAT dari 8 kategori resmi Dompetku berikut:\n'
+      + '   - cat-exp-1: "Makanan & Kuliner" (resto, cafe, warung, rumah makan, fast food, roti, kopi, jajanan)\n'
+      + '   - cat-exp-2: "Rumah Tangga & Belanja" (supermarket, minimarket, sembako, sabun, sampo, deterjen, perabot, pakaian)\n'
+      + '   - cat-exp-3: "Tagihan & Utilitas" (listrik PLN, PDAM, internet WiFi, pulsa HP, kuota, iuran, BPJS)\n'
+      + '   - cat-exp-4: "Transportasi" (SPBU bensin Pertamina/Shell, tiket parkir, tarif tol, servis motor/mobil, ojek online)\n'
+      + '   - cat-exp-5: "Pendidikan Anak" (buku sekolah, SPP, perlengkapan sekolah, les bimbel, kursus)\n'
+      + '   - cat-exp-6: "Kesehatan & Obat" (apotek Kimia Farma/K-24, obat, vitamin, dokter, klinik, rumah sakit)\n'
+      + '   - cat-exp-7: "Hiburan & Rekreasi" (tiket bioskop XXI/CGV, tempat wisata, hotel penginapan, game, rekreasi)\n'
+      + '   - cat-exp-8: "Sosial & Sedekah" (zakat, infaq, sedekah, sumbangan sosial, kotak amal, masjid)\n\n'
+      + 'PENTING: Keluarkan HANYA JSON murni valid:\n'
+      + '{\n'
+      + '  "merchant": "Nama Toko / Tempat Usaha",\n'
+      + '  "amount": 184500,\n'
+      + '  "date": "YYYY-MM-DD",\n'
+      + '  "categoryId": "cat-exp-X",\n'
+      + '  "categoryName": "Nama Kategori Resmi",\n'
+      + '  "categoryReason": "Penjelasan singkat alasan pemilihan kategori",\n'
+      + '  "items": [{"name": "Nama Item", "qty": 1, "price": 50000}],\n'
+      + '  "notes": "Ringkasan item yang dibeli",\n'
+      + '  "paymentMethod": "Tunai / QRIS / Debit / Kartu Kredit jika tertera"\n'
+      + '}';
+
+    const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + encodeURIComponent(apiKey);
+    
+    const requestBody = {
+      contents: [
+        {
+          parts: [
+            { text: promptText },
+            {
+              inline_data: {
+                mime_type: mimeType,
+                data: base64Image
+              }
+            }
+          ]
+        }
+      ],
+      generationConfig: {
+        response_mime_type: "application/json",
+        temperature: 0.1
+      }
+    };
+
+    const response = UrlFetchApp.fetch(url, {
+      method: 'post',
+      contentType: 'application/json',
+      payload: JSON.stringify(requestBody),
+      muteHttpExceptions: true
+    });
+
+    const respText = response.getContentText();
+    const respCode = response.getResponseCode();
+
+    if (respCode !== 200) {
+      return handleResponse({
+        success: false,
+        error: 'Gemini API Error (' + respCode + '): ' + respText
+      });
+    }
+
+    const data = JSON.parse(respText);
+    const content = data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts[0].text;
+    
+    if (!content) {
+      return handleResponse({ success: false, message: 'Gemini tidak mengembalikan hasil teks.' });
+    }
+
+    const cleanJsonStr = content.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
+    const parsedJson = JSON.parse(cleanJsonStr);
+
+    return handleResponse({
+      success: true,
+      data: parsedJson
+    });
+  } catch (err) {
+    return handleResponse({
+      success: false,
+      error: err.toString()
+    });
+  }
 }

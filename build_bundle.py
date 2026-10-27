@@ -39,8 +39,9 @@ def clean_file_content(path):
     with open(path, "r", encoding="utf-8") as f:
         content = f.read()
 
-    # Remove import statements
-    content = re.sub(r'import\s+.*?from\s+[\'"].*?[\'"];?\n?', '', content)
+    # Remove import statements (single-line and multi-line)
+    content = re.sub(r'import\s+.*?from\s+[\'"].*?[\'"];?\n?', '', content, flags=re.DOTALL)
+    content = re.sub(r'import\s+[\'"].*?[\'"];?\n?', '', content)
     # Remove export default
     content = re.sub(r'export\s+default\s+', '', content)
     # Replace 'export async function' with 'async function'
