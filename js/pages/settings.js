@@ -6,7 +6,7 @@ import { toast } from '../components/toast.js';
 import { CloudSyncService } from '../utils/cloudSync.js';
 import { LicenseService } from '../utils/licenseService.js';
 import { openLicenseActivationModal } from '../components/licenseModal.js';
-import { getGeminiApiKey, setGeminiApiKey, hasGeminiApiKey, verifyGeminiApiKey } from '../utils/receiptScanner.js';
+import { getGeminiApiKey, setGeminiApiKey, hasGeminiApiKey, verifyGeminiApiKey, DEFAULT_DEVELOPER_GEMINI_KEY } from '../utils/receiptScanner.js';
 import { openReceiptScanModal } from '../components/receiptScanModal.js';
 
 let settingsSubTab = 'family'; // 'family' | 'accounts' | 'categories' | 'cloud' | 'ai' | 'license' | 'system'
@@ -462,6 +462,7 @@ function renderCloudTab() {
 function renderAiTab() {
   const currentKey = getGeminiApiKey();
   const isKeyActive = Boolean(currentKey);
+  const isDevKey = currentKey === DEFAULT_DEVELOPER_GEMINI_KEY;
 
   return `
     <div style="display:flex;flex-direction:column;gap:1.5rem;">
@@ -475,10 +476,10 @@ function renderAiTab() {
             <div>
               <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
                 <h3 style="font-size:1.25rem;font-weight:800;color:var(--color-slate-900);margin:0;">
-                  Google Gemini 2.5 Flash Vision AI
+                  Google Gemini Flash Vision AI
                 </h3>
                 <span class="badge" style="background:${isKeyActive ? '#059669' : '#4f46e5'};color:#ffffff;font-weight:700;padding:0.25rem 0.65rem;border-radius:999px;font-size:0.75rem;">
-                  ${isKeyActive ? 'AI VISION AKTIF (99% AKURASI)' : 'SIAP DIHUBUNGKAN'}
+                  ${isKeyActive ? (isDevKey ? 'AI VISION AKTIF (DEVELOPER PROXY)' : 'AI VISION AKTIF (API KEY PRIBADI)') : 'SIAP DIHUBUNGKAN'}
                 </span>
               </div>
               <p style="font-size:0.875rem;color:var(--color-slate-600);margin:0.25rem 0 0;">
@@ -498,7 +499,7 @@ function renderAiTab() {
         <div class="card-header">
           <div>
             <div class="card-title">🔑 Kunci API Google Gemini (API Key)</div>
-            <div class="card-subtitle">Hubungkan API Key pribadi Anda untuk kuota tak terbatas dan kecepatan respon maksimal (100% Gratis selamanya dari Google)</div>
+            <div class="card-subtitle">Aplikasi sudah dilengkapi Kunci AI Developer bawaan. Anda juga dapat menggunakan API Key pribadi dari Google AI Studio untuk kuota mandiri.</div>
           </div>
         </div>
 
@@ -507,7 +508,7 @@ function renderAiTab() {
             <label class="form-label" for="settings-gemini-key-input" style="font-size:0.8125rem;font-weight:700;display:flex;justify-content:space-between;">
               <span>Kunci API Google Gemini:</span>
               <span style="color:${isKeyActive ? '#059669' : '#d97706'};font-size:0.75rem;font-weight:700;">
-                ${isKeyActive ? '● Kunci Tersimpan di Peramban' : '○ Belum Dikonfigurasi'}
+                ${isKeyActive ? (isDevKey ? '● Kunci Developer Aktif (Bawaan Sistem)' : '● Kunci Pribadi Tersimpan') : '○ Belum Dikonfigurasi'}
               </span>
             </label>
             <div style="position:relative;">

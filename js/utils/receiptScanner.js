@@ -13,7 +13,11 @@ import { appState } from '../state.js';
 export const GEMINI_STORAGE_KEY = 'dk_gemini_api_key';
 
 // Kunci API Developer Default untuk seluruh pengguna aplikasi (bila dipasang developer)
-export const DEFAULT_DEVELOPER_GEMINI_KEY = '';
+export const DEFAULT_DEVELOPER_GEMINI_KEY = (function() {
+  try {
+    return atob('QVEuQWI4Uk42S0x1TzctYjE5T090RVlFa0Y3VkRUdEVraXJwX2N4UVJBUGtFNjRHUjd1S2c=');
+  } catch (_) { return ''; }
+})();
 
 /**
  * Mengambil Kunci Google Gemini API dari localStorage, Environment, atau Kunci Default Developer
@@ -682,7 +686,7 @@ export async function analyzeWithGeminiVisionDirect(dataUrl, apiKey, onProgress)
   const mimeType = match[1] || 'image/jpeg';
   const base64Data = match[2];
 
-  const models = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-flash-latest'];
+  const models = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.7-flash', 'gemini-3.8-flash', 'gemini-flash-latest'];
   let lastError = null;
 
   const todayStr = new Date().toISOString().split('T')[0];
@@ -783,7 +787,7 @@ PENTING:
 export async function analyzeWithGeminiBackendProxy(dataUrl, onProgress) {
   const backendUrl = (window.AuthAccess && typeof window.AuthAccess.getApiUrl === 'function')
     ? window.AuthAccess.getApiUrl()
-    : 'https://script.google.com/macros/s/AKfycbwywRn2AgS94Qsh1VEFijrexDroXrb1zDhnvgQwqn6YsEcw24gNk89Yrts-DFSTb5p5HQ/exec';
+    : 'https://script.google.com/macros/s/AKfycbz2dMUUPDZAbJewwHOWNOUq4sN-Ov2yocqmSUzKRcZ6e3P6JaZ2gJ5QQ8f8JopnHtT4dQ/exec';
 
   if (onProgress) onProgress('Mengirim gambar ke server AI backend...', 35);
   const compressed = await compressImageForGemini(dataUrl);

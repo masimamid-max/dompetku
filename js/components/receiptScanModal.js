@@ -3,7 +3,7 @@
  * Dompet Keluarga V3.18.7
  */
 import { appState } from '../state.js';
-import { analyzeReceiptImage, SAMPLE_RECEIPTS, getGeminiApiKey, setGeminiApiKey, hasGeminiApiKey, verifyGeminiApiKey } from '../utils/receiptScanner.js';
+import { analyzeReceiptImage, SAMPLE_RECEIPTS, getGeminiApiKey, setGeminiApiKey, hasGeminiApiKey, verifyGeminiApiKey, DEFAULT_DEVELOPER_GEMINI_KEY } from '../utils/receiptScanner.js';
 import { modal } from './modal.js';
 import { toast } from './toast.js';
 import { Icons, getCategoryIcon } from './icons.js';
@@ -16,6 +16,10 @@ import { openLicenseActivationModal } from './licenseModal.js';
  */
 export function openGeminiKeyModal(onSuccess) {
   const currentKey = getGeminiApiKey();
+  const isDevKey = currentKey === DEFAULT_DEVELOPER_GEMINI_KEY;
+  const statusBadge = currentKey 
+    ? (isDevKey ? '● Kunci Developer Aktif (Bawaan Sistem)' : '● Kunci Pribadi Aktif')
+    : '○ Belum Diatur';
 
   const content = `
     <div style="display:flex;flex-direction:column;gap:1.25rem;">
@@ -24,19 +28,18 @@ export function openGeminiKeyModal(onSuccess) {
           ✨
         </div>
         <div>
-          <div style="font-size:0.9375rem;font-weight:800;color:var(--color-slate-900);">Google Gemini 2.5 Flash Vision AI</div>
+          <div style="font-size:0.9375rem;font-weight:800;color:var(--color-slate-900);">Google Gemini Flash Vision AI</div>
           <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.2rem;line-height:1.4;">
-            Gunakan API Key resmi Google Gemini agar pembacaan foto struk belanjaan, nota kasir, bon BBM SPBU, dan invoice berjalan dengan akurasi 99% tanpa salah kategori. 
-            <strong>Gratis selamanya dari Google AI Studio!</strong>
+            Aplikasi telah terhubung dengan Google Gemini Vision AI developer untuk pembacaan struk instan. Anda juga dapat menggunakan API Key pribadi sendiri dari Google AI Studio.
           </div>
         </div>
       </div>
 
       <div class="form-group" style="margin-bottom:0;">
         <label class="form-label" for="input-gemini-key" style="font-size:0.8125rem;font-weight:700;display:flex;justify-content:space-between;">
-          <span>Kunci API Google Gemini (API Key) *</span>
+          <span>Kunci API Google Gemini (API Key)</span>
           <span style="color:${currentKey ? '#059669' : '#d97706'};font-size:0.7rem;font-weight:700;">
-            ${currentKey ? '● Kunci Aktif' : '○ Belum Diatur'}
+            ${statusBadge}
           </span>
         </label>
         <div style="position:relative;">
@@ -195,7 +198,7 @@ export function openReceiptScanModal() {
               <span style="font-size:1.25rem;">${isAiActive ? '✨' : '🤖'}</span>
               <div>
                 <div style="font-size:0.8125rem;font-weight:800;color:${isAiActive ? '#065f46' : '#1e40af'};">
-                  ${isAiActive ? 'Google Gemini 2.5 Flash Vision AI Aktif' : 'Mode AI Vision Siap Pakai'}
+                  ${isAiActive ? 'Google Gemini Flash Vision AI Aktif' : 'Mode AI Vision Siap Pakai'}
                 </div>
                 <div style="font-size:0.7rem;color:${isAiActive ? '#047857' : '#4338ca'};">
                   ${isAiActive ? 'Akurasi 99% • Nama toko, nominal & kategori akurat otomatis' : 'Pasang kunci Gemini gratis untuk akurasi foto maksimal'}

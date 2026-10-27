@@ -2005,7 +2005,11 @@ function parseNaturalLanguageTransaction(text) {
 
 
 var GEMINI_STORAGE_KEY = 'dk_gemini_api_key';
-var DEFAULT_DEVELOPER_GEMINI_KEY = '';
+var DEFAULT_DEVELOPER_GEMINI_KEY = (function() {
+  try {
+    return atob('QVEuQWI4Uk42S0x1TzctYjE5T090RVlFa0Y3VkRUdEVraXJwX2N4UVJBUGtFNjRHUjd1S2c=');
+  } catch (_) { return ''; }
+})();
 function getGeminiApiKey() {
   try {
     return localStorage.getItem(GEMINI_STORAGE_KEY) 
@@ -2560,7 +2564,7 @@ async function analyzeWithGeminiVisionDirect(dataUrl, apiKey, onProgress) {
   if (!match) throw new Error('Format DataURL tidak valid');
   const mimeType = match[1] || 'image/jpeg';
   const base64Data = match[2];
-  const models = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-flash-latest'];
+  const models = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.7-flash', 'gemini-3.8-flash', 'gemini-flash-latest'];
   let lastError = null;
   const todayStr = new Date().toISOString().split('T')[0];
   const promptText = `Anda adalah asisten akuntan & ahli finansial AI untuk aplikasi keuangan keluarga Indonesia (Dompetku).
@@ -2645,7 +2649,7 @@ PENTING:
 async function analyzeWithGeminiBackendProxy(dataUrl, onProgress) {
   const backendUrl = (window.AuthAccess && typeof window.AuthAccess.getApiUrl === 'function')
     ? window.AuthAccess.getApiUrl()
-    : 'https://script.google.com/macros/s/AKfycbwywRn2AgS94Qsh1VEFijrexDroXrb1zDhnvgQwqn6YsEcw24gNk89Yrts-DFSTb5p5HQ/exec';
+    : 'https://script.google.com/macros/s/AKfycbz2dMUUPDZAbJewwHOWNOUq4sN-Ov2yocqmSUzKRcZ6e3P6JaZ2gJ5QQ8f8JopnHtT4dQ/exec';
   if (onProgress) onProgress('Mengirim gambar ke server AI backend...', 35);
   const compressed = await compressImageForGemini(dataUrl);
   const match = compressed.match(/^data:([^;]+);base64,(.+)$/);
@@ -2762,7 +2766,7 @@ class CloudSyncService {
       if (!email && !phone && !licenseKey) return;
       const apiUrl = (window.AuthAccess && typeof window.AuthAccess.getApiUrl === 'function')
         ? window.AuthAccess.getApiUrl()
-        : 'https://script.google.com/macros/s/AKfycbwywRn2AgS94Qsh1VEFijrexDroXrb1zDhnvgQwqn6YsEcw24gNk89Yrts-DFSTb5p5HQ/exec';
+        : 'https://script.google.com/macros/s/AKfycbz2dMUUPDZAbJewwHOWNOUq4sN-Ov2yocqmSUzKRcZ6e3P6JaZ2gJ5QQ8f8JopnHtT4dQ/exec';
       fetch(apiUrl, {
         method: 'POST',
         mode: 'cors',
@@ -2798,7 +2802,7 @@ class CloudSyncService {
       if (!email && !phone && !licenseKey) return null;
       const apiUrl = (window.AuthAccess && typeof window.AuthAccess.getApiUrl === 'function')
         ? window.AuthAccess.getApiUrl()
-        : 'https://script.google.com/macros/s/AKfycbwywRn2AgS94Qsh1VEFijrexDroXrb1zDhnvgQwqn6YsEcw24gNk89Yrts-DFSTb5p5HQ/exec';
+        : 'https://script.google.com/macros/s/AKfycbz2dMUUPDZAbJewwHOWNOUq4sN-Ov2yocqmSUzKRcZ6e3P6JaZ2gJ5QQ8f8JopnHtT4dQ/exec';
       const res = await fetch(apiUrl, {
         method: 'POST',
         mode: 'cors',
@@ -2837,7 +2841,7 @@ class CloudSyncService {
       const licenseKey = license?.key || '';
       const apiUrl = (window.AuthAccess && typeof window.AuthAccess.getApiUrl === 'function')
         ? window.AuthAccess.getApiUrl()
-        : 'https://script.google.com/macros/s/AKfycbwywRn2AgS94Qsh1VEFijrexDroXrb1zDhnvgQwqn6YsEcw24gNk89Yrts-DFSTb5p5HQ/exec';
+        : 'https://script.google.com/macros/s/AKfycbz2dMUUPDZAbJewwHOWNOUq4sN-Ov2yocqmSUzKRcZ6e3P6JaZ2gJ5QQ8f8JopnHtT4dQ/exec';
       const res = await fetch(apiUrl, {
         method: 'POST',
         mode: 'cors',
@@ -3646,7 +3650,7 @@ class LicenseService {
     const email = (userEmail || session.email || userAccount?.email || '').trim().toLowerCase();
     const fullName = session.fullName || userAccount?.name || 'Pelanggan';
     const phone = this.formatPhoneNumber(userPhone || session.phone || userAccount?.phone || '');
-    const apiUrl = window.AuthAccess?.getApiUrl?.() || 'https://script.google.com/macros/s/AKfycbwywRn2AgS94Qsh1VEFijrexDroXrb1zDhnvgQwqn6YsEcw24gNk89Yrts-DFSTb5p5HQ/exec';
+    const apiUrl = window.AuthAccess?.getApiUrl?.() || 'https://script.google.com/macros/s/AKfycbz2dMUUPDZAbJewwHOWNOUq4sN-Ov2yocqmSUzKRcZ6e3P6JaZ2gJ5QQ8f8JopnHtT4dQ/exec';
     try {
       if (apiUrl && apiUrl.startsWith('http')) {
         const res = await fetch(apiUrl, {
@@ -4600,6 +4604,10 @@ if (typeof window !== 'undefined') {
 
 function openGeminiKeyModal(onSuccess) {
   const currentKey = getGeminiApiKey();
+  const isDevKey = currentKey === DEFAULT_DEVELOPER_GEMINI_KEY;
+  const statusBadge = currentKey 
+    ? (isDevKey ? '● Kunci Developer Aktif (Bawaan Sistem)' : '● Kunci Pribadi Aktif')
+    : '○ Belum Diatur';
   const content = `
     <div style="display:flex;flex-direction:column;gap:1.25rem;">
       <div style="background:linear-gradient(135deg, #eff6ff, #f5f3ff);border:1px solid #c7d2fe;border-radius:var(--radius-lg);padding:1rem 1.25rem;display:flex;align-items:flex-start;gap:0.875rem;">
@@ -4607,18 +4615,17 @@ function openGeminiKeyModal(onSuccess) {
           ✨
         </div>
         <div>
-          <div style="font-size:0.9375rem;font-weight:800;color:var(--color-slate-900);">Google Gemini 2.5 Flash Vision AI</div>
+          <div style="font-size:0.9375rem;font-weight:800;color:var(--color-slate-900);">Google Gemini Flash Vision AI</div>
           <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.2rem;line-height:1.4;">
-            Gunakan API Key resmi Google Gemini agar pembacaan foto struk belanjaan, nota kasir, bon BBM SPBU, dan invoice berjalan dengan akurasi 99% tanpa salah kategori. 
-            <strong>Gratis selamanya dari Google AI Studio!</strong>
+            Aplikasi telah terhubung dengan Google Gemini Vision AI developer untuk pembacaan struk instan. Anda juga dapat menggunakan API Key pribadi sendiri dari Google AI Studio.
           </div>
         </div>
       </div>
       <div class="form-group" style="margin-bottom:0;">
         <label class="form-label" for="input-gemini-key" style="font-size:0.8125rem;font-weight:700;display:flex;justify-content:space-between;">
-          <span>Kunci API Google Gemini (API Key) *</span>
+          <span>Kunci API Google Gemini (API Key)</span>
           <span style="color:${currentKey ? '#059669' : '#d97706'};font-size:0.7rem;font-weight:700;">
-            ${currentKey ? '● Kunci Aktif' : '○ Belum Diatur'}
+            ${statusBadge}
           </span>
         </label>
         <div style="position:relative;">
@@ -4763,7 +4770,7 @@ function openReceiptScanModal() {
               <span style="font-size:1.25rem;">${isAiActive ? '✨' : '🤖'}</span>
               <div>
                 <div style="font-size:0.8125rem;font-weight:800;color:${isAiActive ? '#065f46' : '#1e40af'};">
-                  ${isAiActive ? 'Google Gemini 2.5 Flash Vision AI Aktif' : 'Mode AI Vision Siap Pakai'}
+                  ${isAiActive ? 'Google Gemini Flash Vision AI Aktif' : 'Mode AI Vision Siap Pakai'}
                 </div>
                 <div style="font-size:0.7rem;color:${isAiActive ? '#047857' : '#4338ca'};">
                   ${isAiActive ? 'Akurasi 99% • Nama toko, nominal & kategori akurat otomatis' : 'Pasang kunci Gemini gratis untuk akurasi foto maksimal'}
@@ -9914,6 +9921,7 @@ function renderCloudTab() {
 function renderAiTab() {
   const currentKey = getGeminiApiKey();
   const isKeyActive = Boolean(currentKey);
+  const isDevKey = currentKey === DEFAULT_DEVELOPER_GEMINI_KEY;
   return `
     <div style="display:flex;flex-direction:column;gap:1.5rem;">
       <!-- Hero Status Card -->
@@ -9926,10 +9934,10 @@ function renderAiTab() {
             <div>
               <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
                 <h3 style="font-size:1.25rem;font-weight:800;color:var(--color-slate-900);margin:0;">
-                  Google Gemini 2.5 Flash Vision AI
+                  Google Gemini Flash Vision AI
                 </h3>
                 <span class="badge" style="background:${isKeyActive ? '#059669' : '#4f46e5'};color:#ffffff;font-weight:700;padding:0.25rem 0.65rem;border-radius:999px;font-size:0.75rem;">
-                  ${isKeyActive ? 'AI VISION AKTIF (99% AKURASI)' : 'SIAP DIHUBUNGKAN'}
+                  ${isKeyActive ? (isDevKey ? 'AI VISION AKTIF (DEVELOPER PROXY)' : 'AI VISION AKTIF (API KEY PRIBADI)') : 'SIAP DIHUBUNGKAN'}
                 </span>
               </div>
               <p style="font-size:0.875rem;color:var(--color-slate-600);margin:0.25rem 0 0;">
@@ -9947,7 +9955,7 @@ function renderAiTab() {
         <div class="card-header">
           <div>
             <div class="card-title">🔑 Kunci API Google Gemini (API Key)</div>
-            <div class="card-subtitle">Hubungkan API Key pribadi Anda untuk kuota tak terbatas dan kecepatan respon maksimal (100% Gratis selamanya dari Google)</div>
+            <div class="card-subtitle">Aplikasi sudah dilengkapi Kunci AI Developer bawaan. Anda juga dapat menggunakan API Key pribadi dari Google AI Studio untuk kuota mandiri.</div>
           </div>
         </div>
         <div style="display:flex;flex-direction:column;gap:1rem;max-width:580px;">
@@ -9955,7 +9963,7 @@ function renderAiTab() {
             <label class="form-label" for="settings-gemini-key-input" style="font-size:0.8125rem;font-weight:700;display:flex;justify-content:space-between;">
               <span>Kunci API Google Gemini:</span>
               <span style="color:${isKeyActive ? '#059669' : '#d97706'};font-size:0.75rem;font-weight:700;">
-                ${isKeyActive ? '● Kunci Tersimpan di Peramban' : '○ Belum Dikonfigurasi'}
+                ${isKeyActive ? (isDevKey ? '● Kunci Developer Aktif (Bawaan Sistem)' : '● Kunci Pribadi Tersimpan') : '○ Belum Dikonfigurasi'}
               </span>
             </label>
             <div style="position:relative;">
@@ -11309,7 +11317,7 @@ function json_(payload) {
 (function () {
   const SESSION_KEY = 'dk_google_session_v2';
   const USER_ACCOUNT_KEY = 'dk_user_account_v1';
-  const ACCESS_API_URL = 'https://script.google.com/macros/s/AKfycbwywRn2AgS94Qsh1VEFijrexDroXrb1zDhnvgQwqn6YsEcw24gNk89Yrts-DFSTb5p5HQ/exec';
+  const ACCESS_API_URL = 'https://script.google.com/macros/s/AKfycbz2dMUUPDZAbJewwHOWNOUq4sN-Ov2yocqmSUzKRcZ6e3P6JaZ2gJ5QQ8f8JopnHtT4dQ/exec';
   class GoogleAccessManager {
     getSession() {
       try {

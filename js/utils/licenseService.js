@@ -88,7 +88,7 @@ export class LicenseService {
     const phone = this.formatPhoneNumber(userPhone || session.phone || userAccount?.phone || '');
 
     // 1. Verifikasi Online Aman ke Backend Developer (Kunci Master & Kunci Pembeli)
-    const apiUrl = window.AuthAccess?.getApiUrl?.() || 'https://script.google.com/macros/s/AKfycbwywRn2AgS94Qsh1VEFijrexDroXrb1zDhnvgQwqn6YsEcw24gNk89Yrts-DFSTb5p5HQ/exec';
+    const apiUrl = window.AuthAccess?.getApiUrl?.() || 'https://script.google.com/macros/s/AKfycbz2dMUUPDZAbJewwHOWNOUq4sN-Ov2yocqmSUzKRcZ6e3P6JaZ2gJ5QQ8f8JopnHtT4dQ/exec';
     
     try {
       if (apiUrl && apiUrl.startsWith('http')) {
