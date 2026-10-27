@@ -2005,11 +2005,15 @@ function parseNaturalLanguageTransaction(text) {
 
 
 var GEMINI_STORAGE_KEY = 'dk_gemini_api_key';
+var DEFAULT_DEVELOPER_GEMINI_KEY = '';
 function getGeminiApiKey() {
   try {
-    return localStorage.getItem(GEMINI_STORAGE_KEY) || (window.ENV && window.ENV.GEMINI_API_KEY) || '';
+    return localStorage.getItem(GEMINI_STORAGE_KEY) 
+      || (window.ENV && window.ENV.GEMINI_API_KEY) 
+      || DEFAULT_DEVELOPER_GEMINI_KEY 
+      || '';
   } catch (_) {
-    return '';
+    return DEFAULT_DEVELOPER_GEMINI_KEY || '';
   }
 }
 function setGeminiApiKey(key) {

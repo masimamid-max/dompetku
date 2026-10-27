@@ -12,14 +12,20 @@ import { appState } from '../state.js';
 
 export const GEMINI_STORAGE_KEY = 'dk_gemini_api_key';
 
+// Kunci API Developer Default untuk seluruh pengguna aplikasi (bila dipasang developer)
+export const DEFAULT_DEVELOPER_GEMINI_KEY = '';
+
 /**
- * Mengambil Kunci Google Gemini API dari localStorage atau Environment
+ * Mengambil Kunci Google Gemini API dari localStorage, Environment, atau Kunci Default Developer
  */
 export function getGeminiApiKey() {
   try {
-    return localStorage.getItem(GEMINI_STORAGE_KEY) || (window.ENV && window.ENV.GEMINI_API_KEY) || '';
+    return localStorage.getItem(GEMINI_STORAGE_KEY) 
+      || (window.ENV && window.ENV.GEMINI_API_KEY) 
+      || DEFAULT_DEVELOPER_GEMINI_KEY 
+      || '';
   } catch (_) {
-    return '';
+    return DEFAULT_DEVELOPER_GEMINI_KEY || '';
   }
 }
 
