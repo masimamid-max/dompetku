@@ -2585,8 +2585,13 @@ async function analyzeWithGeminiVisionDirect(dataUrl, apiKey, onProgress) {
   const compressed = await compressImageForGemini(dataUrl);
   const match = compressed.match(/^data:([^;]+);base64,(.+)$/);
   if (!match) throw new Error('Format DataURL tidak valid');
-  const mimeType = match[1] || 'image/jpeg';
+  let mimeType = (match[1] || 'image/jpeg').toLowerCase();
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(mimeType)) {
+    mimeType = 'image/jpeg';
+  }
   const base64Data = match[2];
+  const keyToUse = (apiKey && apiKey.trim()) || DEFAULT_DEVELOPER_GEMINI_KEY;
+  if (!keyToUse) throw new Error('Kunci API Gemini tidak tersedia');
   const models = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.1-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.6-flash', 'gemini-flash-latest'];
   let lastError = null;
   const todayStr = new Date().toISOString().split('T')[0];
@@ -2628,16 +2633,16 @@ PENTING:
   for (let i = 0; i < models.length; i++) {
     const model = models[i];
     try {
-      if (onProgress) onProgress(`Menganalisis foto dengan Google Gemini (${model})...`, 40 + i * 15);
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey.trim())}`;
+      if (onProgress) onProgress(`Menganalisis foto dengan Google Gemini (${model})...`, 40 + i * 12);
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(keyToUse.trim())}`;
       const payload = {
         contents: [
           {
             parts: [
               { text: promptText },
               {
-                inline_data: {
-                  mime_type: mimeType,
+                inlineData: {
+                  mimeType: mimeType,
                   data: base64Data
                 }
               }
@@ -2649,11 +2654,15 @@ PENTING:
           temperature: 0.1
         }
       };
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 18000);
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
+        signal: controller.signal
       });
+      clearTimeout(timer);
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}));
         throw new Error(`Google API Error (${res.status}): ${errJson?.error?.message || res.statusText}`);
@@ -2666,7 +2675,7 @@ PENTING:
       if (onProgress) onProgress('Menyelaraskan data struk dengan dompet...', 90);
       return formatGeminiResult(parsed, dataUrl, `Google Gemini AI (${model})`);
     } catch (err) {
-      console.warn(`Gagal memanggil model ${model}:`, err);
+      console.warn(`[Gemini Vision] Model ${model} gagal:`, err);
       lastError = err;
     }
   }
@@ -4824,6 +4833,13 @@ function openReceiptScanModal() {
             </label>
             <input type="file" id="receipt-file-picker" accept="image/*" capture="environment" style="display:none;" />
           </div>
+          <!-- Quick Refresh Helper for Mobile Cache -->
+          <div style="display:flex;align-items:center;justify-content:center;gap:0.4rem;font-size:0.75rem;background:#f8fafc;padding:0.5rem;border-radius:var(--radius-md);border:1px dashed #cbd5e1;">
+            <span style="color:var(--text-muted);">Jika versi aplikasi belum terbaru di HP:</span>
+            <button type="button" id="btn-force-cache-clear" style="background:none;border:none;color:#2563eb;font-weight:700;cursor:pointer;text-decoration:underline;padding:0;font-size:0.75rem;">
+              🔄 Bersihkan Cache & Paksa Versi Terbaru
+            </button>
+          </div>
           <!-- Quick Sample Receipts for Fast Testing -->
           <div>
             <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:0.625rem;display:flex;align-items:center;gap:0.375rem;">
@@ -5211,6 +5227,30 @@ function openReceiptScanModal() {
           openGeminiKeyModal(() => {
             updateModal();
           });
+        };
+      }
+      const clearBtn = document.getElementById('btn-force-cache-clear');
+      if (clearBtn) {
+        clearBtn.onclick = async () => {
+          toast.info('Membersihkan cache aplikasi & service worker...');
+          try {
+            if ('serviceWorker' in navigator) {
+              const regs = await navigator.serviceWorker.getRegistrations();
+              for (const reg of regs) {
+                await reg.unregister();
+              }
+            }
+            if ('caches' in window) {
+              const keys = await caches.keys();
+              await Promise.all(keys.map(k => caches.delete(k)));
+            }
+            localStorage.removeItem('dk_gemini_api_key');
+            setTimeout(() => {
+              window.location.reload(true);
+            }, 300);
+          } catch (_) {
+            window.location.reload(true);
+          }
         };
       }
     }

@@ -224,6 +224,14 @@ export function openReceiptScanModal() {
             <input type="file" id="receipt-file-picker" accept="image/*" capture="environment" style="display:none;" />
           </div>
 
+          <!-- Quick Refresh Helper for Mobile Cache -->
+          <div style="display:flex;align-items:center;justify-content:center;gap:0.4rem;font-size:0.75rem;background:#f8fafc;padding:0.5rem;border-radius:var(--radius-md);border:1px dashed #cbd5e1;">
+            <span style="color:var(--text-muted);">Jika versi aplikasi belum terbaru di HP:</span>
+            <button type="button" id="btn-force-cache-clear" style="background:none;border:none;color:#2563eb;font-weight:700;cursor:pointer;text-decoration:underline;padding:0;font-size:0.75rem;">
+              🔄 Bersihkan Cache & Paksa Versi Terbaru
+            </button>
+          </div>
+
           <!-- Quick Sample Receipts for Fast Testing -->
           <div>
             <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:0.625rem;display:flex;align-items:center;gap:0.375rem;">
@@ -660,6 +668,32 @@ export function openReceiptScanModal() {
           openGeminiKeyModal(() => {
             updateModal();
           });
+        };
+      }
+
+      // Force Clear Cache Button
+      const clearBtn = document.getElementById('btn-force-cache-clear');
+      if (clearBtn) {
+        clearBtn.onclick = async () => {
+          toast.info('Membersihkan cache aplikasi & service worker...');
+          try {
+            if ('serviceWorker' in navigator) {
+              const regs = await navigator.serviceWorker.getRegistrations();
+              for (const reg of regs) {
+                await reg.unregister();
+              }
+            }
+            if ('caches' in window) {
+              const keys = await caches.keys();
+              await Promise.all(keys.map(k => caches.delete(k)));
+            }
+            localStorage.removeItem('dk_gemini_api_key');
+            setTimeout(() => {
+              window.location.reload(true);
+            }, 300);
+          } catch (_) {
+            window.location.reload(true);
+          }
         };
       }
     }

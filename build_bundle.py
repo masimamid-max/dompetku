@@ -80,8 +80,14 @@ def build():
     
     with open("bundle.js", "w", encoding="utf-8") as f:
         f.write(output)
+
+    with open("js/bundle.latest.js", "w", encoding="utf-8") as f:
+        f.write(output)
+
+    with open("bundle.latest.js", "w", encoding="utf-8") as f:
+        f.write(output)
     
-    print(f"Successfully generated js/bundle.js and bundle.js ({len(output)} bytes)")
+    print(f"Successfully generated js/bundle.js, bundle.js, js/bundle.latest.js, and bundle.latest.js ({len(output)} bytes)")
 
 if __name__ == "__main__":
     build()

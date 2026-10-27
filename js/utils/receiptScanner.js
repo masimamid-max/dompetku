@@ -716,8 +716,14 @@ export async function analyzeWithGeminiVisionDirect(dataUrl, apiKey, onProgress)
 
   const match = compressed.match(/^data:([^;]+);base64,(.+)$/);
   if (!match) throw new Error('Format DataURL tidak valid');
-  const mimeType = match[1] || 'image/jpeg';
+  let mimeType = (match[1] || 'image/jpeg').toLowerCase();
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(mimeType)) {
+    mimeType = 'image/jpeg';
+  }
   const base64Data = match[2];
+
+  const keyToUse = (apiKey && apiKey.trim()) || DEFAULT_DEVELOPER_GEMINI_KEY;
+  if (!keyToUse) throw new Error('Kunci API Gemini tidak tersedia');
 
   // Daftar model aktif yang terverifikasi responsif & mendukung generateContent gambar
   const models = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.1-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.6-flash', 'gemini-flash-latest'];
@@ -765,17 +771,17 @@ PENTING:
   for (let i = 0; i < models.length; i++) {
     const model = models[i];
     try {
-      if (onProgress) onProgress(`Menganalisis foto dengan Google Gemini (${model})...`, 40 + i * 15);
+      if (onProgress) onProgress(`Menganalisis foto dengan Google Gemini (${model})...`, 40 + i * 12);
 
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey.trim())}`;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(keyToUse.trim())}`;
       const payload = {
         contents: [
           {
             parts: [
               { text: promptText },
               {
-                inline_data: {
-                  mime_type: mimeType,
+                inlineData: {
+                  mimeType: mimeType,
                   data: base64Data
                 }
               }
@@ -788,11 +794,16 @@ PENTING:
         }
       };
 
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 18000);
+
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
+        signal: controller.signal
       });
+      clearTimeout(timer);
 
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}));
@@ -810,7 +821,7 @@ PENTING:
 
       return formatGeminiResult(parsed, dataUrl, `Google Gemini AI (${model})`);
     } catch (err) {
-      console.warn(`Gagal memanggil model ${model}:`, err);
+      console.warn(`[Gemini Vision] Model ${model} gagal:`, err);
       lastError = err;
     }
   }
