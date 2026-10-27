@@ -1,18 +1,20 @@
 /**
  * Dompet Keluarga Service Worker (PWA Offline First)
  */
-const CACHE_NAME = 'dompetku-v3.18.12-bundle-latest';
+const CACHE_NAME = 'dompetku-v3.18.15-gemini-final';
 
 const STATIC_ASSETS = [
   './',
   './index.html',
   './manifest.json',
-  './css/tokens.css?v=20261027_1430',
-  './css/layout.css?v=20261027_1430',
-  './css/components.css?v=20261027_1430',
-  './css/pages.css?v=20261027_1430',
-  './js/bundle.latest.js?v=20261027_1430',
-  './bundle.latest.js?v=20261027_1430',
+  './css/tokens.css?v=20261027_1530',
+  './css/layout.css?v=20261027_1530',
+  './css/components.css?v=20261027_1530',
+  './css/pages.css?v=20261027_1530',
+  './js/bundle.latest.js?v=20261027_1530',
+  './bundle.latest.js?v=20261027_1530',
+  './js/bundle.js?v=20261027_1530',
+  './bundle.js?v=20261027_1530',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/apple-touch-icon.png',
@@ -48,8 +50,12 @@ self.addEventListener('activate', (event) => {
 
 // Fetch Event: Network first with Cache fallback for real-time fresh data
 self.addEventListener('fetch', (event) => {
-  // Ignore non-GET requests or Google Apps Script external API calls
-  if (event.request.method !== 'GET' || event.request.url.includes('script.google.com')) {
+  // Ignore non-GET requests, Google Apps Script, or Gemini API calls
+  if (
+    event.request.method !== 'GET' || 
+    event.request.url.includes('script.google.com') ||
+    event.request.url.includes('generativelanguage.googleapis.com')
+  ) {
     return;
   }
 

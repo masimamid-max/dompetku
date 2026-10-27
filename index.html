@@ -27,11 +27,29 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
 
+  <script>
+    // Force cache purge if older version detected
+    (function() {
+      var CURRENT_BUILD = '20261027_1530';
+      var savedBuild = localStorage.getItem('dk_build_version');
+      if (savedBuild !== CURRENT_BUILD) {
+        if ('caches' in window) {
+          caches.keys().then(function(names) {
+            names.forEach(function(name) {
+              if (!name.includes('v3.18.15')) caches.delete(name);
+            });
+          });
+        }
+        localStorage.setItem('dk_build_version', CURRENT_BUILD);
+      }
+    })();
+  </script>
+
   <!-- Core & Component Stylesheets with Cache Buster -->
-  <link rel="stylesheet" href="css/tokens.css?v=20261027_1430">
-  <link rel="stylesheet" href="css/layout.css?v=20261027_1430">
-  <link rel="stylesheet" href="css/components.css?v=20261027_1430">
-  <link rel="stylesheet" href="css/pages.css?v=20261027_1430">
+  <link rel="stylesheet" href="css/tokens.css?v=20261027_1530">
+  <link rel="stylesheet" href="css/layout.css?v=20261027_1530">
+  <link rel="stylesheet" href="css/components.css?v=20261027_1530">
+  <link rel="stylesheet" href="css/pages.css?v=20261027_1530">
 </head>
 <body>
   <!-- App Root Shell -->
@@ -70,7 +88,7 @@
   </script>
 
   <!-- Single Unified Production Bundle with Cache Buster -->
-  <script src="js/bundle.latest.js?v=20261027_1430" onerror="this.onerror=null;this.src='bundle.latest.js?v=20261027_1430';"></script>
+  <script src="js/bundle.js?v=20261027_1530" onerror="this.onerror=null;this.src='bundle.js?v=20261027_1530';"></script>
 
   <!-- PWA Service Worker Registration -->
   <script>

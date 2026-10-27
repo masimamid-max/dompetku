@@ -3,20 +3,20 @@
 # ==============================================================================
 # Block all direct public downloads of sensitive source files, scripts and backups
 
-/dokumen /404 404
-/dokumen/* /404 404
-/dokumen.html /404 404
-/*.zip /404 404
-/*.tar.gz /404 404
-/*.gs /404 404
-/*.py /404 404
-/*.sh /404 404
-/*.md /404 404
-/*.txt /404 404
-/DOKUMEN* /404 404
-/backend/* /404 404
-/.private_backups/* /404 404
-/.git/* /404 404
-/Dockerfile /404 404
-/docker-compose.yml /404 404
-/nginx.conf /404 404
+/dokumen/*          /404.html  200
+/dokumen            /404.html  200
+/dokumen.html       /404.html  200
+/backend/*          /404.html  200
+/.git/*             /404.html  200
+/.private_backups/* /404.html  200
+/*.zip              /404.html  200
+/*.tar.gz           /404.html  200
+/*.gs               /404.html  200
+/*.py               /404.html  200
+/*.sh               /404.html  200
+/*.md               /404.html  200
+/*.txt              /404.html  200
+/Dockerfile         /404.html  200
+/docker-compose.yml /404.html  200
+/nginx.conf         /404.html  200
+
