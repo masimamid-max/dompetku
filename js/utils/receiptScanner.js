@@ -824,7 +824,7 @@ PENTING:
 export async function analyzeWithGeminiBackendProxy(dataUrl, onProgress) {
   const backendUrl = (window.AuthAccess && typeof window.AuthAccess.getApiUrl === 'function')
     ? window.AuthAccess.getApiUrl()
-    : 'https://script.google.com/macros/s/AKfycbyVJSZGiYWbtrFQ1CrnoU6NrHSEwAal3j1pBS0yRsZ5P9mAYPzXyuSrQDSFj6r1vB4AlA/exec';
+    : 'https://script.google.com/macros/s/AKfycby-npF-sKZ2I-FArt1zhCVcAxQro5U96OGcJzGrKbuIaO4scvFF9xPBHRRxTj6PS8XIaw/exec';
 
   if (onProgress) onProgress('Mengirim gambar ke server AI backend...', 35);
   const compressed = await compressImageForGemini(dataUrl);

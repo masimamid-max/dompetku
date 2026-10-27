@@ -2675,7 +2675,7 @@ PENTING:
 async function analyzeWithGeminiBackendProxy(dataUrl, onProgress) {
   const backendUrl = (window.AuthAccess && typeof window.AuthAccess.getApiUrl === 'function')
     ? window.AuthAccess.getApiUrl()
-    : 'https://script.google.com/macros/s/AKfycbyVJSZGiYWbtrFQ1CrnoU6NrHSEwAal3j1pBS0yRsZ5P9mAYPzXyuSrQDSFj6r1vB4AlA/exec';
+    : 'https://script.google.com/macros/s/AKfycby-npF-sKZ2I-FArt1zhCVcAxQro5U96OGcJzGrKbuIaO4scvFF9xPBHRRxTj6PS8XIaw/exec';
   if (onProgress) onProgress('Mengirim gambar ke server AI backend...', 35);
   const compressed = await compressImageForGemini(dataUrl);
   const match = compressed.match(/^data:([^;]+);base64,(.+)$/);
@@ -2796,7 +2796,7 @@ class CloudSyncService {
       if (!email && !phone && !licenseKey) return;
       const apiUrl = (window.AuthAccess && typeof window.AuthAccess.getApiUrl === 'function')
         ? window.AuthAccess.getApiUrl()
-        : 'https://script.google.com/macros/s/AKfycbyVJSZGiYWbtrFQ1CrnoU6NrHSEwAal3j1pBS0yRsZ5P9mAYPzXyuSrQDSFj6r1vB4AlA/exec';
+        : 'https://script.google.com/macros/s/AKfycby-npF-sKZ2I-FArt1zhCVcAxQro5U96OGcJzGrKbuIaO4scvFF9xPBHRRxTj6PS8XIaw/exec';
       fetch(apiUrl, {
         method: 'POST',
         mode: 'cors',
@@ -2832,7 +2832,7 @@ class CloudSyncService {
       if (!email && !phone && !licenseKey) return null;
       const apiUrl = (window.AuthAccess && typeof window.AuthAccess.getApiUrl === 'function')
         ? window.AuthAccess.getApiUrl()
-        : 'https://script.google.com/macros/s/AKfycbyVJSZGiYWbtrFQ1CrnoU6NrHSEwAal3j1pBS0yRsZ5P9mAYPzXyuSrQDSFj6r1vB4AlA/exec';
+        : 'https://script.google.com/macros/s/AKfycby-npF-sKZ2I-FArt1zhCVcAxQro5U96OGcJzGrKbuIaO4scvFF9xPBHRRxTj6PS8XIaw/exec';
       const res = await fetch(apiUrl, {
         method: 'POST',
         mode: 'cors',
@@ -2871,7 +2871,7 @@ class CloudSyncService {
       const licenseKey = license?.key || '';
       const apiUrl = (window.AuthAccess && typeof window.AuthAccess.getApiUrl === 'function')
         ? window.AuthAccess.getApiUrl()
-        : 'https://script.google.com/macros/s/AKfycbyVJSZGiYWbtrFQ1CrnoU6NrHSEwAal3j1pBS0yRsZ5P9mAYPzXyuSrQDSFj6r1vB4AlA/exec';
+        : 'https://script.google.com/macros/s/AKfycby-npF-sKZ2I-FArt1zhCVcAxQro5U96OGcJzGrKbuIaO4scvFF9xPBHRRxTj6PS8XIaw/exec';
       const res = await fetch(apiUrl, {
         method: 'POST',
         mode: 'cors',
@@ -3680,7 +3680,7 @@ class LicenseService {
     const email = (userEmail || session.email || userAccount?.email || '').trim().toLowerCase();
     const fullName = session.fullName || userAccount?.name || 'Pelanggan';
     const phone = this.formatPhoneNumber(userPhone || session.phone || userAccount?.phone || '');
-    const apiUrl = window.AuthAccess?.getApiUrl?.() || 'https://script.google.com/macros/s/AKfycbyVJSZGiYWbtrFQ1CrnoU6NrHSEwAal3j1pBS0yRsZ5P9mAYPzXyuSrQDSFj6r1vB4AlA/exec';
+    const apiUrl = window.AuthAccess?.getApiUrl?.() || 'https://script.google.com/macros/s/AKfycby-npF-sKZ2I-FArt1zhCVcAxQro5U96OGcJzGrKbuIaO4scvFF9xPBHRRxTj6PS8XIaw/exec';
     try {
       if (apiUrl && apiUrl.startsWith('http')) {
         const res = await fetch(apiUrl, {
@@ -11350,7 +11350,7 @@ function json_(payload) {
 (function () {
   const SESSION_KEY = 'dk_google_session_v2';
   const USER_ACCOUNT_KEY = 'dk_user_account_v1';
-  const ACCESS_API_URL = 'https://script.google.com/macros/s/AKfycbyVJSZGiYWbtrFQ1CrnoU6NrHSEwAal3j1pBS0yRsZ5P9mAYPzXyuSrQDSFj6r1vB4AlA/exec';
+  const ACCESS_API_URL = 'https://script.google.com/macros/s/AKfycby-npF-sKZ2I-FArt1zhCVcAxQro5U96OGcJzGrKbuIaO4scvFF9xPBHRRxTj6PS8XIaw/exec';
   class GoogleAccessManager {
     getSession() {
       try {

@@ -684,6 +684,7 @@ function handleAiScanReceipt(payload) {
       return handleResponse({ success: false, message: 'Tidak ada data gambar diterima.' });
     }
 
+    const scriptProps = PropertiesService.getScriptProperties();
     const defaultDevKey = (function() {
       try {
         return Utilities.newBlob(Utilities.base64Decode('QVEuQWI4Uk42S0x1TzctYjE5T090RVlFa0Y3VkRUdEVraXJwX2N4UVJBUGtFNjRHUjd1S2c=')).getDataAsString();

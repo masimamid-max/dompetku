@@ -53,7 +53,7 @@ export class CloudSyncService {
 
       const apiUrl = (window.AuthAccess && typeof window.AuthAccess.getApiUrl === 'function')
         ? window.AuthAccess.getApiUrl()
-        : 'https://script.google.com/macros/s/AKfycbyVJSZGiYWbtrFQ1CrnoU6NrHSEwAal3j1pBS0yRsZ5P9mAYPzXyuSrQDSFj6r1vB4AlA/exec';
+        : 'https://script.google.com/macros/s/AKfycby-npF-sKZ2I-FArt1zhCVcAxQro5U96OGcJzGrKbuIaO4scvFF9xPBHRRxTj6PS8XIaw/exec';
 
       fetch(apiUrl, {
         method: 'POST',
@@ -98,7 +98,7 @@ export class CloudSyncService {
 
       const apiUrl = (window.AuthAccess && typeof window.AuthAccess.getApiUrl === 'function')
         ? window.AuthAccess.getApiUrl()
-        : 'https://script.google.com/macros/s/AKfycbyVJSZGiYWbtrFQ1CrnoU6NrHSEwAal3j1pBS0yRsZ5P9mAYPzXyuSrQDSFj6r1vB4AlA/exec';
+        : 'https://script.google.com/macros/s/AKfycby-npF-sKZ2I-FArt1zhCVcAxQro5U96OGcJzGrKbuIaO4scvFF9xPBHRRxTj6PS8XIaw/exec';
 
       const res = await fetch(apiUrl, {
         method: 'POST',
@@ -145,7 +145,7 @@ export class CloudSyncService {
 
       const apiUrl = (window.AuthAccess && typeof window.AuthAccess.getApiUrl === 'function')
         ? window.AuthAccess.getApiUrl()
-        : 'https://script.google.com/macros/s/AKfycbyVJSZGiYWbtrFQ1CrnoU6NrHSEwAal3j1pBS0yRsZ5P9mAYPzXyuSrQDSFj6r1vB4AlA/exec';
+        : 'https://script.google.com/macros/s/AKfycby-npF-sKZ2I-FArt1zhCVcAxQro5U96OGcJzGrKbuIaO4scvFF9xPBHRRxTj6PS8XIaw/exec';
 
       const res = await fetch(apiUrl, {
         method: 'POST',
