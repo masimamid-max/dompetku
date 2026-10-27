@@ -1,20 +1,20 @@
 /**
  * Dompet Keluarga Service Worker (PWA Offline First)
  */
-const CACHE_NAME = 'dompetku-v3.18.15-gemini-final';
+const CACHE_NAME = 'dompetku-v3.18.16-ui-update';
 
 const STATIC_ASSETS = [
   './',
   './index.html',
   './manifest.json',
-  './css/tokens.css?v=20261027_1530',
-  './css/layout.css?v=20261027_1530',
-  './css/components.css?v=20261027_1530',
-  './css/pages.css?v=20261027_1530',
-  './js/bundle.latest.js?v=20261027_1530',
-  './bundle.latest.js?v=20261027_1530',
-  './js/bundle.js?v=20261027_1530',
-  './bundle.js?v=20261027_1530',
+  './css/tokens.css?v=20261027_2320',
+  './css/layout.css?v=20261027_2320',
+  './css/components.css?v=20261027_2320',
+  './css/pages.css?v=20261027_2320',
+  './js/bundle.latest.js?v=20261027_2320',
+  './bundle.latest.js?v=20261027_2320',
+  './js/bundle.js?v=20261027_2320',
+  './bundle.js?v=20261027_2320',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/apple-touch-icon.png',

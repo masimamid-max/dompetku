@@ -6,7 +6,6 @@ import { openReceiptScanModal } from '../components/receiptScanModal.js';
 import { openAiModal } from '../components/aiModal.js';
 import { openTelegramModal } from '../components/telegramSimulator.js';
 import { openExportModal } from '../components/exportModal.js';
-import { renderPwaBannerHTML, initPwaBannerEvents } from '../components/pwaInstall.js';
 
 export function renderDashboardPage() {
   const metrics = appState.getMonthlyMetrics();
@@ -59,9 +58,6 @@ export function renderDashboardPage() {
           </select>
         </div>
       </div>
-
-      <!-- PWA Mobile Install Banner -->
-      ${renderPwaBannerHTML()}
 
       <!-- Insight Alert Banner -->
       <div class="${insightBannerClass}">
@@ -268,6 +264,4 @@ export function attachDashboardListeners(navigateToTab) {
   if (quickRecordBtn) {
     quickRecordBtn.onclick = () => openTransactionModal();
   }
-
-  initPwaBannerEvents();
 }

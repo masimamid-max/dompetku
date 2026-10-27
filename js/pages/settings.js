@@ -6,10 +6,9 @@ import { toast } from '../components/toast.js';
 import { CloudSyncService } from '../utils/cloudSync.js';
 import { LicenseService } from '../utils/licenseService.js';
 import { openLicenseActivationModal } from '../components/licenseModal.js';
-import { getGeminiApiKey, setGeminiApiKey, hasGeminiApiKey, verifyGeminiApiKey, DEFAULT_DEVELOPER_GEMINI_KEY } from '../utils/receiptScanner.js';
-import { openReceiptScanModal } from '../components/receiptScanModal.js';
+import { triggerPwaInstall, isAppInstalled, getDeviceInfo } from '../components/pwaInstall.js';
 
-let settingsSubTab = 'family'; // 'family' | 'accounts' | 'categories' | 'cloud' | 'ai' | 'license' | 'system'
+let settingsSubTab = 'family'; // 'family' | 'accounts' | 'categories' | 'cloud' | 'app' | 'license' | 'system'
 
 export function renderSettingsPage() {
   const family = appState.family;
@@ -50,8 +49,8 @@ export function renderSettingsPage() {
         <button class="settings-tab-btn ${settingsSubTab === 'cloud' ? 'active' : ''}" data-subtab="cloud">
           ☁️ Google Sheets Cloud DB
         </button>
-        <button class="settings-tab-btn ${settingsSubTab === 'ai' ? 'active' : ''}" data-subtab="ai">
-          ✨ AI Vision & Gemini
+        <button class="settings-tab-btn ${settingsSubTab === 'app' ? 'active' : ''}" data-subtab="app">
+          📲 Pasang Aplikasi di HP
         </button>
         <button class="settings-tab-btn ${settingsSubTab === 'license' ? 'active' : ''}" data-subtab="license">
           ${isPro ? '✨ Lisensi PRO (Aktif)' : '🔒 Lisensi Developer & PRO'}
@@ -66,7 +65,7 @@ export function renderSettingsPage() {
       ${settingsSubTab === 'accounts' ? renderAccountsTab(accounts, canManage) : ''}
       ${settingsSubTab === 'categories' ? renderCategoriesTab(categories, canManage) : ''}
       ${settingsSubTab === 'cloud' ? renderCloudTab() : ''}
-      ${settingsSubTab === 'ai' ? renderAiTab() : ''}
+      ${settingsSubTab === 'app' ? renderAppTab() : ''}
       ${settingsSubTab === 'license' ? renderLicenseTab() : ''}
       ${settingsSubTab === 'system' ? renderSystemTab() : ''}
     </div>
@@ -459,139 +458,87 @@ function renderCloudTab() {
   `;
 }
 
-function renderAiTab() {
-  const currentKey = getGeminiApiKey();
-  const isKeyActive = Boolean(currentKey);
-  const isDevKey = currentKey === DEFAULT_DEVELOPER_GEMINI_KEY;
+function renderAppTab() {
+  const installed = isAppInstalled();
 
   return `
     <div style="display:flex;flex-direction:column;gap:1.5rem;">
       <!-- Hero Status Card -->
-      <div class="card" style="border-left: 5px solid ${isKeyActive ? '#10b981' : '#6366f1'}; background: ${isKeyActive ? 'linear-gradient(to right, #ecfdf5, #ffffff)' : 'linear-gradient(to right, #eff6ff, #ffffff)'};">
+      <div class="card" style="border-left: 5px solid ${installed ? '#10b981' : '#059669'}; background: linear-gradient(to right, #ecfdf5, #ffffff);">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;">
           <div style="display:flex;gap:1rem;align-items:center;">
-            <div style="width:52px;height:52px;border-radius:14px;background:${isKeyActive ? '#d1fae5' : '#e0e7ff'};color:${isKeyActive ? '#059669' : '#4338ca'};display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;">
-              ✨
-            </div>
+            <img src="icons/icon-192.png" width="56" height="56" style="border-radius:14px;box-shadow:0 4px 12px rgba(5,150,105,0.25);background:#fff;padding:2px;flex-shrink:0;" alt="App Icon">
             <div>
               <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
                 <h3 style="font-size:1.25rem;font-weight:800;color:var(--color-slate-900);margin:0;">
-                  Google Gemini Flash Vision AI
+                  Pasang Dompetku di Layar Utama HP
                 </h3>
-                <span class="badge" style="background:${isKeyActive ? '#059669' : '#4f46e5'};color:#ffffff;font-weight:700;padding:0.25rem 0.65rem;border-radius:999px;font-size:0.75rem;">
-                  ${isKeyActive ? (isDevKey ? 'AI VISION AKTIF (DEVELOPER PROXY)' : 'AI VISION AKTIF (API KEY PRIBADI)') : 'SIAP DIHUBUNGKAN'}
+                <span class="badge" style="background:${installed ? '#059669' : '#047857'};color:#ffffff;font-weight:700;padding:0.25rem 0.65rem;border-radius:999px;font-size:0.75rem;">
+                  ${installed ? '✅ SUDAH TERPASANG' : 'PWA SIAP DIPASANG'}
                 </span>
               </div>
-              <p style="font-size:0.875rem;color:var(--color-slate-600);margin:0.25rem 0 0;">
-                Fitur pemindaian foto struk belanja, bon SPBU, dan nota kasir dengan teknologi visual multimodal Google Gemini. Otomatis mengenali nama toko, total belanja, dan menentukan kategori keuangan tanpa salah.
+              <p style="font-size:0.875rem;color:var(--color-slate-600);margin:0.25rem 0 0;max-width:640px;line-height:1.5;">
+                Pasang aplikasi langsung di HP (Android / iOS) atau Komputer (PC / Mac) agar dapat dibuka secara instan dari ikon layar utama layaknya aplikasi dari Play Store, lebih cepat, dan hemat kuota.
               </p>
             </div>
           </div>
 
-          <button class="btn btn-primary" id="btn-test-scan-receipt" style="background:linear-gradient(135deg, #2563eb, #1d4ed8);font-weight:700;display:flex;align-items:center;gap:0.35rem;">
-            ${Icons.camera(16)} Uji Coba Scan Struk
+          <button class="btn btn-primary" id="btn-settings-install-pwa" style="background:#059669;font-weight:800;display:flex;align-items:center;gap:0.4rem;padding:0.65rem 1.25rem;box-shadow:0 4px 12px rgba(5,150,105,0.3);cursor:pointer;">
+            📲 ${installed ? 'Buka / Pasang Ulang' : 'Pasang Aplikasi Sekarang'}
           </button>
         </div>
       </div>
 
-      <!-- API Key Setup Form Card -->
+      <!-- Panduan Pemasangan Sesuai Perangkat -->
       <div class="card">
         <div class="card-header">
           <div>
-            <div class="card-title">🔑 Kunci API Google Gemini (API Key)</div>
-            <div class="card-subtitle">Aplikasi sudah dilengkapi Kunci AI Developer bawaan. Anda juga dapat menggunakan API Key pribadi dari Google AI Studio untuk kuota mandiri.</div>
+            <div class="card-title">📖 Panduan Praktis Pemasangan per Perangkat</div>
+            <div class="card-subtitle">Pilih instruksi yang sesuai dengan tipe smartphone atau browser Anda</div>
           </div>
         </div>
 
-        <div style="display:flex;flex-direction:column;gap:1rem;max-width:580px;">
-          <div class="form-group" style="margin-bottom:0;">
-            <label class="form-label" for="settings-gemini-key-input" style="font-size:0.8125rem;font-weight:700;display:flex;justify-content:space-between;">
-              <span>Kunci API Google Gemini:</span>
-              <span style="color:${isKeyActive ? '#059669' : '#d97706'};font-size:0.75rem;font-weight:700;">
-                ${isKeyActive ? (isDevKey ? '● Kunci Developer Aktif (Bawaan Sistem)' : '● Kunci Pribadi Tersimpan') : '○ Belum Dikonfigurasi'}
-              </span>
-            </label>
-            <div style="position:relative;">
-              <input 
-                type="password" 
-                id="settings-gemini-key-input" 
-                class="form-input" 
-                placeholder="AIzaSy..." 
-                value="${currentKey}" 
-                style="font-family:monospace;font-size:0.875rem;padding-right:75px;" 
-              />
-              <button 
-                type="button" 
-                id="btn-settings-toggle-gemini-vis" 
-                style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:#64748b;font-size:0.75rem;font-weight:700;cursor:pointer;padding:4px 8px;"
-              >
-                Lihat
-              </button>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));gap:1rem;">
+          <!-- Android Card -->
+          <div style="background:var(--color-slate-50);padding:1.25rem;border-radius:var(--radius-lg);border:1px solid var(--border-subtle);display:flex;flex-direction:column;gap:0.625rem;">
+            <div style="display:flex;align-items:center;gap:0.5rem;">
+              <span style="font-size:1.5rem;">🤖</span>
+              <div style="font-size:1rem;font-weight:800;color:var(--color-slate-900);">Pengguna Android (Chrome)</div>
             </div>
-            <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.35rem;">
-              Kunci Anda tersimpan secara privat di <code>localStorage</code> peramban Anda. Aplikasi memanggil API resmi Google secara langsung tanpa perantara server pihak ketiga.
-            </p>
+            <ol style="margin:0;padding-left:1.25rem;font-size:0.8125rem;color:#334155;line-height:1.6;">
+              <li>Klik tombol <strong>"Pasang Aplikasi Sekarang"</strong> di atas.</li>
+              <li>Jika tidak muncul, buka menu titik tiga (<strong>⋮</strong>) di pojok kanan atas browser Chrome.</li>
+              <li>Pilih menu <strong>"Instal aplikasi"</strong> atau <strong>"Tambahkan ke Layar Utama"</strong>.</li>
+              <li>Ikon Dompetku akan otomatis muncul di menu aplikasi HP Anda.</li>
+            </ol>
           </div>
 
-          <div style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap;">
-            <button class="btn btn-primary" id="btn-save-gemini-key" style="background:#2563eb;font-weight:700;">
-              ⚡ Uji Koneksi & Simpan Kunci
-            </button>
-            ${isKeyActive ? `
-              <button class="btn btn-secondary" id="btn-delete-gemini-key" style="color:#dc2626;border-color:#fecaca;">
-                Hapus Kunci
-              </button>
-            ` : ''}
-          </div>
-        </div>
-      </div>
-
-      <!-- Step-by-Step 1-Minute Guide -->
-      <div class="card">
-        <div class="card-header">
-          <div>
-            <div class="card-title">📖 Panduan 1 Menit: Cara Dapatkan Google Gemini API Key Gratis</div>
-            <div class="card-subtitle">Google AI Studio menyediakan akses gratis tanpa biaya dan tanpa perlu kartu kredit</div>
-          </div>
-        </div>
-
-        <div style="display:flex;flex-direction:column;gap:1rem;">
-          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:1rem;">
-            <div style="background:var(--color-slate-50);padding:1rem;border-radius:var(--radius-md);border:1px solid var(--border-subtle);">
-              <div style="font-size:1.25rem;font-weight:800;color:#2563eb;margin-bottom:0.25rem;">Langkah 1</div>
-              <div style="font-size:0.875rem;font-weight:700;color:var(--color-slate-900);">Kunjungi Google AI Studio</div>
-              <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.25rem;">
-                Buka tautan resmi Google AI Studio dan masuk menggunakan akun Google (Gmail) Anda.
-              </div>
+          <!-- iOS Card -->
+          <div style="background:var(--color-slate-50);padding:1.25rem;border-radius:var(--radius-lg);border:1px solid var(--border-subtle);display:flex;flex-direction:column;gap:0.625rem;">
+            <div style="display:flex;align-items:center;gap:0.5rem;">
+              <span style="font-size:1.5rem;">🍎</span>
+              <div style="font-size:1rem;font-weight:800;color:var(--color-slate-900);">Pengguna iPhone / iPad (Safari)</div>
             </div>
-
-            <div style="background:var(--color-slate-50);padding:1rem;border-radius:var(--radius-md);border:1px solid var(--border-subtle);">
-              <div style="font-size:1.25rem;font-weight:800;color:#2563eb;margin-bottom:0.25rem;">Langkah 2</div>
-              <div style="font-size:0.875rem;font-weight:700;color:var(--color-slate-900);">Klik "Create API Key"</div>
-              <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.25rem;">
-                Pilih proyek Google Cloud bawaan atau buat baru dalam 1 klik. Salin string kunci yang muncul (diawali <code>AIzaSy...</code>).
-              </div>
-            </div>
-
-            <div style="background:var(--color-slate-50);padding:1rem;border-radius:var(--radius-md);border:1px solid var(--border-subtle);">
-              <div style="font-size:1.25rem;font-weight:800;color:#2563eb;margin-bottom:0.25rem;">Langkah 3</div>
-              <div style="font-size:0.875rem;font-weight:700;color:var(--color-slate-900);">Tempel & Simpan di Sini</div>
-              <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.25rem;">
-                Tempel kunci ke formulir di atas lalu klik "Uji Koneksi & Simpan". Selesai! Anda siap memindai struk dengan akurasi 99%.
-              </div>
-            </div>
+            <ol style="margin:0;padding-left:1.25rem;font-size:0.8125rem;color:#334155;line-height:1.6;">
+              <li>Buka website ini melalui browser <strong>Safari</strong> bawaan iPhone.</li>
+              <li>Ketuk tombol <strong>Bagikan (Share)</strong> ikon kotak dengan panah ke atas (⎋) di bawah layar.</li>
+              <li>Gulir ke bawah dan pilih <strong>"Tambah ke Layar Utama" (Add to Home Screen)</strong>.</li>
+              <li>Ketuk <strong>Tambah</strong> di pojok kanan atas. Selesai!</li>
+            </ol>
           </div>
 
-          <div>
-            <a 
-              href="https://aistudio.google.com/app/apikey" 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              class="btn btn-secondary" 
-              style="display:inline-flex;align-items:center;gap:0.5rem;font-weight:700;color:#2563eb;border-color:#bfdbfe;background:#eff6ff;text-decoration:none;"
-            >
-              🚀 Buka Halaman Google AI Studio (Gratis) ↗
-            </a>
+          <!-- Desktop Card -->
+          <div style="background:var(--color-slate-50);padding:1.25rem;border-radius:var(--radius-lg);border:1px solid var(--border-subtle);display:flex;flex-direction:column;gap:0.625rem;">
+            <div style="display:flex;align-items:center;gap:0.5rem;">
+              <span style="font-size:1.5rem;">💻</span>
+              <div style="font-size:1rem;font-weight:800;color:var(--color-slate-900);">Laptop / Komputer (PC / Mac)</div>
+            </div>
+            <ol style="margin:0;padding-left:1.25rem;font-size:0.8125rem;color:#334155;line-height:1.6;">
+              <li>Buka website di Google Chrome, Microsoft Edge, atau Brave.</li>
+              <li>Perhatikan ikon <strong>Instal (komputer dengan panah)</strong> di bilah alamat URL paling kanan.</li>
+              <li>Klik ikon tersebut lalu pilih <strong>Instal</strong>.</li>
+              <li>Aplikasi akan berjalan di jendela mandiri tanpa tab browser.</li>
+            </ol>
           </div>
         </div>
       </div>
@@ -1928,70 +1875,11 @@ function json_(payload) {
     };
   }
 
-  // Gemini AI Tab Listeners
-  const testScanReceiptBtn = document.getElementById('btn-test-scan-receipt');
-  if (testScanReceiptBtn) {
-    testScanReceiptBtn.onclick = () => {
-      openReceiptScanModal();
-    };
-  }
-
-  const toggleGeminiVisBtn = document.getElementById('btn-settings-toggle-gemini-vis');
-  const geminiInput = document.getElementById('settings-gemini-key-input');
-  if (toggleGeminiVisBtn && geminiInput) {
-    toggleGeminiVisBtn.onclick = () => {
-      if (geminiInput.type === 'password') {
-        geminiInput.type = 'text';
-        toggleGeminiVisBtn.textContent = 'Sembunyikan';
-      } else {
-        geminiInput.type = 'password';
-        toggleGeminiVisBtn.textContent = 'Lihat';
-      }
-    };
-  }
-
-  const saveGeminiKeyBtn = document.getElementById('btn-save-gemini-key');
-  if (saveGeminiKeyBtn) {
-    saveGeminiKeyBtn.onclick = async () => {
-      const keyVal = geminiInput ? geminiInput.value.trim() : '';
-      if (!keyVal) {
-        toast.error('Harap masukkan kunci API Google Gemini Anda.');
-        return;
-      }
-
-      saveGeminiKeyBtn.disabled = true;
-      saveGeminiKeyBtn.innerText = 'Menguji Koneksi...';
-      toast.info('Menguji koneksi ke Google Gemini AI...');
-
-      const verify = await verifyGeminiApiKey(keyVal);
-      saveGeminiKeyBtn.disabled = false;
-      saveGeminiKeyBtn.innerText = '⚡ Uji Koneksi & Simpan Kunci';
-
-      if (!verify.success) {
-        toast.error(`Kunci tidak valid: ${verify.message}`);
-        return;
-      }
-
-      setGeminiApiKey(keyVal);
-      toast.success('✨ Kunci Google Gemini AI aktif & berhasil disimpan!');
-      appState.notify();
-    };
-  }
-
-  const deleteGeminiKeyBtn = document.getElementById('btn-delete-gemini-key');
-  if (deleteGeminiKeyBtn) {
-    deleteGeminiKeyBtn.onclick = () => {
-      modal.confirm({
-        title: 'Hapus Kunci Gemini AI',
-        message: 'Apakah Anda yakin ingin menghapus kunci Google Gemini AI dari peramban ini?',
-        confirmText: 'Ya, Hapus',
-        confirmType: 'btn-danger',
-        onConfirm: () => {
-          setGeminiApiKey('');
-          toast.info('Kunci Google Gemini AI telah dihapus.');
-          appState.notify();
-        }
-      });
+  // PWA Install Tab Listener
+  const settingsPwaBtn = document.getElementById('btn-settings-install-pwa');
+  if (settingsPwaBtn) {
+    settingsPwaBtn.onclick = () => {
+      triggerPwaInstall();
     };
   }
 }

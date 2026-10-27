@@ -34,11 +34,6 @@ export function renderNavbar() {
       </div>
 
       <div class="header-right">
-        <!-- PWA Install App Button -->
-        <button class="btn btn-secondary btn-sm" id="btn-install-pwa" style="display:${isAppInstalled() ? 'none' : 'inline-flex'};align-items:center;gap:0.35rem;background:#ecfdf5;color:#059669;border-color:#a7f3d0;font-weight:700;" title="Install Aplikasi di Layar Utama HP / PC">
-          📲 <span class="hide-on-mobile">Install App</span>
-        </button>
-
         <!-- Role Switcher Simulator for quick role & permission testing -->
         <div class="role-switcher-container" title="Simulasi Akses Peran Keluarga">
           <label class="role-switcher-label hide-on-mobile">
