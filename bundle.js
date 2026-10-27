@@ -2356,9 +2356,21 @@ function parseReceiptText(rawText, fileName = '') {
   const amountCandidates = [];
   lines.forEach((line) => {
     const lLower = line.toLowerCase();
-    const isTotalLine = lLower.includes('total') || lLower.includes('grand') || lLower.includes('jumlah') || 
-                        lLower.includes('bayar') || lLower.includes('tunai') || lLower.includes('cash') ||
-                        lLower.includes('subtotal') || lLower.includes('tagihan');
+    const isStrictTotal = lLower.includes('grand total') || lLower.includes('total bayar') || 
+                          lLower.includes('total akhir') || lLower.includes('jumlah total') ||
+                          lLower.includes('total:');
+    const isGeneralTotal = lLower.includes('total') || lLower.includes('subtotal') || lLower.includes('tagihan');
+    const isCashOrChange = lLower.includes('tunai') || lLower.includes('cash') || 
+                           lLower.includes('kembali') || lLower.includes('kembalian') ||
+                           lLower.includes('dibayar') || lLower.includes('uang muka');
+    let priority = 1;
+    if (isStrictTotal) {
+      priority = 25;
+    } else if (isGeneralTotal && !isCashOrChange) {
+      priority = 15;
+    } else if (isCashOrChange) {
+      priority = 0;
+    }
     const matches = line.match(/(?:rp\.?\s*)?(\d{1,3}(?:[.,]\d{3})+(?:[.,]\d{2})?|\d{4,9})/gi);
     if (matches) {
       matches.forEach(m => {
@@ -2367,7 +2379,7 @@ function parseReceiptText(rawText, fileName = '') {
         if (val >= 500 && val <= 100000000) {
           amountCandidates.push({
             value: val,
-            priority: isTotalLine ? 10 : 1,
+            priority: priority,
             line: line
           });
         }
@@ -2468,13 +2480,21 @@ function parseReceiptText(rawText, fileName = '') {
     rawText: text
   };
 }
-function compressImageForGemini(dataUrl, maxWidth = 1600, quality = 0.85) {
+function cleanAmount(val) {
+  if (typeof val === 'number') return Math.round(val);
+  if (!val) return 0;
+  const cleanStr = String(val).replace(/[^0-9]/g, '');
+  return parseInt(cleanStr, 10) || 0;
+}
+function compressImageForGemini(dataUrl, maxWidth = 1200, quality = 0.82) {
   return new Promise((resolve) => {
+    if (!dataUrl || typeof dataUrl !== 'string' || !dataUrl.startsWith('data:')) {
+      return resolve(dataUrl);
+    }
     const img = new Image();
-    img.crossOrigin = 'anonymous';
     img.onload = () => {
-      let width = img.width;
-      let height = img.height;
+      let width = img.width || 800;
+      let height = img.height || 800;
       if (width > maxWidth || height > maxWidth) {
         if (width > height) {
           height = Math.round((height * maxWidth) / width);
@@ -2488,6 +2508,9 @@ function compressImageForGemini(dataUrl, maxWidth = 1600, quality = 0.85) {
       canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext('2d');
+      if (!ctx) return resolve(dataUrl);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, width, height);
       ctx.drawImage(img, 0, 0, width, height);
       try {
         const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
@@ -2528,12 +2551,12 @@ function formatGeminiResult(aiData, dataUrl, engineName) {
   const items = Array.isArray(aiData.items) && aiData.items.length > 0 
     ? aiData.items.map(it => ({
         name: String(it.name || 'Barang').trim(),
-        qty: parseInt(it.qty || 1, 10) || 1,
-        price: parseInt(it.price || 0, 10) || 0
+        qty: cleanAmount(it.qty) || 1,
+        price: cleanAmount(it.price)
       }))
-    : [{ name: aiData.merchant || 'Belanja', qty: 1, price: parseInt(aiData.amount || 0, 10) || 0 }];
+    : [{ name: aiData.merchant || 'Belanja', qty: 1, price: cleanAmount(aiData.amount) }];
   const merchant = (aiData.merchant || 'Struk Belanja').trim();
-  const amount = parseInt(aiData.amount || 0, 10) || 0;
+  const amount = cleanAmount(aiData.amount);
   const date = aiData.date || new Date().toISOString().split('T')[0];
   const now = new Date();
   const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -2564,16 +2587,20 @@ async function analyzeWithGeminiVisionDirect(dataUrl, apiKey, onProgress) {
   if (!match) throw new Error('Format DataURL tidak valid');
   const mimeType = match[1] || 'image/jpeg';
   const base64Data = match[2];
-  const models = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.7-flash', 'gemini-3.8-flash', 'gemini-flash-latest'];
+  const models = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.1-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.6-flash', 'gemini-flash-latest'];
   let lastError = null;
   const todayStr = new Date().toISOString().split('T')[0];
   const promptText = `Anda adalah asisten akuntan & ahli finansial AI untuk aplikasi keuangan keluarga Indonesia (Dompetku).
 Analisis foto struk / nota / bon / bukti pembayaran ini secara cermat dan teliti.
 TUGAS ANDA:
 1. Identifikasi Nama Toko / Tempat Usaha / Merchant / SPBU / Restoran / Rumah Sakit / Apotek / Lembaga.
-2. Identifikasi Total Pembayaran Akhir (Total / Grand Total / Jumlah Bayar). Pastikan hanya angka integer Rupiah bulat (misal: 184500).
+2. Identifikasi TOTAL NOMINAL PEMBAYARAN AKHIR (TOTAL / GRAND TOTAL / TOTAL TAGIHAN / JUMLAH BAYAR).
+   PERINGATAN SANGAT PENTING:
+   - Ambil GRAND TOTAL / TOTAL AKHIR belanja yang harus dibayar.
+   - JANGAN mengambil jumlah UANG TUNAI YANG DIBERIKAN (CASH / TUNAI) atau UANG KEMBALIAN (CHANGE / KEMBALI).
+   - Pastikan hanya angka integer Rupiah bulat murni tanpa titik atau koma (misal: 184500, bukan 184.500 atau 184).
 3. Identifikasi Tanggal Transaksi format YYYY-MM-DD. Jika tahun hanya 2 digit (misal: 24 atau 26), jadikan 2024 atau 2026. Jika tanggal tidak ada atau buram, gunakan tanggal hari ini: ${todayStr}.
-4. Ekstrak Daftar Item yang dibeli: nama item, jumlah (qty), dan harga subtotal per item.
+4. Ekstrak Daftar Item yang dibeli: nama item, jumlah (qty), dan harga subtotal per item (angka integer rupiah bulat).
 5. PILIH KATEGORI PENGELUARAN YANG PALING TEPAT dari 8 kategori resmi Dompetku berikut:
    - cat-exp-1: "Makanan & Kuliner" -> Restoran, cafe, warung, rumah makan, fast food (KFC/Mcd), roti, kue, kopi, jajanan, makanan siap santap.
    - cat-exp-2: "Rumah Tangga & Belanja" -> Belanja supermarket/minimarket (Indomaret, Alfamart, Superindo, Hypermart), sembako, sabun, sampo, deterjen, perabot dapur, pakaian, perlengkapan rumah.
@@ -2584,8 +2611,7 @@ TUGAS ANDA:
    - cat-exp-7: "Hiburan & Rekreasi" -> Tiket bioskop (XXI, CGV), rekreasi, taman hiburan, staycation hotel, tiket wisata, game, karaoke.
    - cat-exp-8: "Sosial & Sedekah" -> Zakat, infaq, sedekah, sumbangan sosial, kotak amal masjid, yayasan anak yatim.
 PENTING:
-- Keluarkan HANYA JSON murni valid yang mematuhi skema di bawah ini.
-- Jangan gunakan markdown backticks seperti \`\`\`json. Keluarkan objek JSON langsung:
+- Keluarkan HANYA JSON murni valid yang mematuhi skema di bawah ini tanpa markdown backticks:
 {
   "merchant": "Nama Toko / Tempat Usaha",
   "amount": 184500,
@@ -2602,7 +2628,7 @@ PENTING:
   for (let i = 0; i < models.length; i++) {
     const model = models[i];
     try {
-      if (onProgress) onProgress(`Menganalisis foto dengan Google Gemini (${model})...`, 40 + i * 20);
+      if (onProgress) onProgress(`Menganalisis foto dengan Google Gemini (${model})...`, 40 + i * 15);
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey.trim())}`;
       const payload = {
         contents: [
@@ -2649,7 +2675,7 @@ PENTING:
 async function analyzeWithGeminiBackendProxy(dataUrl, onProgress) {
   const backendUrl = (window.AuthAccess && typeof window.AuthAccess.getApiUrl === 'function')
     ? window.AuthAccess.getApiUrl()
-    : 'https://script.google.com/macros/s/AKfycbz2dMUUPDZAbJewwHOWNOUq4sN-Ov2yocqmSUzKRcZ6e3P6JaZ2gJ5QQ8f8JopnHtT4dQ/exec';
+    : 'https://script.google.com/macros/s/AKfycbyVJSZGiYWbtrFQ1CrnoU6NrHSEwAal3j1pBS0yRsZ5P9mAYPzXyuSrQDSFj6r1vB4AlA/exec';
   if (onProgress) onProgress('Mengirim gambar ke server AI backend...', 35);
   const compressed = await compressImageForGemini(dataUrl);
   const match = compressed.match(/^data:([^;]+);base64,(.+)$/);
@@ -2699,18 +2725,21 @@ async function analyzeReceiptImage(dataUrl, fileName = '', onProgress) {
       engineLabel: 'Simulasi Struk Resmi'
     };
   }
+  let aiFailureReason = '';
   const userKey = getGeminiApiKey();
   if (userKey) {
     try {
       return await analyzeWithGeminiVisionDirect(dataUrl, userKey, onProgress);
     } catch (err) {
       console.warn('Gemini Vision Direct notice, mencoba proxy backend:', err);
+      aiFailureReason = err.message || 'Direct Vision AI gagal';
     }
   }
   try {
     return await analyzeWithGeminiBackendProxy(dataUrl, onProgress);
   } catch (err) {
     console.warn('Gemini Backend Proxy notice, beralih ke OCR Lokal:', err);
+    if (!aiFailureReason) aiFailureReason = err.message || 'Backend Proxy gagal';
   }
   let recognizedText = '';
   try {
@@ -2722,7 +2751,8 @@ async function analyzeReceiptImage(dataUrl, fileName = '', onProgress) {
   const parsed = parseReceiptText(recognizedText, fileName);
   parsed.rawReceiptUrl = dataUrl;
   parsed.engineUsed = 'local-ocr';
-  parsed.engineLabel = 'Mesin OCR Lokal';
+  parsed.engineLabel = 'Mesin OCR Lokal (Cadangan)';
+  parsed.aiFailureReason = aiFailureReason;
   return parsed;
 }
 
@@ -2766,7 +2796,7 @@ class CloudSyncService {
       if (!email && !phone && !licenseKey) return;
       const apiUrl = (window.AuthAccess && typeof window.AuthAccess.getApiUrl === 'function')
         ? window.AuthAccess.getApiUrl()
-        : 'https://script.google.com/macros/s/AKfycbz2dMUUPDZAbJewwHOWNOUq4sN-Ov2yocqmSUzKRcZ6e3P6JaZ2gJ5QQ8f8JopnHtT4dQ/exec';
+        : 'https://script.google.com/macros/s/AKfycbyVJSZGiYWbtrFQ1CrnoU6NrHSEwAal3j1pBS0yRsZ5P9mAYPzXyuSrQDSFj6r1vB4AlA/exec';
       fetch(apiUrl, {
         method: 'POST',
         mode: 'cors',
@@ -2802,7 +2832,7 @@ class CloudSyncService {
       if (!email && !phone && !licenseKey) return null;
       const apiUrl = (window.AuthAccess && typeof window.AuthAccess.getApiUrl === 'function')
         ? window.AuthAccess.getApiUrl()
-        : 'https://script.google.com/macros/s/AKfycbz2dMUUPDZAbJewwHOWNOUq4sN-Ov2yocqmSUzKRcZ6e3P6JaZ2gJ5QQ8f8JopnHtT4dQ/exec';
+        : 'https://script.google.com/macros/s/AKfycbyVJSZGiYWbtrFQ1CrnoU6NrHSEwAal3j1pBS0yRsZ5P9mAYPzXyuSrQDSFj6r1vB4AlA/exec';
       const res = await fetch(apiUrl, {
         method: 'POST',
         mode: 'cors',
@@ -2841,7 +2871,7 @@ class CloudSyncService {
       const licenseKey = license?.key || '';
       const apiUrl = (window.AuthAccess && typeof window.AuthAccess.getApiUrl === 'function')
         ? window.AuthAccess.getApiUrl()
-        : 'https://script.google.com/macros/s/AKfycbz2dMUUPDZAbJewwHOWNOUq4sN-Ov2yocqmSUzKRcZ6e3P6JaZ2gJ5QQ8f8JopnHtT4dQ/exec';
+        : 'https://script.google.com/macros/s/AKfycbyVJSZGiYWbtrFQ1CrnoU6NrHSEwAal3j1pBS0yRsZ5P9mAYPzXyuSrQDSFj6r1vB4AlA/exec';
       const res = await fetch(apiUrl, {
         method: 'POST',
         mode: 'cors',
@@ -3650,7 +3680,7 @@ class LicenseService {
     const email = (userEmail || session.email || userAccount?.email || '').trim().toLowerCase();
     const fullName = session.fullName || userAccount?.name || 'Pelanggan';
     const phone = this.formatPhoneNumber(userPhone || session.phone || userAccount?.phone || '');
-    const apiUrl = window.AuthAccess?.getApiUrl?.() || 'https://script.google.com/macros/s/AKfycbz2dMUUPDZAbJewwHOWNOUq4sN-Ov2yocqmSUzKRcZ6e3P6JaZ2gJ5QQ8f8JopnHtT4dQ/exec';
+    const apiUrl = window.AuthAccess?.getApiUrl?.() || 'https://script.google.com/macros/s/AKfycbyVJSZGiYWbtrFQ1CrnoU6NrHSEwAal3j1pBS0yRsZ5P9mAYPzXyuSrQDSFj6r1vB4AlA/exec';
     try {
       if (apiUrl && apiUrl.startsWith('http')) {
         const res = await fetch(apiUrl, {
@@ -4853,11 +4883,14 @@ function openReceiptScanModal() {
       const isGeminiEngine = res.engineUsed === 'gemini';
       return `
         <form id="receipt-confirm-form" onsubmit="return false;" style="display:flex;flex-direction:column;gap:1.25rem;">
-          <!-- Success AI Banner -->
-          <div style="background:${isGeminiEngine ? '#ecfdf5' : '#f0fdf4'};border:1px solid ${isGeminiEngine ? '#6ee7b7' : '#a7f3d0'};border-radius:var(--radius-md);padding:0.75rem 1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
-            <div style="display:flex;align-items:center;gap:0.5rem;color:#065f46;font-size:0.8125rem;font-weight:700;">
-              ${Icons.checkCircle(18)} 
-              <span>Hasil Analisis ${res.engineLabel || 'AI'} Berhasil (Akurasi ${res.confidenceScore}%)</span>
+          <!-- Engine Analysis Status Banner -->
+          <div style="background:${isGeminiEngine ? '#ecfdf5' : '#fffbeb'};border:1px solid ${isGeminiEngine ? '#6ee7b7' : '#fde68a'};border-radius:var(--radius-md);padding:0.75rem 1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
+            <div style="display:flex;align-items:center;gap:0.5rem;color:${isGeminiEngine ? '#065f46' : '#92400e'};font-size:0.8125rem;font-weight:700;">
+              ${isGeminiEngine ? Icons.checkCircle(18) : Icons.alertCircle(18)} 
+              <div>
+                <div>${isGeminiEngine ? '✨ Dianalisis Cerdas oleh ' + (res.engineLabel || 'Google Gemini AI') : '⚠️ Menggunakan ' + (res.engineLabel || 'Pembaca Teks Cadangan')} (Akurasi ${res.confidenceScore}%)</div>
+                ${!isGeminiEngine ? '<div style="font-size:0.7rem;font-weight:500;color:#b45309;margin-top:0.15rem;">Mohon periksa kembali nominal di bawah ini. Untuk akurasi 99% otomatis, pastikan setelan akses Apps Script diset "Siapa saja".</div>' : ''}
+              </div>
             </div>
             <div style="display:flex;align-items:center;gap:0.5rem;">
               ${!hasGeminiApiKey() ? `
@@ -11317,7 +11350,7 @@ function json_(payload) {
 (function () {
   const SESSION_KEY = 'dk_google_session_v2';
   const USER_ACCOUNT_KEY = 'dk_user_account_v1';
-  const ACCESS_API_URL = 'https://script.google.com/macros/s/AKfycbz2dMUUPDZAbJewwHOWNOUq4sN-Ov2yocqmSUzKRcZ6e3P6JaZ2gJ5QQ8f8JopnHtT4dQ/exec';
+  const ACCESS_API_URL = 'https://script.google.com/macros/s/AKfycbyVJSZGiYWbtrFQ1CrnoU6NrHSEwAal3j1pBS0yRsZ5P9mAYPzXyuSrQDSFj6r1vB4AlA/exec';
   class GoogleAccessManager {
     getSession() {
       try {

@@ -290,11 +290,14 @@ export function openReceiptScanModal() {
 
       return `
         <form id="receipt-confirm-form" onsubmit="return false;" style="display:flex;flex-direction:column;gap:1.25rem;">
-          <!-- Success AI Banner -->
-          <div style="background:${isGeminiEngine ? '#ecfdf5' : '#f0fdf4'};border:1px solid ${isGeminiEngine ? '#6ee7b7' : '#a7f3d0'};border-radius:var(--radius-md);padding:0.75rem 1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
-            <div style="display:flex;align-items:center;gap:0.5rem;color:#065f46;font-size:0.8125rem;font-weight:700;">
-              ${Icons.checkCircle(18)} 
-              <span>Hasil Analisis ${res.engineLabel || 'AI'} Berhasil (Akurasi ${res.confidenceScore}%)</span>
+          <!-- Engine Analysis Status Banner -->
+          <div style="background:${isGeminiEngine ? '#ecfdf5' : '#fffbeb'};border:1px solid ${isGeminiEngine ? '#6ee7b7' : '#fde68a'};border-radius:var(--radius-md);padding:0.75rem 1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
+            <div style="display:flex;align-items:center;gap:0.5rem;color:${isGeminiEngine ? '#065f46' : '#92400e'};font-size:0.8125rem;font-weight:700;">
+              ${isGeminiEngine ? Icons.checkCircle(18) : Icons.alertCircle(18)} 
+              <div>
+                <div>${isGeminiEngine ? '✨ Dianalisis Cerdas oleh ' + (res.engineLabel || 'Google Gemini AI') : '⚠️ Menggunakan ' + (res.engineLabel || 'Pembaca Teks Cadangan')} (Akurasi ${res.confidenceScore}%)</div>
+                ${!isGeminiEngine ? '<div style="font-size:0.7rem;font-weight:500;color:#b45309;margin-top:0.15rem;">Mohon periksa kembali nominal di bawah ini. Untuk akurasi 99% otomatis, pastikan setelan akses Apps Script diset "Siapa saja".</div>' : ''}
+              </div>
             </div>
             <div style="display:flex;align-items:center;gap:0.5rem;">
               ${!hasGeminiApiKey() ? `

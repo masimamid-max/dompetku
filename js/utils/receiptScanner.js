@@ -428,9 +428,25 @@ export function parseReceiptText(rawText, fileName = '') {
   // Cari baris yang mengandung kata kunci total
   lines.forEach((line) => {
     const lLower = line.toLowerCase();
-    const isTotalLine = lLower.includes('total') || lLower.includes('grand') || lLower.includes('jumlah') || 
-                        lLower.includes('bayar') || lLower.includes('tunai') || lLower.includes('cash') ||
-                        lLower.includes('subtotal') || lLower.includes('tagihan');
+    
+    // Klasifikasi bobot baris
+    const isStrictTotal = lLower.includes('grand total') || lLower.includes('total bayar') || 
+                          lLower.includes('total akhir') || lLower.includes('jumlah total') ||
+                          lLower.includes('total:');
+    const isGeneralTotal = lLower.includes('total') || lLower.includes('subtotal') || lLower.includes('tagihan');
+    const isCashOrChange = lLower.includes('tunai') || lLower.includes('cash') || 
+                           lLower.includes('kembali') || lLower.includes('kembalian') ||
+                           lLower.includes('dibayar') || lLower.includes('uang muka');
+
+    let priority = 1;
+    if (isStrictTotal) {
+      priority = 25;
+    } else if (isGeneralTotal && !isCashOrChange) {
+      priority = 15;
+    } else if (isCashOrChange) {
+      // Baris uang tunai yang diberikan atau kembalian jangan sampai menimpa Total belanja
+      priority = 0;
+    }
 
     // Regex ekstraksi angka nominal Rupiah (misal: 184.500, 184,500, 50000, Rp 45.000)
     const matches = line.match(/(?:rp\.?\s*)?(\d{1,3}(?:[.,]\d{3})+(?:[.,]\d{2})?|\d{4,9})/gi);
@@ -442,7 +458,7 @@ export function parseReceiptText(rawText, fileName = '') {
         if (val >= 500 && val <= 100000000) {
           amountCandidates.push({
             value: val,
-            priority: isTotalLine ? 10 : 1,
+            priority: priority,
             line: line
           });
         }
@@ -451,7 +467,7 @@ export function parseReceiptText(rawText, fileName = '') {
   });
 
   if (amountCandidates.length > 0) {
-    // Sortir: Prioritas baris TOTAL tertinggi, kemudian nominal terbesar
+    // Sortir: Prioritas baris TOTAL tertinggi lebih dahulu, kemudian nominal terbesar
     amountCandidates.sort((a, b) => {
       if (b.priority !== a.priority) return b.priority - a.priority;
       return b.value - a.value;
@@ -566,15 +582,27 @@ export function parseReceiptText(rawText, fileName = '') {
 }
 
 /**
- * Kompresi & Resize gambar untuk Gemini Vision agar upload cepat (< 0.5s) dan hemat memori
+ * Helper pembersih angka nominal Rupiah (mencegah bug parseInt('90.000') = 90)
  */
-export function compressImageForGemini(dataUrl, maxWidth = 1600, quality = 0.85) {
+export function cleanAmount(val) {
+  if (typeof val === 'number') return Math.round(val);
+  if (!val) return 0;
+  const cleanStr = String(val).replace(/[^0-9]/g, '');
+  return parseInt(cleanStr, 10) || 0;
+}
+
+/**
+ * Kompresi & Resize gambar untuk Gemini Vision agar upload cepat (< 0.5s), hemat memori, dan bebas SecurityError
+ */
+export function compressImageForGemini(dataUrl, maxWidth = 1200, quality = 0.82) {
   return new Promise((resolve) => {
+    if (!dataUrl || typeof dataUrl !== 'string' || !dataUrl.startsWith('data:')) {
+      return resolve(dataUrl);
+    }
     const img = new Image();
-    img.crossOrigin = 'anonymous';
     img.onload = () => {
-      let width = img.width;
-      let height = img.height;
+      let width = img.width || 800;
+      let height = img.height || 800;
 
       if (width > maxWidth || height > maxWidth) {
         if (width > height) {
@@ -590,6 +618,11 @@ export function compressImageForGemini(dataUrl, maxWidth = 1600, quality = 0.85)
       canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext('2d');
+      if (!ctx) return resolve(dataUrl);
+
+      // Latar belakang putih solid agar gambar PNG transparan tidak menjadi hitam saat dikonversi JPEG
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, width, height);
       ctx.drawImage(img, 0, 0, width, height);
 
       try {
@@ -636,17 +669,17 @@ function formatGeminiResult(aiData, dataUrl, engineName) {
     matchedAcc = accounts.find(a => a.name.toLowerCase().includes('bca')) || matchedAcc;
   }
 
-  // Items Belanjaan
+  // Items Belanjaan dengan pembersihan angka yang aman
   const items = Array.isArray(aiData.items) && aiData.items.length > 0 
     ? aiData.items.map(it => ({
         name: String(it.name || 'Barang').trim(),
-        qty: parseInt(it.qty || 1, 10) || 1,
-        price: parseInt(it.price || 0, 10) || 0
+        qty: cleanAmount(it.qty) || 1,
+        price: cleanAmount(it.price)
       }))
-    : [{ name: aiData.merchant || 'Belanja', qty: 1, price: parseInt(aiData.amount || 0, 10) || 0 }];
+    : [{ name: aiData.merchant || 'Belanja', qty: 1, price: cleanAmount(aiData.amount) }];
 
   const merchant = (aiData.merchant || 'Struk Belanja').trim();
-  const amount = parseInt(aiData.amount || 0, 10) || 0;
+  const amount = cleanAmount(aiData.amount);
   const date = aiData.date || new Date().toISOString().split('T')[0];
 
   const now = new Date();
@@ -686,7 +719,8 @@ export async function analyzeWithGeminiVisionDirect(dataUrl, apiKey, onProgress)
   const mimeType = match[1] || 'image/jpeg';
   const base64Data = match[2];
 
-  const models = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.7-flash', 'gemini-3.8-flash', 'gemini-flash-latest'];
+  // Daftar model aktif yang terverifikasi responsif & mendukung generateContent gambar
+  const models = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.1-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.6-flash', 'gemini-flash-latest'];
   let lastError = null;
 
   const todayStr = new Date().toISOString().split('T')[0];
@@ -695,9 +729,13 @@ Analisis foto struk / nota / bon / bukti pembayaran ini secara cermat dan teliti
 
 TUGAS ANDA:
 1. Identifikasi Nama Toko / Tempat Usaha / Merchant / SPBU / Restoran / Rumah Sakit / Apotek / Lembaga.
-2. Identifikasi Total Pembayaran Akhir (Total / Grand Total / Jumlah Bayar). Pastikan hanya angka integer Rupiah bulat (misal: 184500).
+2. Identifikasi TOTAL NOMINAL PEMBAYARAN AKHIR (TOTAL / GRAND TOTAL / TOTAL TAGIHAN / JUMLAH BAYAR).
+   PERINGATAN SANGAT PENTING:
+   - Ambil GRAND TOTAL / TOTAL AKHIR belanja yang harus dibayar.
+   - JANGAN mengambil jumlah UANG TUNAI YANG DIBERIKAN (CASH / TUNAI) atau UANG KEMBALIAN (CHANGE / KEMBALI).
+   - Pastikan hanya angka integer Rupiah bulat murni tanpa titik atau koma (misal: 184500, bukan 184.500 atau 184).
 3. Identifikasi Tanggal Transaksi format YYYY-MM-DD. Jika tahun hanya 2 digit (misal: 24 atau 26), jadikan 2024 atau 2026. Jika tanggal tidak ada atau buram, gunakan tanggal hari ini: ${todayStr}.
-4. Ekstrak Daftar Item yang dibeli: nama item, jumlah (qty), dan harga subtotal per item.
+4. Ekstrak Daftar Item yang dibeli: nama item, jumlah (qty), dan harga subtotal per item (angka integer rupiah bulat).
 5. PILIH KATEGORI PENGELUARAN YANG PALING TEPAT dari 8 kategori resmi Dompetku berikut:
    - cat-exp-1: "Makanan & Kuliner" -> Restoran, cafe, warung, rumah makan, fast food (KFC/Mcd), roti, kue, kopi, jajanan, makanan siap santap.
    - cat-exp-2: "Rumah Tangga & Belanja" -> Belanja supermarket/minimarket (Indomaret, Alfamart, Superindo, Hypermart), sembako, sabun, sampo, deterjen, perabot dapur, pakaian, perlengkapan rumah.
@@ -709,8 +747,7 @@ TUGAS ANDA:
    - cat-exp-8: "Sosial & Sedekah" -> Zakat, infaq, sedekah, sumbangan sosial, kotak amal masjid, yayasan anak yatim.
 
 PENTING:
-- Keluarkan HANYA JSON murni valid yang mematuhi skema di bawah ini.
-- Jangan gunakan markdown backticks seperti \`\`\`json. Keluarkan objek JSON langsung:
+- Keluarkan HANYA JSON murni valid yang mematuhi skema di bawah ini tanpa markdown backticks:
 {
   "merchant": "Nama Toko / Tempat Usaha",
   "amount": 184500,
@@ -728,7 +765,7 @@ PENTING:
   for (let i = 0; i < models.length; i++) {
     const model = models[i];
     try {
-      if (onProgress) onProgress(`Menganalisis foto dengan Google Gemini (${model})...`, 40 + i * 20);
+      if (onProgress) onProgress(`Menganalisis foto dengan Google Gemini (${model})...`, 40 + i * 15);
 
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey.trim())}`;
       const payload = {
@@ -787,7 +824,7 @@ PENTING:
 export async function analyzeWithGeminiBackendProxy(dataUrl, onProgress) {
   const backendUrl = (window.AuthAccess && typeof window.AuthAccess.getApiUrl === 'function')
     ? window.AuthAccess.getApiUrl()
-    : 'https://script.google.com/macros/s/AKfycbz2dMUUPDZAbJewwHOWNOUq4sN-Ov2yocqmSUzKRcZ6e3P6JaZ2gJ5QQ8f8JopnHtT4dQ/exec';
+    : 'https://script.google.com/macros/s/AKfycbyVJSZGiYWbtrFQ1CrnoU6NrHSEwAal3j1pBS0yRsZ5P9mAYPzXyuSrQDSFj6r1vB4AlA/exec';
 
   if (onProgress) onProgress('Mengirim gambar ke server AI backend...', 35);
   const compressed = await compressImageForGemini(dataUrl);
@@ -849,6 +886,8 @@ export async function analyzeReceiptImage(dataUrl, fileName = '', onProgress) {
     };
   }
 
+  let aiFailureReason = '';
+
   // 2. Coba Gemini Vision Direct jika Kunci API tersimpan di browser
   const userKey = getGeminiApiKey();
   if (userKey) {
@@ -856,6 +895,7 @@ export async function analyzeReceiptImage(dataUrl, fileName = '', onProgress) {
       return await analyzeWithGeminiVisionDirect(dataUrl, userKey, onProgress);
     } catch (err) {
       console.warn('Gemini Vision Direct notice, mencoba proxy backend:', err);
+      aiFailureReason = err.message || 'Direct Vision AI gagal';
     }
   }
 
@@ -864,6 +904,7 @@ export async function analyzeReceiptImage(dataUrl, fileName = '', onProgress) {
     return await analyzeWithGeminiBackendProxy(dataUrl, onProgress);
   } catch (err) {
     console.warn('Gemini Backend Proxy notice, beralih ke OCR Lokal:', err);
+    if (!aiFailureReason) aiFailureReason = err.message || 'Backend Proxy gagal';
   }
 
   // 4. Fallback Terakhir: Mesin OCR Tesseract Lokal + Kamus Kata Kunci Indonesia
@@ -879,7 +920,8 @@ export async function analyzeReceiptImage(dataUrl, fileName = '', onProgress) {
   const parsed = parseReceiptText(recognizedText, fileName);
   parsed.rawReceiptUrl = dataUrl;
   parsed.engineUsed = 'local-ocr';
-  parsed.engineLabel = 'Mesin OCR Lokal';
+  parsed.engineLabel = 'Mesin OCR Lokal (Cadangan)';
+  parsed.aiFailureReason = aiFailureReason;
 
   return parsed;
 }

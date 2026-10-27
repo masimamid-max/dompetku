@@ -727,7 +727,7 @@ function handleAiScanReceipt(payload) {
       + '  "paymentMethod": "Tunai / QRIS / Debit / Kartu Kredit jika tertera"\n'
       + '}';
 
-    const models = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.7-flash', 'gemini-3.8-flash', 'gemini-flash-latest'];
+    const models = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.1-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.6-flash', 'gemini-flash-latest'];
     let lastError = null;
     let parsedJson = null;
 
@@ -773,6 +773,20 @@ function handleAiScanReceipt(payload) {
             const cleanJsonStr = content.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
             parsedJson = JSON.parse(cleanJsonStr);
             parsedJson.aiModelUsed = model;
+
+            // Sanitasi angka agar tidak terpotong tanda titik atau format teks
+            if (parsedJson) {
+              if (parsedJson.amount != null) {
+                var cleanAmt = String(parsedJson.amount).replace(/[^0-9]/g, '');
+                parsedJson.amount = parseInt(cleanAmt, 10) || 0;
+              }
+              if (Array.isArray(parsedJson.items)) {
+                parsedJson.items.forEach(function(it) {
+                  if (it.price != null) it.price = parseInt(String(it.price).replace(/[^0-9]/g, ''), 10) || 0;
+                  if (it.qty != null) it.qty = parseInt(String(it.qty).replace(/[^0-9]/g, ''), 10) || 1;
+                });
+              }
+            }
             break;
           }
         } else {

@@ -1,7 +1,7 @@
 /**
  * Dompet Keluarga Service Worker (PWA Offline First)
  */
-const CACHE_NAME = 'dompetku-v3.18.9-gemini-vision';
+const CACHE_NAME = 'dompetku-v3.18.10-gemini-vision';
 
 const STATIC_ASSETS = [
   './',
