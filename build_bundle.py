@@ -27,6 +27,8 @@ files_order = [
     "js/components/bottomNav.js",
     "js/pages/dashboard.js",
     "js/pages/transactions.js",
+    "js/pages/accounts.js",
+    "js/pages/categories.js",
     "js/pages/budgets.js",
     "js/pages/goals.js",
     "js/pages/bills.js",

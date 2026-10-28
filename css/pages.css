@@ -1304,3 +1304,47 @@
   filter: brightness(0.95);
   transform: scale(1.02);
 }
+
+/* ==========================================================================
+   Akun & Kantong Keuangan (Drag & Drop + Quick Shift)
+   ========================================================================== */
+.account-pocket-card {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+  user-select: none;
+}
+
+.account-pocket-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.account-pocket-card.dragging {
+  opacity: 0.45;
+  transform: scale(0.97) rotate(1deg);
+  border-style: dashed;
+}
+
+.account-pocket-card.drag-over {
+  border: 2px dashed #4f46e5 !important;
+  background-color: #f5f3ff !important;
+  transform: scale(1.02);
+  box-shadow: 0 12px 30px rgba(79, 70, 229, 0.18) !important;
+}
+
+.category-item-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.category-item-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+}
+
+.subcat-chip {
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.subcat-chip:hover {
+  background-color: var(--color-slate-200) !important;
+}
+

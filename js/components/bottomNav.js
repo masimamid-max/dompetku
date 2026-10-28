@@ -45,6 +45,14 @@ export function renderSidebar() {
           ${Icons.arrowRightLeft(19)}
           <span>Transaksi</span>
         </a>
+        <a class="nav-item ${activeTab === 'accounts' ? 'active' : ''}" data-tab="accounts">
+          ${Icons.creditCard ? Icons.creditCard(19) : Icons.wallet(19)}
+          <span>Akun & Rekening</span>
+        </a>
+        <a class="nav-item ${activeTab === 'categories' ? 'active' : ''}" data-tab="categories">
+          ${Icons.tag(19)}
+          <span>Kategori</span>
+        </a>
         <a class="nav-item ${activeTab === 'budgets' ? 'active' : ''}" data-tab="budgets">
           ${Icons.target(19)}
           <span>Anggaran</span>
@@ -92,7 +100,7 @@ export function renderSidebar() {
 
 export function renderBottomNav() {
   const activeTab = appState.activeTab;
-  const isMenuTabActive = ['goals', 'bills', 'reports', 'settings'].includes(activeTab);
+  const isMenuTabActive = ['accounts', 'categories', 'goals', 'bills', 'reports', 'settings'].includes(activeTab);
 
   return `
     <nav class="mobile-bottom-nav">
@@ -214,6 +222,20 @@ export function openMobileMenuSheet(onTabChange) {
                 ${Icons.arrowRightLeft(22)}
               </div>
               <div class="mobile-nav-sheet-label">Transaksi</div>
+            </div>
+
+            <div class="mobile-nav-sheet-item ${activeTab === 'accounts' ? 'is-active' : ''}" data-sheet-tab="accounts">
+              <div class="mobile-nav-sheet-icon" style="background:linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);color:#4f46e5;">
+                ${Icons.creditCard ? Icons.creditCard(22) : Icons.wallet(22)}
+              </div>
+              <div class="mobile-nav-sheet-label">Akun & Saldo</div>
+            </div>
+
+            <div class="mobile-nav-sheet-item ${activeTab === 'categories' ? 'is-active' : ''}" data-sheet-tab="categories">
+              <div class="mobile-nav-sheet-icon" style="background:linear-gradient(135deg, #fdf2f8 0%, #fbcfe8 100%);color:#db2777;">
+                ${Icons.tag(22)}
+              </div>
+              <div class="mobile-nav-sheet-label">Kategori</div>
             </div>
 
             <div class="mobile-nav-sheet-item ${activeTab === 'budgets' ? 'is-active' : ''}" data-sheet-tab="budgets">

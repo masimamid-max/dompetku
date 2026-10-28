@@ -11,6 +11,8 @@ import { renderGoalsPage, attachGoalsListeners } from './pages/goals.js';
 import { renderBillsPage, attachBillsListeners } from './pages/bills.js';
 import { renderReportsPage, attachReportsListeners } from './pages/reports.js';
 import { renderSettingsPage, attachSettingsListeners } from './pages/settings.js';
+import { renderAccountsPage, attachAccountsListeners } from './pages/accounts.js';
+import { renderCategoriesPage, attachCategoriesListeners } from './pages/categories.js';
 import { CloudSyncService } from './utils/cloudSync.js';
 
 class DompetKeluargaApp {
@@ -124,6 +126,12 @@ class DompetKeluargaApp {
       case 'transactions':
         pageContent = renderTransactionsPage();
         break;
+      case 'accounts':
+        pageContent = renderAccountsPage();
+        break;
+      case 'categories':
+        pageContent = renderCategoriesPage();
+        break;
       case 'budgets':
         pageContent = renderBudgetsPage();
         break;
@@ -164,6 +172,12 @@ class DompetKeluargaApp {
         break;
       case 'transactions':
         attachTransactionsListeners();
+        break;
+      case 'accounts':
+        attachAccountsListeners((tab) => this.navigate(tab));
+        break;
+      case 'categories':
+        attachCategoriesListeners((tab) => this.navigate(tab));
         break;
       case 'budgets':
         attachBudgetsListeners();

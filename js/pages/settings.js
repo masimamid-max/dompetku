@@ -20,6 +20,10 @@ export function renderSettingsPage() {
   const canManage = appState.canManageFinances();
   const isPro = LicenseService.isLicensed();
 
+  if (settingsSubTab === 'accounts' || settingsSubTab === 'categories') {
+    settingsSubTab = 'family';
+  }
+
   return `
     <div class="settings-page">
       <!-- Header -->
@@ -27,7 +31,7 @@ export function renderSettingsPage() {
         <div>
           <h1 style="font-size:1.5rem;font-weight:800;color:var(--color-slate-900);">Pengaturan</h1>
           <p style="font-size:0.875rem;color:var(--text-muted);margin-top:0.25rem;">
-            Kelola ruang keluarga, hak akses anggota, akun rekening, lisensi developer, dan integrasi Google Sheets
+            Kelola ruang keluarga, hak akses anggota, lisensi developer, dan integrasi Google Sheets
           </p>
         </div>
         <button class="btn btn-secondary btn-sm" id="btn-settings-logout" style="color:#dc2626;border-color:#fecaca;background:#fff5f5;font-weight:700;display:flex;align-items:center;gap:0.375rem;" title="Keluar dari Akun">
@@ -39,12 +43,6 @@ export function renderSettingsPage() {
       <div class="settings-tabs">
         <button class="settings-tab-btn ${settingsSubTab === 'family' ? 'active' : ''}" data-subtab="family">
           ${Icons.users(16)} Ruang Keluarga & Anggota
-        </button>
-        <button class="settings-tab-btn ${settingsSubTab === 'accounts' ? 'active' : ''}" data-subtab="accounts">
-          ${Icons.creditCard(16)} Akun & Rekening (${accounts.length})
-        </button>
-        <button class="settings-tab-btn ${settingsSubTab === 'categories' ? 'active' : ''}" data-subtab="categories">
-          ${Icons.tag(16)} Kategori & Subkategori (${categories.length})
         </button>
         <button class="settings-tab-btn ${settingsSubTab === 'cloud' ? 'active' : ''}" data-subtab="cloud">
           ☁️ Google Sheets Cloud DB

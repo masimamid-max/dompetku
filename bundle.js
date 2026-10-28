@@ -7082,11 +7082,6 @@ function renderNavbar() {
             `).join('')}
           </select>
         </div>
-        <!-- Millennial Theme Switcher Pill Trigger -->
-        <button class="theme-trigger-pill" id="btn-header-theme" title="Pilih Tema Warna Aplikasi">
-          <span class="theme-trigger-icon">${currentTheme.emoji}</span>
-          <span class="theme-trigger-label hide-on-mobile">Tema</span>
-        </button>
         <button class="btn-header-add" id="header-btn-add-tx">
           ${Icons.plus(18)} <span class="hide-on-mobile">Catat Transaksi</span>
         </button>
@@ -7103,12 +7098,6 @@ function renderNavbar() {
   `;
 }
 function attachNavbarListeners() {
-  const themeBtn = document.getElementById('btn-header-theme');
-  if (themeBtn) {
-    themeBtn.onclick = () => {
-      openThemeModal();
-    };
-  }
   const navbarLogoutBtn = document.getElementById('navbar-btn-logout');
   if (navbarLogoutBtn) {
     navbarLogoutBtn.onclick = () => {
@@ -7238,6 +7227,14 @@ function renderSidebar() {
           ${Icons.arrowRightLeft(19)}
           <span>Transaksi</span>
         </a>
+        <a class="nav-item ${activeTab === 'accounts' ? 'active' : ''}" data-tab="accounts">
+          ${Icons.creditCard ? Icons.creditCard(19) : Icons.wallet(19)}
+          <span>Akun & Rekening</span>
+        </a>
+        <a class="nav-item ${activeTab === 'categories' ? 'active' : ''}" data-tab="categories">
+          ${Icons.tag(19)}
+          <span>Kategori</span>
+        </a>
         <a class="nav-item ${activeTab === 'budgets' ? 'active' : ''}" data-tab="budgets">
           ${Icons.target(19)}
           <span>Anggaran</span>
@@ -7283,7 +7280,7 @@ function renderSidebar() {
 }
 function renderBottomNav() {
   const activeTab = appState.activeTab;
-  const isMenuTabActive = ['goals', 'bills', 'reports', 'settings'].includes(activeTab);
+  const isMenuTabActive = ['accounts', 'categories', 'goals', 'bills', 'reports', 'settings'].includes(activeTab);
   return `
     <nav class="mobile-bottom-nav">
       <a class="bottom-nav-item ${activeTab === 'dashboard' ? 'active' : ''}" data-tab="dashboard">
@@ -7394,6 +7391,18 @@ function openMobileMenuSheet(onTabChange) {
                 ${Icons.arrowRightLeft(22)}
               </div>
               <div class="mobile-nav-sheet-label">Transaksi</div>
+            </div>
+            <div class="mobile-nav-sheet-item ${activeTab === 'accounts' ? 'is-active' : ''}" data-sheet-tab="accounts">
+              <div class="mobile-nav-sheet-icon" style="background:linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);color:#4f46e5;">
+                ${Icons.creditCard ? Icons.creditCard(22) : Icons.wallet(22)}
+              </div>
+              <div class="mobile-nav-sheet-label">Akun & Saldo</div>
+            </div>
+            <div class="mobile-nav-sheet-item ${activeTab === 'categories' ? 'is-active' : ''}" data-sheet-tab="categories">
+              <div class="mobile-nav-sheet-icon" style="background:linear-gradient(135deg, #fdf2f8 0%, #fbcfe8 100%);color:#db2777;">
+                ${Icons.tag(22)}
+              </div>
+              <div class="mobile-nav-sheet-label">Kategori</div>
             </div>
             <div class="mobile-nav-sheet-item ${activeTab === 'budgets' ? 'is-active' : ''}" data-sheet-tab="budgets">
               <div class="mobile-nav-sheet-icon" style="background:linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);color:#d97706;">
@@ -8287,6 +8296,1218 @@ function attachTransactionsListeners() {
       }
     };
   });
+}
+
+
+function renderAccountsPage() {
+  const accounts = appState.getAccountsWithBalances();
+  const activeAccounts = accounts.filter(a => !a.isArchived);
+  const archivedAccounts = accounts.filter(a => a.isArchived);
+  const canManage = appState.canManageFinances();
+  let totalNetBalance = 0;
+  let totalCash = 0;
+  let totalBank = 0;
+  let totalEwallet = 0;
+  activeAccounts.forEach(acc => {
+    totalNetBalance += (acc.currentBalance || 0);
+    if (acc.type === 'cash') totalCash += (acc.currentBalance || 0);
+    else if (acc.type === 'bank') totalBank += (acc.currentBalance || 0);
+    else if (acc.type === 'ewallet') totalEwallet += (acc.currentBalance || 0);
+  });
+  return `
+    <div class="accounts-page" style="display:flex;flex-direction:column;gap:1.5rem;">
+      <!-- Page Header -->
+      <div class="dashboard-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;">
+        <div>
+          <h1 style="font-size:1.5rem;font-weight:800;color:var(--color-slate-900);letter-spacing:-0.02em;">
+            Akun & Rekening Keuangan
+          </h1>
+          <p style="font-size:0.875rem;color:var(--text-muted);margin-top:0.25rem;">
+            Kelola seluruh kantong kas, rekening bank, & e-wallet keluarga serta geser dana antar kantong dengan mudah
+          </p>
+        </div>
+        <div style="display:flex;gap:0.625rem;flex-wrap:wrap;">
+          <button class="btn btn-primary" id="btn-accounts-shift-balance" style="display:inline-flex;align-items:center;gap:0.4rem;border-radius:var(--radius-full);font-weight:700;">
+            <span style="font-size:1.1rem;">🔁</span>
+            <span>Geser / Pindah Saldo</span>
+          </button>
+          ${canManage ? `
+            <button class="btn btn-secondary" id="btn-accounts-add-account" style="display:inline-flex;align-items:center;gap:0.4rem;border-radius:var(--radius-full);font-weight:700;">
+              ${Icons.plus(16)}
+              <span>Tambah Akun</span>
+            </button>
+          ` : ''}
+        </div>
+      </div>
+      <!-- Total Wealth & Kantong Summary Metric Cards -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:1rem;">
+        <!-- Total Net Balance -->
+        <div class="card" style="background:var(--primary-gradient-subtle, #ecfdf5);border:1.5px solid var(--color-primary-200);position:relative;overflow:hidden;">
+          <div style="font-size:0.75rem;font-weight:800;color:var(--color-primary-800);text-transform:uppercase;letter-spacing:0.04em;">
+            Total Saldo Seluruh Kantong
+          </div>
+          <div style="font-size:1.65rem;font-weight:800;color:var(--color-primary-700);margin-top:0.35rem;letter-spacing:-0.02em;">
+            ${formatRupiah(totalNetBalance)}
+          </div>
+          <div style="font-size:0.75rem;color:var(--color-slate-600);margin-top:0.35rem;">
+            ${activeAccounts.length} akun aktif terpantau
+          </div>
+        </div>
+        <!-- Bank Balance -->
+        <div class="card" style="border:1px solid var(--border-subtle);">
+          <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;display:flex;align-items:center;gap:0.35rem;">
+            <span>🏦</span> Rekening Bank
+          </div>
+          <div style="font-size:1.35rem;font-weight:800;color:var(--color-slate-900);margin-top:0.35rem;">
+            ${formatRupiah(totalBank)}
+          </div>
+          <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.35rem;">
+            Tabungan & operasional bank
+          </div>
+        </div>
+        <!-- Cash Balance -->
+        <div class="card" style="border:1px solid var(--border-subtle);">
+          <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;display:flex;align-items:center;gap:0.35rem;">
+            <span>💵</span> Uang Tunai (Kas)
+          </div>
+          <div style="font-size:1.35rem;font-weight:800;color:var(--color-slate-900);margin-top:0.35rem;">
+            ${formatRupiah(totalCash)}
+          </div>
+          <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.35rem;">
+            Dompet fisik harian
+          </div>
+        </div>
+        <!-- E-Wallet Balance -->
+        <div class="card" style="border:1px solid var(--border-subtle);">
+          <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;display:flex;align-items:center;gap:0.35rem;">
+            <span>📱</span> Dompet Digital (E-Wallet)
+          </div>
+          <div style="font-size:1.35rem;font-weight:800;color:${totalEwallet < 0 ? 'var(--color-expense)' : 'var(--color-slate-900)'};margin-top:0.35rem;">
+            ${formatRupiah(totalEwallet)}
+          </div>
+          <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.35rem;">
+            ShopeePay, GoPay, OVO, dll.
+          </div>
+        </div>
+      </div>
+      <!-- Drag & Drop Interactive Notice -->
+      <div style="padding:0.75rem 1rem;background:white;border:1px dashed var(--color-primary-300);border-radius:var(--radius-md);display:flex;align-items:center;gap:0.75rem;color:var(--color-primary-800);font-size:0.8125rem;">
+        <span style="font-size:1.25rem;">💡</span>
+        <span>
+          <strong>Fitur Geser Saldo Cepat:</strong> Klik tombol <strong>"🔁 Geser Saldo"</strong> pada kartu akun, atau tarik kartu (drag & drop) ke kartu akun lain untuk langsung memindahkan dana secara seketika!
+        </span>
+      </div>
+      <!-- Active Accounts Grid -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">${Icons.creditCard(18)} Daftar Kantong & Rekening Aktif (${activeAccounts.length})</div>
+            <div class="card-subtitle">Saldo berjalan dihitung otomatis dari saldo awal dan riwayat mutasi transaksi</div>
+          </div>
+        </div>
+        <div class="accounts-cards-grid" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));gap:1.25rem;">
+          ${activeAccounts.map(acc => {
+            const isNegative = (acc.currentBalance || 0) < 0;
+            return `
+              <div class="account-kantong-card" data-account-id="${acc.id}" draggable="true" style="background:white;border:1.5px solid var(--border-subtle);border-radius:var(--radius-lg);padding:1.25rem;display:flex;flex-direction:column;gap:1rem;position:relative;transition:all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);box-shadow:var(--shadow-xs);cursor:grab;">
+                <!-- Card Header -->
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;">
+                  <div style="display:flex;align-items:center;gap:0.75rem;min-width:0;">
+                    <div style="width:44px;height:44px;border-radius:14px;background:${acc.color}20;color:${acc.color};display:grid;place-items:center;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+                      ${getCategoryIcon(acc.icon || 'wallet', 22)}
+                    </div>
+                    <div style="min-width:0;">
+                      <div style="font-size:1rem;font-weight:800;color:var(--color-slate-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                        ${acc.name}
+                      </div>
+                      <span class="badge" style="background:#f1f5f9;color:var(--color-slate-700);font-size:0.6875rem;margin-top:0.2rem;">
+                        ${acc.typeLabel || acc.type}
+                      </span>
+                    </div>
+                  </div>
+                  <!-- Quick Action Icons -->
+                  ${canManage ? `
+                    <div style="display:flex;gap:0.35rem;align-items:center;">
+                      <button class="btn btn-secondary btn-icon btn-sm action-edit-account" data-id="${acc.id}" title="Ubah Nama/Saldo Awal Akun">
+                        ${Icons.edit(14)}
+                      </button>
+                      <button class="btn btn-secondary btn-icon btn-sm action-delete-account" data-id="${acc.id}" title="Hapus Akun" style="color:var(--color-expense);">
+                        ${Icons.trash(14)}
+                      </button>
+                    </div>
+                  ` : ''}
+                </div>
+                <!-- Balance Display -->
+                <div style="background:var(--color-slate-50);padding:0.85rem 1rem;border-radius:var(--radius-md);border:1px solid var(--border-subtle);">
+                  <div style="font-size:0.6875rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;">
+                    Saldo Tersedia
+                  </div>
+                  <div style="font-size:1.35rem;font-weight:800;color:${isNegative ? 'var(--color-expense)' : 'var(--color-slate-900)'};margin-top:0.2rem;">
+                    ${formatRupiah(acc.currentBalance)}
+                  </div>
+                  <div style="font-size:0.6875rem;color:var(--text-muted);margin-top:0.3rem;">
+                    Saldo Awal: ${formatRupiah(acc.initialBalance)}
+                  </div>
+                </div>
+                <!-- Footer Quick Transfer Button -->
+                <button class="btn btn-primary btn-sm action-quick-shift" data-id="${acc.id}" style="width:100%;border-radius:var(--radius-full);font-weight:700;display:flex;align-items:center;justify-content:center;gap:0.4rem;">
+                  <span>🔁</span>
+                  <span>Geser Saldo dari Akun Ini</span>
+                </button>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+      <!-- Archived Accounts Section (if any) -->
+      ${archivedAccounts.length > 0 ? `
+        <div class="card" style="opacity:0.85;">
+          <div class="card-header">
+            <div class="card-title">📁 Akun & Rekening yang Diarsipkan (${archivedAccounts.length})</div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));gap:1rem;">
+            ${archivedAccounts.map(acc => `
+              <div style="padding:1rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:0.75rem;">
+                <div>
+                  <div style="font-weight:700;color:var(--color-slate-800);">${acc.name}</div>
+                  <div style="font-size:0.75rem;color:var(--text-muted);">Saldo Terakhir: ${formatRupiah(acc.currentBalance)}</div>
+                </div>
+                <div style="display:flex;gap:0.35rem;">
+                  <button class="btn btn-secondary btn-sm action-restore-account" data-id="${acc.id}" style="color:#059669;font-weight:700;" title="Aktifkan Kembali">
+                    ${Icons.refresh(14)} Pulihkan
+                  </button>
+                  <button class="btn btn-secondary btn-icon btn-sm action-delete-account" data-id="${acc.id}" style="color:var(--color-expense);" title="Hapus Permanen">
+                    ${Icons.trash(14)}
+                  </button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
+function openShiftBalanceModal(initialSourceId = null, initialTargetId = null) {
+  const accounts = appState.getAccountsWithBalances().filter(a => !a.isArchived);
+  if (accounts.length < 2) {
+    toast.error('Anda membutuhkan minimal 2 akun aktif untuk dapat menggeser saldo.');
+    return;
+  }
+  let sourceId = initialSourceId || accounts[0].id;
+  let targetId = initialTargetId || (accounts.find(a => a.id !== sourceId)?.id || accounts[1].id);
+  function getModalContent(srcId, dstId, nominal = '', note = '') {
+    const srcAcc = accounts.find(a => a.id === srcId) || accounts[0];
+    const dstAcc = accounts.find(a => a.id === dstId) || accounts[1];
+    const maxBalance = Math.max(0, srcAcc.currentBalance || 0);
+    return `
+      <div style="display:flex;flex-direction:column;gap:1.25rem;">
+        <!-- Visual Transfer Flow Cards -->
+        <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:0.75rem;background:var(--color-slate-50);padding:1rem;border-radius:var(--radius-lg);border:1px solid var(--border-subtle);">
+          <!-- Source Pocket -->
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <label style="font-size:0.6875rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;">
+              Dari Kantong (Sumber)
+            </label>
+            <select id="shift-source-select" class="form-select" style="font-weight:700;border-radius:10px;padding:0.5rem;">
+              ${accounts.map(a => `
+                <option value="${a.id}" ${a.id === srcAcc.id ? 'selected' : ''}>
+                  ${a.name} (${formatRupiah(a.currentBalance)})
+                </option>
+              `).join('')}
+            </select>
+            <div style="font-size:0.75rem;color:var(--color-primary-700);font-weight:600;margin-top:0.15rem;">
+              Sisa Saldo: <strong>${formatRupiah(srcAcc.currentBalance)}</strong>
+            </div>
+          </div>
+          <!-- Swap Direction Button -->
+          <button id="btn-shift-swap" type="button" class="btn btn-secondary btn-icon" style="width:36px;height:36px;border-radius:50%;margin-top:1.25rem;flex-shrink:0;" title="Tukar Arah Penggeseran">
+            ⇄
+          </button>
+          <!-- Destination Pocket -->
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <label style="font-size:0.6875rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;">
+              Ke Kantong (Tujuan)
+            </label>
+            <select id="shift-target-select" class="form-select" style="font-weight:700;border-radius:10px;padding:0.5rem;">
+              ${accounts.map(a => `
+                <option value="${a.id}" ${a.id === dstAcc.id ? 'selected' : ''}>
+                  ${a.name} (${formatRupiah(a.currentBalance)})
+                </option>
+              `).join('')}
+            </select>
+            <div style="font-size:0.75rem;color:var(--text-muted);font-weight:600;margin-top:0.15rem;">
+              Saldo Sekarang: <strong>${formatRupiah(dstAcc.currentBalance)}</strong>
+            </div>
+          </div>
+        </div>
+        <!-- Amount Input & Quick Slider -->
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label" style="font-weight:800;">Jumlah Dana yang Digeser (Nominal) *</label>
+          <div class="currency-input-wrapper">
+            <span class="currency-prefix">Rp</span>
+            <input type="text" id="shift-amount-input" class="form-input currency-input" placeholder="0" value="${nominal}" required autofocus />
+          </div>
+          <!-- Quick Nominal Preset Chips -->
+          <div style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-top:0.6rem;">
+            <button type="button" class="preset-chip btn-preset-val" data-val="50000">+50rb</button>
+            <button type="button" class="preset-chip btn-preset-val" data-val="100000">+100rb</button>
+            <button type="button" class="preset-chip btn-preset-val" data-val="250000">+250rb</button>
+            <button type="button" class="preset-chip btn-preset-val" data-val="500000">+500rb</button>
+            <button type="button" class="preset-chip btn-preset-val" data-val="1000000">+1 Jt</button>
+            ${maxBalance > 0 ? `
+              <button type="button" class="preset-chip btn-preset-all" data-val="${maxBalance}" style="background:var(--color-primary-50);color:var(--color-primary-700);border-color:var(--color-primary-300);font-weight:700;">
+                Semua Saldo (${formatRupiah(maxBalance)})
+              </button>
+            ` : ''}
+          </div>
+        </div>
+        <!-- Notes / Suggestions -->
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Keperluan / Keterangan Transfer</label>
+          <input type="text" id="shift-desc-input" class="form-input" placeholder="Contoh: Tarik tunai dari ATM ke kas tunai" value="${note}" />
+          <!-- Suggestion Chips -->
+          <div style="display:flex;flex-wrap:wrap;gap:0.35rem;margin-top:0.5rem;">
+            <span class="preset-chip chip-note-suggest" data-text="Tarik Tunai ATM">Tarik Tunai ATM</span>
+            <span class="preset-chip chip-note-suggest" data-text="Top Up E-Wallet">Top Up E-Wallet</span>
+            <span class="preset-chip chip-note-suggest" data-text="Setor Tunai ke Bank">Setor Tunai</span>
+            <span class="preset-chip chip-note-suggest" data-text="Sisihkan ke Tabungan">Tabungan</span>
+            <span class="preset-chip chip-note-suggest" data-text="Pindah Saldo Operasional">Operasional</span>
+          </div>
+        </div>
+        <!-- Date Picker -->
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Tanggal Penggeseran</label>
+          <input type="date" id="shift-date-input" class="form-input" value="${new Date().toISOString().split('T')[0]}" />
+        </div>
+      </div>
+    `;
+  }
+  modal.open({
+    title: '🔁 Geser Saldo Antar Kantong Keuangan',
+    content: getModalContent(sourceId, targetId),
+    maxWidth: '560px',
+    footerButtons: [
+      { label: 'Batal', className: 'btn-secondary', onClick: () => modal.close() },
+      {
+        label: '🚀 Geser & Pindahkan Saldo',
+        className: 'btn-primary',
+        onClick: () => {
+          const srcSelect = document.getElementById('shift-source-select');
+          const dstSelect = document.getElementById('shift-target-select');
+          const amountInput = document.getElementById('shift-amount-input');
+          const descInput = document.getElementById('shift-desc-input');
+          const dateInput = document.getElementById('shift-date-input');
+          const fromId = srcSelect?.value;
+          const toId = dstSelect?.value;
+          const amount = parseRupiah(amountInput?.value);
+          const desc = descInput?.value?.trim() || '';
+          const date = dateInput?.value || new Date().toISOString().split('T')[0];
+          if (!fromId || !toId) {
+            toast.error('Pilih kantong sumber dan tujuan.');
+            return;
+          }
+          if (fromId === toId) {
+            toast.error('Kantong sumber dan tujuan tidak boleh sama.');
+            return;
+          }
+          if (!amount || amount <= 0) {
+            toast.error('Masukkan nominal dana yang ingin digeser.');
+            return;
+          }
+          const fromAcc = accounts.find(a => a.id === fromId);
+          const toAcc = accounts.find(a => a.id === toId);
+          appState.addTransaction({
+            type: 'transfer',
+            accountId: fromId,
+            targetAccountId: toId,
+            amount: amount,
+            description: desc || `Pindah saldo dari ${fromAcc.name} ke ${toAcc.name}`,
+            date: date,
+            notes: 'Geser saldo antar kantong'
+          });
+          toast.success(`🎉 Berhasil menggeser saldo ${formatRupiah(amount)} dari ${fromAcc.name} ke ${toAcc.name}!`);
+          modal.close();
+          appState.notify();
+        }
+      }
+    ]
+  });
+  function bindModalEvents() {
+    const amountInput = document.getElementById('shift-amount-input');
+    if (amountInput) {
+      amountInput.oninput = (e) => {
+        const val = parseRupiah(e.target.value);
+        e.target.value = val > 0 ? val.toLocaleString('id-ID') : '';
+      };
+    }
+    document.querySelectorAll('.btn-preset-val').forEach(btn => {
+      btn.onclick = () => {
+        const addVal = parseInt(btn.dataset.val, 10);
+        const curVal = parseRupiah(amountInput.value) || 0;
+        const total = curVal + addVal;
+        amountInput.value = total.toLocaleString('id-ID');
+      };
+    });
+    const presetAll = document.querySelector('.btn-preset-all');
+    if (presetAll) {
+      presetAll.onclick = () => {
+        const allVal = parseInt(presetAll.dataset.val, 10);
+        amountInput.value = allVal.toLocaleString('id-ID');
+      };
+    }
+    document.querySelectorAll('.chip-note-suggest').forEach(chip => {
+      chip.onclick = () => {
+        const descInput = document.getElementById('shift-desc-input');
+        if (descInput) descInput.value = chip.dataset.text;
+      };
+    });
+    const swapBtn = document.getElementById('btn-shift-swap');
+    if (swapBtn) {
+      swapBtn.onclick = () => {
+        const srcSelect = document.getElementById('shift-source-select');
+        const dstSelect = document.getElementById('shift-target-select');
+        const oldSrc = srcSelect.value;
+        const oldDst = dstSelect.value;
+        srcSelect.value = oldDst;
+        dstSelect.value = oldSrc;
+      };
+    }
+  }
+  bindModalEvents();
+}
+function openAddAccountModal() {
+  modal.open({
+    title: 'Tambah Rekening / Dompet Baru',
+    content: `
+      <div class="form-group">
+        <label class="form-label">Nama Akun / Bank *</label>
+        <input type="text" id="acc-name-input" class="form-input" placeholder="Contoh: Bank Jago Tabungan" required />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Jenis Akun *</label>
+        <select id="acc-type-select" class="form-select">
+          <option value="bank">Rekening Bank</option>
+          <option value="cash">Uang Tunai</option>
+          <option value="ewallet">Dompet Digital (E-Wallet)</option>
+          <option value="savings">Tabungan Khusus</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Saldo Awal (IDR) *</label>
+        <div class="currency-input-wrapper">
+          <span class="currency-prefix">Rp</span>
+          <input type="text" id="acc-init-balance" class="form-input currency-input" placeholder="0" />
+        </div>
+        <span class="form-hint">Saldo berjalan selanjutnya dihitung otomatis dari transaksi</span>
+      </div>
+    `,
+    footerButtons: [
+      { label: 'Batal', className: 'btn-secondary', onClick: () => modal.close() },
+      {
+        label: 'Tambah Akun',
+        className: 'btn-primary',
+        onClick: () => {
+          const name = document.getElementById('acc-name-input')?.value;
+          const type = document.getElementById('acc-type-select')?.value;
+          const initBalance = parseRupiah(document.getElementById('acc-init-balance')?.value);
+          if (!name || !name.trim()) {
+            toast.error('Nama akun wajib diisi.');
+            return;
+          }
+          const typeLabels = { bank: 'Bank', cash: 'Tunai', ewallet: 'E-Wallet', savings: 'Tabungan' };
+          const colors = { bank: '#3b82f6', cash: '#10b981', ewallet: '#06b6d4', savings: '#6366f1' };
+          appState.addAccount({
+            name: name.trim(),
+            type,
+            typeLabel: typeLabels[type] || 'Akun',
+            initialBalance: initBalance,
+            color: colors[type] || '#3b82f6',
+            icon: type === 'cash' ? 'wallet' : 'creditCard'
+          });
+          toast.success(`Akun "${name}" berhasil ditambahkan!`);
+          modal.close();
+          appState.notify();
+        }
+      }
+    ]
+  });
+  const initBalInput = document.getElementById('acc-init-balance');
+  if (initBalInput) {
+    initBalInput.oninput = (e) => {
+      const val = parseRupiah(e.target.value);
+      e.target.value = val > 0 ? val.toLocaleString('id-ID') : '';
+    };
+  }
+}
+function openEditAccountModal(accountId) {
+  const acc = appState.getAccountById(accountId);
+  if (!acc) return;
+  modal.open({
+    title: `Ubah Akun: ${acc.name}`,
+    content: `
+      <div class="form-group">
+        <label class="form-label">Nama Akun / Bank *</label>
+        <input type="text" id="edit-acc-name-input" class="form-input" value="${acc.name}" required />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Jenis Akun *</label>
+        <select id="edit-acc-type-select" class="form-select">
+          <option value="bank" ${acc.type === 'bank' ? 'selected' : ''}>Rekening Bank</option>
+          <option value="cash" ${acc.type === 'cash' ? 'selected' : ''}>Uang Tunai</option>
+          <option value="ewallet" ${acc.type === 'ewallet' ? 'selected' : ''}>Dompet Digital (E-Wallet)</option>
+          <option value="savings" ${acc.type === 'savings' ? 'selected' : ''}>Tabungan Khusus</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Saldo Awal (IDR) *</label>
+        <div class="currency-input-wrapper">
+          <span class="currency-prefix">Rp</span>
+          <input type="text" id="edit-acc-init-balance" class="form-input currency-input" value="${(acc.initialBalance || 0).toLocaleString('id-ID')}" />
+        </div>
+        <span class="form-hint">Saldo berjalan: ${formatRupiah(acc.currentBalance)}</span>
+      </div>
+    `,
+    footerButtons: [
+      { label: 'Batal', className: 'btn-secondary', onClick: () => modal.close() },
+      {
+        label: 'Simpan Perubahan',
+        className: 'btn-primary',
+        onClick: () => {
+          const name = document.getElementById('edit-acc-name-input')?.value;
+          const type = document.getElementById('edit-acc-type-select')?.value;
+          const initBalance = parseRupiah(document.getElementById('edit-acc-init-balance')?.value);
+          if (!name || !name.trim()) {
+            toast.error('Nama akun wajib diisi.');
+            return;
+          }
+          const typeLabels = { bank: 'Bank', cash: 'Tunai', ewallet: 'E-Wallet', savings: 'Tabungan' };
+          const colors = { bank: '#3b82f6', cash: '#10b981', ewallet: '#06b6d4', savings: '#6366f1' };
+          appState.updateAccount(accountId, {
+            name: name.trim(),
+            type,
+            typeLabel: typeLabels[type] || 'Akun',
+            initialBalance: initBalance,
+            color: colors[type] || acc.color,
+            icon: type === 'cash' ? 'wallet' : 'creditCard'
+          });
+          toast.success(`Akun "${name}" berhasil diperbarui!`);
+          modal.close();
+          appState.notify();
+        }
+      }
+    ]
+  });
+  const initBalInput = document.getElementById('edit-acc-init-balance');
+  if (initBalInput) {
+    initBalInput.oninput = (e) => {
+      const val = parseRupiah(e.target.value);
+      e.target.value = val > 0 ? val.toLocaleString('id-ID') : '';
+    };
+  }
+}
+function openDeleteAccountModal(accountId) {
+  const acc = appState.getAccountById(accountId);
+  if (!acc) return;
+  const inUse = appState.isAccountInUse(accountId);
+  if (inUse && !acc.isArchived) {
+    modal.open({
+      title: 'Hapus / Arsipkan Akun',
+      content: `
+        <p style="font-size:0.875rem;color:var(--color-slate-700);line-height:1.5;margin-bottom:1rem;">
+          Akun <strong>"${acc.name}"</strong> memiliki riwayat transaksi terkait.
+        </p>
+        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:0.75rem;font-size:0.8125rem;color:#991b1b;margin-bottom:1rem;">
+          ⚠️ <strong>Pilihan Tindakan:</strong><br>
+          • <strong>Arsipkan</strong>: Sembunyikan akun dari pilihan transaksi baru, riwayat saldo lama tetap aman.<br>
+          • <strong>Hapus Permanen</strong>: Hapus akun secara total dari daftar.
+        </div>
+      `,
+      footerButtons: [
+        { label: 'Batal', className: 'btn-secondary', onClick: () => modal.close() },
+        {
+          label: 'Arsipkan Akun',
+          className: 'btn-secondary',
+          onClick: () => {
+            const res = appState.deleteAccount(accountId, false);
+            toast.info(res.message);
+            modal.close();
+            appState.notify();
+          }
+        },
+        {
+          label: 'Hapus Permanen',
+          className: 'btn-danger',
+          onClick: () => {
+            const res = appState.deleteAccountPermanently(accountId);
+            toast.success(res.message);
+            modal.close();
+            appState.notify();
+          }
+        }
+      ]
+    });
+  } else {
+    modal.confirm({
+      title: 'Hapus Akun',
+      message: `Apakah Anda yakin ingin menghapus akun <strong>"${acc.name}"</strong> secara permanen?`,
+      confirmText: 'Ya, Hapus Akun',
+      confirmType: 'btn-danger',
+      onConfirm: () => {
+        const res = appState.deleteAccountPermanently(accountId);
+        toast.success(res.message);
+        appState.notify();
+      }
+    });
+  }
+}
+function attachAccountsListeners(navigateToTab) {
+  const shiftBtn = document.getElementById('btn-accounts-shift-balance');
+  if (shiftBtn) {
+    shiftBtn.onclick = () => openShiftBalanceModal();
+  }
+  const addAccBtn = document.getElementById('btn-accounts-add-account');
+  if (addAccBtn) {
+    addAccBtn.onclick = () => openAddAccountModal();
+  }
+  document.querySelectorAll('.action-quick-shift').forEach(btn => {
+    btn.onclick = () => {
+      const id = btn.dataset.id;
+      openShiftBalanceModal(id);
+    };
+  });
+  document.querySelectorAll('.action-edit-account').forEach(btn => {
+    btn.onclick = () => {
+      const id = btn.dataset.id;
+      openEditAccountModal(id);
+    };
+  });
+  document.querySelectorAll('.action-delete-account').forEach(btn => {
+    btn.onclick = () => {
+      const id = btn.dataset.id;
+      openDeleteAccountModal(id);
+    };
+  });
+  document.querySelectorAll('.action-restore-account').forEach(btn => {
+    btn.onclick = () => {
+      const id = btn.dataset.id;
+      appState.toggleArchiveAccount(id);
+      toast.success('Akun telah diaktifkan kembali!');
+      appState.notify();
+    };
+  });
+  let draggedCardId = null;
+  const cards = document.querySelectorAll('.account-kantong-card');
+  cards.forEach(card => {
+    card.addEventListener('dragstart', (e) => {
+      draggedCardId = card.getAttribute('data-account-id');
+      card.style.opacity = '0.5';
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', draggedCardId);
+    });
+    card.addEventListener('dragend', () => {
+      card.style.opacity = '1';
+      cards.forEach(c => {
+        c.style.borderColor = 'var(--border-subtle)';
+        c.style.transform = '';
+      });
+    });
+    card.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const targetId = card.getAttribute('data-account-id');
+      if (draggedCardId && targetId !== draggedCardId) {
+        card.style.borderColor = 'var(--color-primary-500)';
+        card.style.transform = 'scale(1.02)';
+      }
+    });
+    card.addEventListener('dragleave', () => {
+      card.style.borderColor = 'var(--border-subtle)';
+      card.style.transform = '';
+    });
+    card.addEventListener('drop', (e) => {
+      e.preventDefault();
+      card.style.borderColor = 'var(--border-subtle)';
+      card.style.transform = '';
+      const targetId = card.getAttribute('data-account-id');
+      if (draggedCardId && targetId && draggedCardId !== targetId) {
+        openShiftBalanceModal(draggedCardId, targetId);
+      }
+    });
+  });
+}
+
+
+var currentFilter = 'all'; // 'all' | 'expense' | 'income' | 'archived'
+var searchQuery = '';
+function renderCategoriesPage() {
+  const categories = appState.categories || [];
+  const transactions = appState.transactions || [];
+  const canManage = appState.currentUser ? appState.canManageSettings(appState.currentUser.id) : true;
+  const expenseCats = categories.filter(c => c.type === 'expense' && !c.isArchived);
+  const incomeCats = categories.filter(c => c.type === 'income' && !c.isArchived);
+  const archivedCats = categories.filter(c => c.isArchived);
+  const totalSubcategories = categories.reduce((acc, cat) => acc + (cat.subcategories || []).length, 0);
+  let filtered = categories.slice();
+  if (currentFilter === 'expense') {
+    filtered = filtered.filter(c => c.type === 'expense' && !c.isArchived);
+  } else if (currentFilter === 'income') {
+    filtered = filtered.filter(c => c.type === 'income' && !c.isArchived);
+  } else if (currentFilter === 'archived') {
+    filtered = filtered.filter(c => c.isArchived);
+  } else {
+    filtered = filtered.filter(c => !c.isArchived);
+  }
+  if (searchQuery.trim()) {
+    const q = searchQuery.toLowerCase().trim();
+    filtered = filtered.filter(c => {
+      const nameMatch = (c.name || '').toLowerCase().includes(q);
+      const subMatch = (c.subcategories || []).some(sub => (sub || '').toLowerCase().includes(q));
+      return nameMatch || subMatch;
+    });
+  }
+  const txCountByCat = {};
+  transactions.forEach(tx => {
+    if (tx.categoryId) {
+      txCountByCat[tx.categoryId] = (txCountByCat[tx.categoryId] || 0) + 1;
+    }
+  });
+  return `
+    <div class="page-container page-categories" style="padding-bottom: 5rem;">
+      <!-- Page Header -->
+      <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;">
+        <div>
+          <h1 class="page-title" style="display:flex;align-items:center;gap:0.625rem;font-size:1.5rem;font-weight:800;color:var(--color-slate-900);">
+            ${Icons.tag(24)} Kategori & Subkategori
+          </h1>
+          <p class="page-subtitle" style="font-size:0.875rem;color:var(--text-muted);margin-top:0.25rem;">
+            Kelola pos pengeluaran, sumber pemasukan, dan rincian subkategori transaksi keluarga Anda
+          </p>
+        </div>
+        <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+          ${canManage ? `
+            <button id="btn-add-category" class="btn btn-primary" style="display:flex;align-items:center;gap:0.5rem;box-shadow:var(--shadow-sm);">
+              ${Icons.plus(16)}
+              <span>Tambah Kategori</span>
+            </button>
+          ` : ''}
+        </div>
+      </div>
+      <!-- Quick Metrics Summary -->
+      <div class="metrics-grid" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:1rem;margin-bottom:1.5rem;">
+        <div class="metric-card card" style="padding:1rem;display:flex;align-items:center;gap:1rem;">
+          <div style="width:44px;height:44px;border-radius:12px;background:#eef2ff;color:#6366f1;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            ${Icons.tag(22)}
+          </div>
+          <div>
+            <div style="font-size:0.75rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.025em;">Total Kategori</div>
+            <div style="font-size:1.25rem;font-weight:800;color:var(--color-slate-900);">${categories.filter(c => !c.isArchived).length} Kategori</div>
+          </div>
+        </div>
+        <div class="metric-card card" style="padding:1rem;display:flex;align-items:center;gap:1rem;">
+          <div style="width:44px;height:44px;border-radius:12px;background:#fef2f2;color:#ef4444;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            ${Icons.trendingDown(22)}
+          </div>
+          <div>
+            <div style="font-size:0.75rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.025em;">Pengeluaran</div>
+            <div style="font-size:1.25rem;font-weight:800;color:#ef4444;">${expenseCats.length} Pos Belanja</div>
+          </div>
+        </div>
+        <div class="metric-card card" style="padding:1rem;display:flex;align-items:center;gap:1rem;">
+          <div style="width:44px;height:44px;border-radius:12px;background:#ecfdf5;color:#10b981;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            ${Icons.trendingUp(22)}
+          </div>
+          <div>
+            <div style="font-size:0.75rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.025em;">Pemasukan</div>
+            <div style="font-size:1.25rem;font-weight:800;color:#10b981;">${incomeCats.length} Sumber Dana</div>
+          </div>
+        </div>
+        <div class="metric-card card" style="padding:1rem;display:flex;align-items:center;gap:1rem;">
+          <div style="width:44px;height:44px;border-radius:12px;background:#f0fdf4;color:#059669;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            ${Icons.copy(22)}
+          </div>
+          <div>
+            <div style="font-size:0.75rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.025em;">Total Subkategori</div>
+            <div style="font-size:1.25rem;font-weight:800;color:var(--color-slate-900);">${totalSubcategories} Rincian</div>
+          </div>
+        </div>
+      </div>
+      <!-- Controls: Filter Tabs & Search Bar -->
+      <div class="card" style="padding:0.875rem 1rem;margin-bottom:1.5rem;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:1rem;">
+        <!-- Filter Tabs -->
+        <div style="display:flex;align-items:center;gap:0.375rem;overflow-x:auto;padding-bottom:2px;" class="custom-scrollbar">
+          <button class="btn btn-sm btn-filter-cat ${currentFilter === 'all' ? 'btn-primary' : 'btn-secondary'}" data-filter="all" style="border-radius:20px;padding:0.35rem 0.85rem;white-space:nowrap;">
+            Semua (${categories.filter(c => !c.isArchived).length})
+          </button>
+          <button class="btn btn-sm btn-filter-cat ${currentFilter === 'expense' ? 'btn-primary' : 'btn-secondary'}" data-filter="expense" style="border-radius:20px;padding:0.35rem 0.85rem;white-space:nowrap;">
+            ${Icons.trendingDown(14)} Pengeluaran (${expenseCats.length})
+          </button>
+          <button class="btn btn-sm btn-filter-cat ${currentFilter === 'income' ? 'btn-primary' : 'btn-secondary'}" data-filter="income" style="border-radius:20px;padding:0.35rem 0.85rem;white-space:nowrap;">
+            ${Icons.trendingUp(14)} Pemasukan (${incomeCats.length})
+          </button>
+          ${archivedCats.length > 0 ? `
+            <button class="btn btn-sm btn-filter-cat ${currentFilter === 'archived' ? 'btn-primary' : 'btn-secondary'}" data-filter="archived" style="border-radius:20px;padding:0.35rem 0.85rem;white-space:nowrap;">
+              ${Icons.trash(14)} Arsip (${archivedCats.length})
+            </button>
+          ` : ''}
+        </div>
+        <!-- Search Input -->
+        <div style="position:relative;min-width:240px;flex:1;max-width:360px;">
+          <span style="position:absolute;left:0.75rem;top:50%;transform:translateY(-50%);color:var(--text-muted);display:flex;align-items:center;">
+            ${Icons.search(16)}
+          </span>
+          <input 
+            type="text" 
+            id="cat-search-input" 
+            class="form-input" 
+            placeholder="Cari kategori / subkategori..." 
+            value="${searchQuery}" 
+            style="padding-left:2.35rem;padding-right:2rem;height:38px;font-size:0.875rem;border-radius:20px;"
+          />
+          ${searchQuery ? `
+            <button id="cat-search-clear" style="position:absolute;right:0.75rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);padding:0;font-size:1rem;line-height:1;">
+              ✕
+            </button>
+          ` : ''}
+        </div>
+      </div>
+      <!-- Categories Cards Grid -->
+      ${filtered.length === 0 ? `
+        <div class="card" style="padding:3.5rem 1.5rem;text-align:center;color:var(--text-muted);">
+          <div style="width:64px;height:64px;border-radius:50%;background:var(--color-slate-100);display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;color:var(--color-slate-400);">
+            ${Icons.tag(32)}
+          </div>
+          <div style="font-size:1.125rem;font-weight:700;color:var(--color-slate-800);margin-bottom:0.35rem;">
+            ${searchQuery ? 'Tidak ada kategori yang cocok' : 'Belum ada kategori'}
+          </div>
+          <p style="font-size:0.875rem;max-width:400px;margin:0 auto 1.25rem;">
+            ${searchQuery ? `Tidak ditemukan kategori atau subkategori dengan kata kunci "${searchQuery}". Coba kata kunci lain.` : 'Mulai tambahkan pos kategori pengeluaran atau pemasukan untuk mengelola keuangan keluarga.'}
+          </p>
+          ${canManage ? `
+            <button id="btn-add-category-empty" class="btn btn-primary" style="display:inline-flex;align-items:center;gap:0.5rem;">
+              ${Icons.plus(16)} Tambah Kategori Baru
+            </button>
+          ` : ''}
+        </div>
+      ` : `
+        <div class="categories-grid" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));gap:1.25rem;">
+          ${filtered.map(cat => {
+            const isExpense = cat.type === 'expense';
+            const catColor = cat.color || (isExpense ? '#ef4444' : '#10b981');
+            const subcats = cat.subcategories || [];
+            const txCount = txCountByCat[cat.id] || 0;
+            return `
+              <div class="card category-item-card" data-id="${cat.id}" style="display:flex;flex-direction:column;justify-content:space-between;border-top:4px solid ${catColor};position:relative;opacity:${cat.isArchived ? '0.75' : '1'};">
+                <!-- Card Header -->
+                <div>
+                  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:0.75rem;margin-bottom:0.875rem;">
+                    <div style="display:flex;align-items:center;gap:0.75rem;">
+                      <div style="width:44px;height:44px;border-radius:12px;background:${catColor}18;color:${catColor};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        ${getCategoryIcon(cat.icon || 'tag', 22)}
+                      </div>
+                      <div>
+                        <div style="font-size:1rem;font-weight:800;color:var(--color-slate-900);line-height:1.2;">
+                          ${cat.name}
+                        </div>
+                        <div style="display:flex;align-items:center;gap:0.35rem;margin-top:0.25rem;">
+                          <span class="badge ${isExpense ? 'badge-danger' : 'badge-success'}" style="font-size:0.6875rem;padding:0.15rem 0.5rem;font-weight:700;">
+                            ${isExpense ? 'Pengeluaran' : 'Pemasukan'}
+                          </span>
+                          ${cat.isArchived ? `
+                            <span class="badge" style="background:#fef2f2;color:#ef4444;border:1px solid #fecaca;font-size:0.6875rem;padding:0.15rem 0.5rem;">
+                              Arsip
+                            </span>
+                          ` : ''}
+                          <span style="font-size:0.75rem;color:var(--text-muted);">
+                            • ${txCount} Transaksi
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <!-- Action buttons -->
+                    ${canManage ? `
+                      <div style="display:flex;gap:0.25rem;flex-shrink:0;">
+                        <button class="btn btn-secondary btn-icon btn-sm action-edit-cat" data-id="${cat.id}" title="Ubah Kategori" style="width:32px;height:32px;padding:0;">
+                          ${Icons.edit(14)}
+                        </button>
+                        ${cat.isArchived ? `
+                          <button class="btn btn-secondary btn-icon btn-sm action-restore-cat" data-id="${cat.id}" title="Aktifkan Kembali Kategori" style="width:32px;height:32px;padding:0;color:#059669;">
+                            ${Icons.arrowRightLeft(14)}
+                          </button>
+                          <button class="btn btn-secondary btn-icon btn-sm action-delete-cat" data-id="${cat.id}" title="Hapus Permanen Kategori" style="width:32px;height:32px;padding:0;color:var(--color-expense);">
+                            ${Icons.trash(14)}
+                          </button>
+                        ` : `
+                          <button class="btn btn-secondary btn-icon btn-sm action-delete-cat" data-id="${cat.id}" title="Hapus / Arsipkan Kategori" style="width:32px;height:32px;padding:0;color:var(--color-expense);">
+                            ${Icons.trash(14)}
+                          </button>
+                        `}
+                      </div>
+                    ` : ''}
+                  </div>
+                  <!-- Subcategories Section -->
+                  <div style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px dashed var(--color-slate-200);">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
+                      <span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.025em;">
+                        Subkategori (${subcats.length})
+                      </span>
+                      ${canManage && !cat.isArchived ? `
+                        <button class="btn-link action-quick-add-subcat" data-id="${cat.id}" style="font-size:0.75rem;color:var(--color-primary);font-weight:600;background:none;border:none;cursor:pointer;padding:0;display:flex;align-items:center;gap:0.25rem;">
+                          ${Icons.plus(12)} Tambah Sub
+                        </button>
+                      ` : ''}
+                    </div>
+                    <div style="display:flex;flex-wrap:wrap;gap:0.35rem;min-height:32px;">
+                      ${subcats.length > 0 ? subcats.map(sub => `
+                        <span class="subcat-chip" style="display:inline-flex;align-items:center;gap:0.35rem;padding:0.25rem 0.6rem;background:var(--color-slate-100);border-radius:12px;font-size:0.75rem;color:var(--color-slate-800);font-weight:600;">
+                          ${sub}
+                        </span>
+                      `).join('') : `
+                        <span style="font-size:0.75rem;color:var(--color-slate-400);font-style:italic;">
+                          Belum ada subkategori
+                        </span>
+                      `}
+                    </div>
+                  </div>
+                </div>
+                <!-- Footer Quick Info -->
+                <div style="margin-top:1rem;display:flex;justify-content:space-between;align-items:center;font-size:0.6875rem;color:var(--text-muted);">
+                  <span>Warna tema: <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${catColor};vertical-align:middle;margin-left:2px;"></span></span>
+                  <span style="color:${catColor};font-weight:700;">${isExpense ? 'Pengeluaran' : 'Pemasukan'}</span>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `}
+    </div>
+  `;
+}
+function attachCategoriesListeners(navigateToTab) {
+  const canManage = appState.currentUser ? appState.canManageSettings(appState.currentUser.id) : true;
+  document.querySelectorAll('.btn-filter-cat').forEach(btn => {
+    btn.onclick = () => {
+      currentFilter = btn.dataset.filter || 'all';
+      if (typeof navigateToTab === 'function') {
+        navigateToTab('categories');
+      }
+    };
+  });
+  const searchInput = document.getElementById('cat-search-input');
+  if (searchInput) {
+    searchInput.oninput = (e) => {
+      searchQuery = e.target.value;
+      clearTimeout(window.__catSearchTimer);
+      window.__catSearchTimer = setTimeout(() => {
+        if (typeof navigateToTab === 'function') {
+          navigateToTab('categories');
+        }
+      }, 250);
+    };
+  }
+  const searchClear = document.getElementById('cat-search-clear');
+  if (searchClear) {
+    searchClear.onclick = () => {
+      searchQuery = '';
+      if (typeof navigateToTab === 'function') {
+        navigateToTab('categories');
+      }
+    };
+  }
+  const addBtn = document.getElementById('btn-add-category');
+  if (addBtn) {
+    addBtn.onclick = () => openAddCategoryModal(currentFilter === 'income' ? 'income' : 'expense', navigateToTab);
+  }
+  const addEmptyBtn = document.getElementById('btn-add-category-empty');
+  if (addEmptyBtn) {
+    addEmptyBtn.onclick = () => openAddCategoryModal(currentFilter === 'income' ? 'income' : 'expense', navigateToTab);
+  }
+  document.querySelectorAll('.action-edit-cat').forEach(btn => {
+    btn.onclick = () => {
+      const catId = btn.dataset.id;
+      openEditCategoryModal(catId, navigateToTab);
+    };
+  });
+  document.querySelectorAll('.action-quick-add-subcat').forEach(btn => {
+    btn.onclick = () => {
+      const catId = btn.dataset.id;
+      openAddSubcategoryModal(catId, navigateToTab);
+    };
+  });
+  document.querySelectorAll('.action-restore-cat').forEach(btn => {
+    btn.onclick = () => {
+      const id = btn.dataset.id;
+      appState.updateCategory(id, { isArchived: false });
+      toast.success('Kategori berhasil diaktifkan kembali!');
+      if (typeof navigateToTab === 'function') {
+        navigateToTab('categories');
+      }
+    };
+  });
+  document.querySelectorAll('.action-delete-cat').forEach(btn => {
+    btn.onclick = () => {
+      const id = btn.dataset.id;
+      openDeleteCategoryModal(id, navigateToTab);
+    };
+  });
+}
+function openAddCategoryModal(defaultType = 'expense', navigateToTab) {
+  modal.open({
+    title: 'Tambah Kategori Baru',
+    content: `
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label class="form-label">Tipe Kategori *</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
+          <label style="display:flex;align-items:center;gap:0.5rem;padding:0.75rem;border:1.5px solid var(--color-slate-200);border-radius:10px;cursor:pointer;font-weight:600;font-size:0.875rem;" id="label-type-expense">
+            <input type="radio" name="modal-cat-type" value="expense" ${defaultType === 'expense' ? 'checked' : ''} />
+            <span style="color:#ef4444;display:flex;align-items:center;gap:0.25rem;">${Icons.trendingDown(16)} Pengeluaran</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:0.5rem;padding:0.75rem;border:1.5px solid var(--color-slate-200);border-radius:10px;cursor:pointer;font-weight:600;font-size:0.875rem;" id="label-type-income">
+            <input type="radio" name="modal-cat-type" value="income" ${defaultType === 'income' ? 'checked' : ''} />
+            <span style="color:#10b981;display:flex;align-items:center;gap:0.25rem;">${Icons.trendingUp(16)} Pemasukan</span>
+          </label>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label class="form-label">Nama Kategori *</label>
+        <input type="text" id="cat-name-input" class="form-input" placeholder="Contoh: Belanja Bulanan, Donasi, Transportasi" required />
+      </div>
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label class="form-label">Subkategori (Pisahkan dengan koma)</label>
+        <input type="text" id="cat-subcats-input" class="form-input" placeholder="Contoh: Sayur & Buah, Daging, Bumbu Dapur" />
+        <div style="font-size:0.6875rem;color:var(--text-muted);margin-top:0.25rem;">
+          💡 Masukkan rincian spesifik agar pencatatan transaksi lebih presisi.
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label class="form-label">Warna Kategori</label>
+        <div style="display:flex;align-items:center;gap:0.75rem;">
+          <input type="color" id="cat-color-input" class="form-input" value="${defaultType === 'income' ? '#059669' : '#e11d48'}" style="width:52px;height:42px;padding:3px;border-radius:8px;cursor:pointer;" />
+          <div style="display:flex;gap:0.35rem;flex-wrap:wrap;">
+            ${['#ef4444', '#f97316', '#f59e0b', '#10b981', '#06b6d4', '#3b82f6', '#6366f1', '#ec4899'].map(c => `
+              <button type="button" class="btn-color-preset" data-color="${c}" style="width:24px;height:24px;border-radius:50%;background:${c};border:none;cursor:pointer;outline:none;" title="${c}"></button>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+    `,
+    footerButtons: [
+      { label: 'Batal', className: 'btn-secondary', onClick: () => modal.close() },
+      {
+        label: 'Simpan Kategori',
+        className: 'btn-primary',
+        onClick: () => {
+          const name = document.getElementById('cat-name-input')?.value;
+          const typeRadios = document.getElementsByName('modal-cat-type');
+          let selectedType = 'expense';
+          typeRadios.forEach(r => { if (r.checked) selectedType = r.value; });
+          const subcatsRaw = document.getElementById('cat-subcats-input')?.value || '';
+          const color = document.getElementById('cat-color-input')?.value || '#6366f1';
+          if (!name || !name.trim()) {
+            toast.error('Nama kategori wajib diisi.');
+            return;
+          }
+          const subcategories = subcatsRaw.split(',').map(s => s.trim()).filter(Boolean);
+          appState.addCategory({
+            name: name.trim(),
+            type: selectedType,
+            color,
+            subcategories,
+            icon: 'tag'
+          });
+          toast.success(`Kategori "${name}" berhasil ditambahkan!`);
+          modal.close();
+          if (typeof navigateToTab === 'function') {
+            navigateToTab('categories');
+          }
+        }
+      }
+    ]
+  });
+  document.querySelectorAll('.btn-color-preset').forEach(btn => {
+    btn.onclick = () => {
+      const colorInput = document.getElementById('cat-color-input');
+      if (colorInput) colorInput.value = btn.dataset.color;
+    };
+  });
+}
+function openEditCategoryModal(categoryId, navigateToTab) {
+  const cat = appState.getCategoryById(categoryId);
+  if (!cat) return;
+  modal.open({
+    title: `Ubah Kategori "${cat.name}"`,
+    content: `
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label class="form-label">Nama Kategori *</label>
+        <input type="text" id="edit-cat-name" class="form-input" value="${cat.name}" required />
+      </div>
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label class="form-label">Tipe Kategori</label>
+        <select id="edit-cat-type" class="form-input">
+          <option value="expense" ${cat.type === 'expense' ? 'selected' : ''}>Pengeluaran</option>
+          <option value="income" ${cat.type === 'income' ? 'selected' : ''}>Pemasukan</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label class="form-label">Subkategori (Pisahkan dengan koma)</label>
+        <textarea id="edit-cat-subcats" class="form-input" rows="3" placeholder="Contoh: Sayur & Buah, Daging, Bumbu Dapur">${(cat.subcategories || []).join(', ')}</textarea>
+        <div style="font-size:0.6875rem;color:var(--text-muted);margin-top:0.25rem;">
+          Anda dapat menambah atau mengurangi subkategori dengan memisahkannya menggunakan tanda koma (,).
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label class="form-label">Warna Kategori</label>
+        <div style="display:flex;align-items:center;gap:0.75rem;">
+          <input type="color" id="edit-cat-color" class="form-input" value="${cat.color || '#6366f1'}" style="width:52px;height:42px;padding:3px;border-radius:8px;cursor:pointer;" />
+          <div style="display:flex;gap:0.35rem;flex-wrap:wrap;">
+            ${['#ef4444', '#f97316', '#f59e0b', '#10b981', '#06b6d4', '#3b82f6', '#6366f1', '#ec4899'].map(c => `
+              <button type="button" class="btn-color-preset" data-color="${c}" style="width:24px;height:24px;border-radius:50%;background:${c};border:none;cursor:pointer;outline:none;" title="${c}"></button>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+    `,
+    footerButtons: [
+      { label: 'Batal', className: 'btn-secondary', onClick: () => modal.close() },
+      {
+        label: 'Simpan Perubahan',
+        className: 'btn-primary',
+        onClick: () => {
+          const name = document.getElementById('edit-cat-name')?.value;
+          const type = document.getElementById('edit-cat-type')?.value;
+          const color = document.getElementById('edit-cat-color')?.value;
+          const subcatsRaw = document.getElementById('edit-cat-subcats')?.value || '';
+          if (!name || !name.trim()) {
+            toast.error('Nama kategori tidak boleh kosong.');
+            return;
+          }
+          const subcategories = subcatsRaw.split(',').map(s => s.trim()).filter(Boolean);
+          appState.updateCategory(categoryId, {
+            name: name.trim(),
+            type,
+            color,
+            subcategories
+          });
+          toast.success(`Kategori "${name}" berhasil diperbarui!`);
+          modal.close();
+          if (typeof navigateToTab === 'function') {
+            navigateToTab('categories');
+          }
+        }
+      }
+    ]
+  });
+  document.querySelectorAll('.btn-color-preset').forEach(btn => {
+    btn.onclick = () => {
+      const colorInput = document.getElementById('edit-cat-color');
+      if (colorInput) colorInput.value = btn.dataset.color;
+    };
+  });
+}
+function openAddSubcategoryModal(categoryId, navigateToTab) {
+  const cat = appState.getCategoryById(categoryId);
+  if (!cat) return;
+  modal.open({
+    title: `Tambah Subkategori: ${cat.name}`,
+    content: `
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label class="form-label">Nama Subkategori Baru</label>
+        <input type="text" id="quick-subcat-name" class="form-input" placeholder="Contoh: Kopi / Snack Sore" required autofocus />
+      </div>
+      <div style="font-size:0.8125rem;color:var(--text-muted);background:var(--color-slate-50);padding:0.75rem;border-radius:8px;">
+        <strong>Subkategori yang sudah ada:</strong><br>
+        ${(cat.subcategories || []).length > 0 ? cat.subcategories.join(', ') : 'Belum ada'}
+      </div>
+    `,
+    footerButtons: [
+      { label: 'Batal', className: 'btn-secondary', onClick: () => modal.close() },
+      {
+        label: 'Tambah Subkategori',
+        className: 'btn-primary',
+        onClick: () => {
+          const subName = document.getElementById('quick-subcat-name')?.value;
+          if (!subName || !subName.trim()) {
+            toast.error('Nama subkategori tidak boleh kosong.');
+            return;
+          }
+          const trimmed = subName.trim();
+          const currentSubs = cat.subcategories ? [...cat.subcategories] : [];
+          if (currentSubs.includes(trimmed)) {
+            toast.warning(`Subkategori "${trimmed}" sudah ada.`);
+            return;
+          }
+          currentSubs.push(trimmed);
+          appState.updateCategory(categoryId, { subcategories: currentSubs });
+          toast.success(`Subkategori "${trimmed}" ditambahkan ke "${cat.name}"!`);
+          modal.close();
+          if (typeof navigateToTab === 'function') {
+            navigateToTab('categories');
+          }
+        }
+      }
+    ]
+  });
+}
+function openDeleteCategoryModal(categoryId, navigateToTab) {
+  const cat = appState.getCategoryById(categoryId);
+  if (!cat) return;
+  const inUse = appState.isCategoryInUse(categoryId);
+  if (inUse && !cat.isArchived) {
+    modal.open({
+      title: 'Hapus / Arsipkan Kategori',
+      content: `
+        <p style="font-size:0.875rem;color:var(--color-slate-700);line-height:1.5;margin-bottom:1rem;">
+          Kategori <strong>"${cat.name}"</strong> memiliki riwayat transaksi terkait.
+        </p>
+        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:0.75rem;font-size:0.8125rem;color:#991b1b;margin-bottom:1rem;">
+          ⚠️ <strong>Pilihan Tindakan:</strong><br>
+          • <strong>Arsipkan</strong>: Sembunyikan kategori dari pilihan pencatatan baru, riwayat lama tetap aman.<br>
+          • <strong>Hapus Permanen</strong>: Hapus kategori secara total dari daftar.
+        </div>
+      `,
+      footerButtons: [
+        { label: 'Batal', className: 'btn-secondary', onClick: () => modal.close() },
+        {
+          label: 'Arsipkan Kategori',
+          className: 'btn-secondary',
+          onClick: () => {
+            const res = appState.deleteOrArchiveCategory(categoryId, false);
+            toast.info(res.message);
+            modal.close();
+            if (typeof navigateToTab === 'function') {
+              navigateToTab('categories');
+            }
+          }
+        },
+        {
+          label: 'Hapus Permanen',
+          className: 'btn-danger',
+          onClick: () => {
+            const res = appState.deleteCategoryPermanently(categoryId);
+            toast.success(res.message);
+            modal.close();
+            if (typeof navigateToTab === 'function') {
+              navigateToTab('categories');
+            }
+          }
+        }
+      ]
+    });
+  } else {
+    modal.confirm({
+      title: 'Hapus Kategori',
+      message: `Apakah Anda yakin ingin menghapus kategori <strong>"${cat.name}"</strong> secara permanen?`,
+      confirmText: 'Ya, Hapus Kategori',
+      confirmType: 'btn-danger',
+      onConfirm: () => {
+        const res = appState.deleteCategoryPermanently(categoryId);
+        toast.success(res.message);
+        if (typeof navigateToTab === 'function') {
+          navigateToTab('categories');
+        }
+      }
+    });
+  }
 }
 
 
@@ -9684,6 +10905,9 @@ function renderSettingsPage() {
   const isOwner = appState.canManageFamily();
   const canManage = appState.canManageFinances();
   const isPro = LicenseService.isLicensed();
+  if (settingsSubTab === 'accounts' || settingsSubTab === 'categories') {
+    settingsSubTab = 'family';
+  }
   return `
     <div class="settings-page">
       <!-- Header -->
@@ -9691,7 +10915,7 @@ function renderSettingsPage() {
         <div>
           <h1 style="font-size:1.5rem;font-weight:800;color:var(--color-slate-900);">Pengaturan</h1>
           <p style="font-size:0.875rem;color:var(--text-muted);margin-top:0.25rem;">
-            Kelola ruang keluarga, hak akses anggota, akun rekening, lisensi developer, dan integrasi Google Sheets
+            Kelola ruang keluarga, hak akses anggota, lisensi developer, dan integrasi Google Sheets
           </p>
         </div>
         <button class="btn btn-secondary btn-sm" id="btn-settings-logout" style="color:#dc2626;border-color:#fecaca;background:#fff5f5;font-weight:700;display:flex;align-items:center;gap:0.375rem;" title="Keluar dari Akun">
@@ -9702,12 +10926,6 @@ function renderSettingsPage() {
       <div class="settings-tabs">
         <button class="settings-tab-btn ${settingsSubTab === 'family' ? 'active' : ''}" data-subtab="family">
           ${Icons.users(16)} Ruang Keluarga & Anggota
-        </button>
-        <button class="settings-tab-btn ${settingsSubTab === 'accounts' ? 'active' : ''}" data-subtab="accounts">
-          ${Icons.creditCard(16)} Akun & Rekening (${accounts.length})
-        </button>
-        <button class="settings-tab-btn ${settingsSubTab === 'categories' ? 'active' : ''}" data-subtab="categories">
-          ${Icons.tag(16)} Kategori & Subkategori (${categories.length})
         </button>
         <button class="settings-tab-btn ${settingsSubTab === 'cloud' ? 'active' : ''}" data-subtab="cloud">
           ☁️ Google Sheets Cloud DB
@@ -12176,6 +13394,12 @@ class DompetKeluargaApp {
       case 'transactions':
         pageContent = renderTransactionsPage();
         break;
+      case 'accounts':
+        pageContent = renderAccountsPage();
+        break;
+      case 'categories':
+        pageContent = renderCategoriesPage();
+        break;
       case 'budgets':
         pageContent = renderBudgetsPage();
         break;
@@ -12212,6 +13436,12 @@ class DompetKeluargaApp {
         break;
       case 'transactions':
         attachTransactionsListeners();
+        break;
+      case 'accounts':
+        attachAccountsListeners((tab) => this.navigate(tab));
+        break;
+      case 'categories':
+        attachCategoriesListeners((tab) => this.navigate(tab));
         break;
       case 'budgets':
         attachBudgetsListeners();

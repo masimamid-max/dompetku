@@ -51,12 +51,6 @@ export function renderNavbar() {
           </select>
         </div>
 
-        <!-- Millennial Theme Switcher Pill Trigger -->
-        <button class="theme-trigger-pill" id="btn-header-theme" title="Pilih Tema Warna Aplikasi">
-          <span class="theme-trigger-icon">${currentTheme.emoji}</span>
-          <span class="theme-trigger-label hide-on-mobile">Tema</span>
-        </button>
-
         <button class="btn-header-add" id="header-btn-add-tx">
           ${Icons.plus(18)} <span class="hide-on-mobile">Catat Transaksi</span>
         </button>
@@ -76,12 +70,6 @@ export function renderNavbar() {
 }
 
 export function attachNavbarListeners() {
-  const themeBtn = document.getElementById('btn-header-theme');
-  if (themeBtn) {
-    themeBtn.onclick = () => {
-      openThemeModal();
-    };
-  }
 
   const navbarLogoutBtn = document.getElementById('navbar-btn-logout');
   if (navbarLogoutBtn) {
