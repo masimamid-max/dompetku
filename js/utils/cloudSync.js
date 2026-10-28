@@ -10,6 +10,8 @@ export class CloudSyncService {
   static _pollerInterval = null;
   static _isSyncing = false;
   static _debounceTimer = null;
+  static _lastLocalMutationTime = 0;
+  static _hasPendingPush = false;
 
   static getConfig() {
     try {
@@ -248,49 +250,69 @@ export class CloudSyncService {
     const targetUrl = url || this.getConfig().gasUrl;
     if (!targetUrl) throw new Error('URL Web App belum diisi');
 
-    const payload = {
-      action: 'syncFullState',
-      data: {
-        family: appState.family,
-        currentUser: appState.currentUser,
-        members: appState.members,
-        accounts: appState.accounts,
-        categories: appState.categories,
-        transactions: appState.transactions,
-        budgets: appState.budgets,
-        goals: appState.goals,
-        recurringBills: appState.recurringBills
-      }
-    };
+    this._isSyncing = true;
+    this.updateSyncUI(true);
 
-    const response = await fetch(targetUrl, {
-      method: 'POST',
-      mode: 'cors',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload),
-      redirect: 'follow'
-    });
+    try {
+      const payload = {
+        action: 'syncFullState',
+        data: {
+          family: appState.family,
+          currentUser: appState.currentUser,
+          members: appState.members,
+          accounts: appState.accounts,
+          categories: appState.categories,
+          transactions: appState.transactions,
+          budgets: appState.budgets,
+          goals: appState.goals,
+          recurringBills: appState.recurringBills
+        }
+      };
 
-    const json = await response.json();
-    if (!json.success) throw new Error(json.message || 'Gagal sinkronisasi');
+      const response = await fetch(targetUrl, {
+        method: 'POST',
+        mode: 'cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload),
+        redirect: 'follow'
+      });
 
-    const config = this.getConfig();
-    config.lastSynced = new Date().toISOString();
-    config.status = 'connected';
-    this.saveConfig(config);
+      const json = await response.json();
+      if (!json.success) throw new Error(json.message || 'Gagal sinkronisasi');
 
-    return json;
+      this._hasPendingPush = false;
+      this._lastLocalMutationTime = 0;
+
+      const config = this.getConfig();
+      config.lastSynced = new Date().toISOString();
+      config.status = 'connected';
+      this.saveConfig(config);
+
+      return json;
+    } finally {
+      this._isSyncing = false;
+      this.updateSyncUI(false);
+    }
   }
 
   /**
-   * Debounced push for state mutations (e.g. edit / delete)
+   * Debounced push for state mutations (e.g. edit / delete / add)
    */
-  static pushFullStateDebounced(delay = 1500) {
+  static pushFullStateDebounced(delay = 1200) {
+    this._hasPendingPush = true;
+    this._lastLocalMutationTime = Date.now();
+
     if (this._debounceTimer) clearTimeout(this._debounceTimer);
     this._debounceTimer = setTimeout(() => {
       const config = this.getConfig();
       if (config.gasUrl && config.autoSync) {
-        this.pushFullState(config.gasUrl).catch(e => console.warn('Debounced push notice:', e));
+        this.pushFullState(config.gasUrl)
+          .catch(e => console.warn('Debounced push notice:', e))
+          .finally(() => {
+            this._hasPendingPush = false;
+          });
+      } else {
+        this._hasPendingPush = false;
       }
     }, delay);
   }
@@ -458,7 +480,12 @@ export class CloudSyncService {
     }
 
     if (hasChanges) {
-      appState.saveState();
+      appState._isPullingFromCloud = true;
+      try {
+        appState.saveState();
+      } finally {
+        appState._isPullingFromCloud = false;
+      }
     }
 
     const config = this.getConfig();
@@ -481,6 +508,13 @@ export class CloudSyncService {
       const config = this.getConfig();
       if (!config.gasUrl || !config.autoSync || this._isSyncing) return;
       if (typeof document !== 'undefined' && document.hidden) return;
+
+      // JANGAN pull jika baru saja ada perubahan data lokal yang belum tersinkron ke cloud
+      const now = Date.now();
+      if (this._hasPendingPush || (now - this._lastLocalMutationTime < 4000)) {
+        console.log('⏳ Auto-sync ditunda: perubahan data lokal sedang/akan disinkronkan ke cloud.');
+        return;
+      }
 
       this._isSyncing = true;
       this.updateSyncUI(true);
@@ -550,3 +584,8 @@ export class CloudSyncService {
     } catch (e) {}
   }
 }
+
+if (typeof window !== 'undefined') {
+  window.CloudSyncService = CloudSyncService;
+}
+

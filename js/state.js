@@ -70,6 +70,12 @@ class AppState {
       console.error('Failed to save state to localStorage', e);
     }
     this.notify();
+
+    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+      window.dispatchEvent(new CustomEvent('appstate:changed', {
+        detail: { isFromCloud: this._isPullingFromCloud || false }
+      }));
+    }
   }
 
   resetToInitialData() {
@@ -265,6 +271,31 @@ class AppState {
     }
   }
 
+  isAccountInUse(id) {
+    return (this.transactions || []).some(tx => tx.accountId === id || tx.targetAccountId === id);
+  }
+
+  deleteAccount(id, force = false) {
+    if (!force && this.isAccountInUse(id)) {
+      const acc = this.accounts.find(a => a.id === id);
+      if (acc) {
+        acc.isArchived = true;
+        this.saveState();
+      }
+      return { status: 'archived', message: 'Akun memiliki riwayat transaksi, sehingga diarsipkan agar saldo tetap akurat.' };
+    } else {
+      this.accounts = this.accounts.filter(a => a.id !== id);
+      this.saveState();
+      return { status: 'deleted', message: 'Akun berhasil dihapus permanen.' };
+    }
+  }
+
+  deleteAccountPermanently(id) {
+    this.accounts = this.accounts.filter(a => a.id !== id);
+    this.saveState();
+    return { status: 'deleted', message: 'Akun berhasil dihapus permanen.' };
+  }
+
   toggleArchiveAccount(id) {
     const acc = this.accounts.find(a => a.id === id);
     if (acc) {
@@ -312,23 +343,29 @@ class AppState {
   }
 
   isCategoryInUse(categoryId) {
-    return this.transactions.some(tx => tx.categoryId === categoryId);
+    return (this.transactions || []).some(tx => tx.categoryId === categoryId);
   }
 
-  deleteOrArchiveCategory(id) {
-    if (this.isCategoryInUse(id)) {
+  deleteOrArchiveCategory(id, force = false) {
+    if (!force && this.isCategoryInUse(id)) {
       // Archive instead of delete to protect historical data integrity
       const cat = this.categories.find(c => c.id === id);
       if (cat) {
         cat.isArchived = true;
         this.saveState();
       }
-      return { status: 'archived', message: 'Kategori sedang digunakan oleh transaksi, sehingga diarsipkan.' };
+      return { status: 'archived', message: 'Kategori memiliki riwayat transaksi, sehingga diarsipkan.' };
     } else {
       this.categories = this.categories.filter(c => c.id !== id);
       this.saveState();
-      return { status: 'deleted', message: 'Kategori berhasil dihapus.' };
+      return { status: 'deleted', message: 'Kategori berhasil dihapus permanen.' };
     }
+  }
+
+  deleteCategoryPermanently(id) {
+    this.categories = this.categories.filter(c => c.id !== id);
+    this.saveState();
+    return { status: 'deleted', message: 'Kategori berhasil dihapus permanen.' };
   }
 
   // Transactions CRUD

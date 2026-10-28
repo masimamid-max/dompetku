@@ -71,7 +71,7 @@ class DompetKeluargaApp {
       }).catch(() => {});
     }
 
-    // Listen to auto-sync transactions
+    // Listen to auto-sync transactions & full state mutations
     if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
       window.addEventListener('transaction:added', (e) => {
         if (e.detail) {
@@ -80,7 +80,14 @@ class DompetKeluargaApp {
       });
 
       window.addEventListener('transaction:changed', () => {
-        CloudSyncService.pushFullStateDebounced();
+        CloudSyncService.pushFullStateDebounced(1000);
+      });
+
+      // Dengarkan mutasi data lokal (kategori, rekening, anggaran, transaksi) dan sinkronkan ke cloud
+      window.addEventListener('appstate:changed', (e) => {
+        if (e.detail && !e.detail.isFromCloud) {
+          CloudSyncService.pushFullStateDebounced(1200);
+        }
       });
 
       // Listen to license updates across the app

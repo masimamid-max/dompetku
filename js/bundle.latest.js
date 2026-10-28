@@ -796,6 +796,11 @@ class AppState {
       console.error('Failed to save state to localStorage', e);
     }
     this.notify();
+    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+      window.dispatchEvent(new CustomEvent('appstate:changed', {
+        detail: { isFromCloud: this._isPullingFromCloud || false }
+      }));
+    }
   }
   resetToInitialData() {
     this.family = JSON.parse(JSON.stringify(INITIAL_DATA.family));
@@ -958,6 +963,28 @@ class AppState {
       this.saveState();
     }
   }
+  isAccountInUse(id) {
+    return (this.transactions || []).some(tx => tx.accountId === id || tx.targetAccountId === id);
+  }
+  deleteAccount(id, force = false) {
+    if (!force && this.isAccountInUse(id)) {
+      const acc = this.accounts.find(a => a.id === id);
+      if (acc) {
+        acc.isArchived = true;
+        this.saveState();
+      }
+      return { status: 'archived', message: 'Akun memiliki riwayat transaksi, sehingga diarsipkan agar saldo tetap akurat.' };
+    } else {
+      this.accounts = this.accounts.filter(a => a.id !== id);
+      this.saveState();
+      return { status: 'deleted', message: 'Akun berhasil dihapus permanen.' };
+    }
+  }
+  deleteAccountPermanently(id) {
+    this.accounts = this.accounts.filter(a => a.id !== id);
+    this.saveState();
+    return { status: 'deleted', message: 'Akun berhasil dihapus permanen.' };
+  }
   toggleArchiveAccount(id) {
     const acc = this.accounts.find(a => a.id === id);
     if (acc) {
@@ -999,21 +1026,26 @@ class AppState {
     }
   }
   isCategoryInUse(categoryId) {
-    return this.transactions.some(tx => tx.categoryId === categoryId);
+    return (this.transactions || []).some(tx => tx.categoryId === categoryId);
   }
-  deleteOrArchiveCategory(id) {
-    if (this.isCategoryInUse(id)) {
+  deleteOrArchiveCategory(id, force = false) {
+    if (!force && this.isCategoryInUse(id)) {
       const cat = this.categories.find(c => c.id === id);
       if (cat) {
         cat.isArchived = true;
         this.saveState();
       }
-      return { status: 'archived', message: 'Kategori sedang digunakan oleh transaksi, sehingga diarsipkan.' };
+      return { status: 'archived', message: 'Kategori memiliki riwayat transaksi, sehingga diarsipkan.' };
     } else {
       this.categories = this.categories.filter(c => c.id !== id);
       this.saveState();
-      return { status: 'deleted', message: 'Kategori berhasil dihapus.' };
+      return { status: 'deleted', message: 'Kategori berhasil dihapus permanen.' };
     }
+  }
+  deleteCategoryPermanently(id) {
+    this.categories = this.categories.filter(c => c.id !== id);
+    this.saveState();
+    return { status: 'deleted', message: 'Kategori berhasil dihapus permanen.' };
   }
   addTransaction(data) {
     const nowISO = new Date().toISOString();
@@ -2771,6 +2803,8 @@ class CloudSyncService {
   static _pollerInterval = null;
   static _isSyncing = false;
   static _debounceTimer = null;
+  static _lastLocalMutationTime = 0;
+  static _hasPendingPush = false;
   static getConfig() {
     try {
       const saved = localStorage.getItem(CLOUD_CONFIG_KEY);
@@ -2961,41 +2995,58 @@ class CloudSyncService {
   static async pushFullState(url) {
     const targetUrl = url || this.getConfig().gasUrl;
     if (!targetUrl) throw new Error('URL Web App belum diisi');
-    const payload = {
-      action: 'syncFullState',
-      data: {
-        family: appState.family,
-        currentUser: appState.currentUser,
-        members: appState.members,
-        accounts: appState.accounts,
-        categories: appState.categories,
-        transactions: appState.transactions,
-        budgets: appState.budgets,
-        goals: appState.goals,
-        recurringBills: appState.recurringBills
-      }
-    };
-    const response = await fetch(targetUrl, {
-      method: 'POST',
-      mode: 'cors',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload),
-      redirect: 'follow'
-    });
-    const json = await response.json();
-    if (!json.success) throw new Error(json.message || 'Gagal sinkronisasi');
-    const config = this.getConfig();
-    config.lastSynced = new Date().toISOString();
-    config.status = 'connected';
-    this.saveConfig(config);
-    return json;
+    this._isSyncing = true;
+    this.updateSyncUI(true);
+    try {
+      const payload = {
+        action: 'syncFullState',
+        data: {
+          family: appState.family,
+          currentUser: appState.currentUser,
+          members: appState.members,
+          accounts: appState.accounts,
+          categories: appState.categories,
+          transactions: appState.transactions,
+          budgets: appState.budgets,
+          goals: appState.goals,
+          recurringBills: appState.recurringBills
+        }
+      };
+      const response = await fetch(targetUrl, {
+        method: 'POST',
+        mode: 'cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload),
+        redirect: 'follow'
+      });
+      const json = await response.json();
+      if (!json.success) throw new Error(json.message || 'Gagal sinkronisasi');
+      this._hasPendingPush = false;
+      this._lastLocalMutationTime = 0;
+      const config = this.getConfig();
+      config.lastSynced = new Date().toISOString();
+      config.status = 'connected';
+      this.saveConfig(config);
+      return json;
+    } finally {
+      this._isSyncing = false;
+      this.updateSyncUI(false);
+    }
   }
-  static pushFullStateDebounced(delay = 1500) {
+  static pushFullStateDebounced(delay = 1200) {
+    this._hasPendingPush = true;
+    this._lastLocalMutationTime = Date.now();
     if (this._debounceTimer) clearTimeout(this._debounceTimer);
     this._debounceTimer = setTimeout(() => {
       const config = this.getConfig();
       if (config.gasUrl && config.autoSync) {
-        this.pushFullState(config.gasUrl).catch(e => console.warn('Debounced push notice:', e));
+        this.pushFullState(config.gasUrl)
+          .catch(e => console.warn('Debounced push notice:', e))
+          .finally(() => {
+            this._hasPendingPush = false;
+          });
+      } else {
+        this._hasPendingPush = false;
       }
     }, delay);
   }
@@ -3132,7 +3183,12 @@ class CloudSyncService {
       }
     }
     if (hasChanges) {
-      appState.saveState();
+      appState._isPullingFromCloud = true;
+      try {
+        appState.saveState();
+      } finally {
+        appState._isPullingFromCloud = false;
+      }
     }
     const config = this.getConfig();
     config.lastSynced = new Date().toISOString();
@@ -3148,6 +3204,11 @@ class CloudSyncService {
       const config = this.getConfig();
       if (!config.gasUrl || !config.autoSync || this._isSyncing) return;
       if (typeof document !== 'undefined' && document.hidden) return;
+      const now = Date.now();
+      if (this._hasPendingPush || (now - this._lastLocalMutationTime < 4000)) {
+        console.log('⏳ Auto-sync ditunda: perubahan data lokal sedang/akan disinkronkan ke cloud.');
+        return;
+      }
       this._isSyncing = true;
       this.updateSyncUI(true);
       try {
@@ -3206,6 +3267,9 @@ class CloudSyncService {
       });
     } catch (e) {}
   }
+}
+if (typeof window !== 'undefined') {
+  window.CloudSyncService = CloudSyncService;
 }
 
 
@@ -9595,9 +9659,18 @@ function renderAccountsTab(accounts, canManage) {
                 <button class="btn btn-secondary btn-icon btn-sm action-edit-account" data-id="${acc.id}" title="Ubah Akun">
                   ${Icons.edit(14)}
                 </button>
-                <button class="btn btn-secondary btn-icon btn-sm action-archive-account" data-id="${acc.id}" title="${acc.isArchived ? 'Aktifkan Akun' : 'Arsipkan Akun'}">
-                  ${acc.isArchived ? Icons.refresh(14) : Icons.x(14)}
-                </button>
+                ${acc.isArchived ? `
+                  <button class="btn btn-secondary btn-icon btn-sm action-archive-account" data-id="${acc.id}" title="Aktifkan Kembali Akun" style="color:#059669;">
+                    ${Icons.refresh(14)}
+                  </button>
+                  <button class="btn btn-secondary btn-icon btn-sm action-delete-account" data-id="${acc.id}" title="Hapus Permanen Akun" style="color:var(--color-expense);">
+                    ${Icons.trash(14)}
+                  </button>
+                ` : `
+                  <button class="btn btn-secondary btn-icon btn-sm action-delete-account" data-id="${acc.id}" title="Hapus Akun" style="color:var(--color-expense);">
+                    ${Icons.trash(14)}
+                  </button>
+                `}
               </div>
             ` : ''}
           </div>
@@ -9642,12 +9715,21 @@ function renderCategoriesTab(categories, canManage) {
               </div>
               ${canManage ? `
                 <div style="display:flex;gap:0.25rem;">
-                  <button class="btn btn-secondary btn-icon btn-sm action-edit-category" data-id="${cat.id}">
+                  <button class="btn btn-secondary btn-icon btn-sm action-edit-category" data-id="${cat.id}" title="Ubah Kategori">
                     ${Icons.edit(14)}
                   </button>
-                  <button class="btn btn-secondary btn-icon btn-sm action-delete-category" data-id="${cat.id}" style="color:var(--color-expense);">
-                    ${Icons.trash(14)}
-                  </button>
+                  ${cat.isArchived ? `
+                    <button class="btn btn-secondary btn-icon btn-sm action-restore-category" data-id="${cat.id}" title="Aktifkan Kembali Kategori" style="color:#059669;">
+                      ${Icons.refresh(14)}
+                    </button>
+                    <button class="btn btn-secondary btn-icon btn-sm action-delete-category" data-id="${cat.id}" title="Hapus Permanen Kategori" style="color:var(--color-expense);">
+                      ${Icons.trash(14)}
+                    </button>
+                  ` : `
+                    <button class="btn btn-secondary btn-icon btn-sm action-delete-category" data-id="${cat.id}" title="Hapus Kategori" style="color:var(--color-expense);">
+                      ${Icons.trash(14)}
+                    </button>
+                  `}
                 </div>
               ` : ''}
             </div>
@@ -9685,12 +9767,21 @@ function renderCategoriesTab(categories, canManage) {
               </div>
               ${canManage ? `
                 <div style="display:flex;gap:0.25rem;">
-                  <button class="btn btn-secondary btn-icon btn-sm action-edit-category" data-id="${cat.id}">
+                  <button class="btn btn-secondary btn-icon btn-sm action-edit-category" data-id="${cat.id}" title="Ubah Kategori">
                     ${Icons.edit(14)}
                   </button>
-                  <button class="btn btn-secondary btn-icon btn-sm action-delete-category" data-id="${cat.id}" style="color:var(--color-expense);">
-                    ${Icons.trash(14)}
-                  </button>
+                  ${cat.isArchived ? `
+                    <button class="btn btn-secondary btn-icon btn-sm action-restore-category" data-id="${cat.id}" title="Aktifkan Kembali Kategori" style="color:#059669;">
+                      ${Icons.refresh(14)}
+                    </button>
+                    <button class="btn btn-secondary btn-icon btn-sm action-delete-category" data-id="${cat.id}" title="Hapus Permanen Kategori" style="color:var(--color-expense);">
+                      ${Icons.trash(14)}
+                    </button>
+                  ` : `
+                    <button class="btn btn-secondary btn-icon btn-sm action-delete-category" data-id="${cat.id}" title="Hapus Kategori" style="color:var(--color-expense);">
+                      ${Icons.trash(14)}
+                    </button>
+                  `}
                 </div>
               ` : ''}
             </div>
@@ -10536,7 +10627,62 @@ function attachSettingsListeners() {
     btn.onclick = () => {
       const id = btn.dataset.id;
       appState.toggleArchiveAccount(id);
-      toast.info('Status arsip akun telah diperbarui.');
+      toast.info('Akun telah diaktifkan kembali.');
+    };
+  });
+  document.querySelectorAll('.action-delete-account').forEach(btn => {
+    btn.onclick = () => {
+      const id = btn.dataset.id;
+      const acc = appState.getAccountById(id);
+      if (!acc) return;
+      const inUse = appState.isAccountInUse(id);
+      if (inUse && !acc.isArchived) {
+        modal.open({
+          title: 'Hapus / Arsipkan Akun',
+          content: `
+            <p style="font-size:0.875rem;color:var(--color-slate-700);line-height:1.5;margin-bottom:1rem;">
+              Akun <strong>"${acc.name}"</strong> memiliki riwayat transaksi terkait.
+            </p>
+            <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:0.75rem;font-size:0.8125rem;color:#991b1b;margin-bottom:1rem;">
+              ⚠️ <strong>Pilihan Tindakan:</strong><br>
+              • <strong>Arsipkan</strong>: Sembunyikan akun dari pilihan transaksi baru, riwayat saldo lama tetap aman.<br>
+              • <strong>Hapus Permanen</strong>: Hapus akun secara total dari daftar.
+            </div>
+          `,
+          footerButtons: [
+            { label: 'Batal', className: 'btn-secondary', onClick: () => modal.close() },
+            {
+              label: 'Arsipkan Akun',
+              className: 'btn-secondary',
+              onClick: () => {
+                const res = appState.deleteAccount(id, false);
+                toast.info(res.message);
+                modal.close();
+              }
+            },
+            {
+              label: 'Hapus Permanen',
+              className: 'btn-danger',
+              onClick: () => {
+                const res = appState.deleteAccountPermanently(id);
+                toast.success(res.message);
+                modal.close();
+              }
+            }
+          ]
+        });
+      } else {
+        modal.confirm({
+          title: 'Hapus Akun',
+          message: `Apakah Anda yakin ingin menghapus akun <strong>"${acc.name}"</strong> secara permanen?`,
+          confirmText: 'Ya, Hapus Akun',
+          confirmType: 'btn-danger',
+          onConfirm: () => {
+            const res = appState.deleteAccountPermanently(id);
+            toast.success(res.message);
+          }
+        });
+      }
     };
   });
   document.querySelectorAll('.action-add-category-btn').forEach(btn => {
@@ -10587,21 +10733,66 @@ function attachSettingsListeners() {
       });
     };
   });
+  document.querySelectorAll('.action-restore-category').forEach(btn => {
+    btn.onclick = () => {
+      const id = btn.dataset.id;
+      appState.updateCategory(id, { isArchived: false });
+      toast.success('Kategori berhasil diaktifkan kembali!');
+    };
+  });
   document.querySelectorAll('.action-delete-category').forEach(btn => {
     btn.onclick = () => {
       const id = btn.dataset.id;
       const cat = appState.getCategoryById(id);
       if (!cat) return;
-      modal.confirm({
-        title: 'Hapus / Arsipkan Kategori',
-        message: `Apakah Anda yakin ingin menghapus kategori <strong>"${cat.name}"</strong>? Jika kategori ini sudah memiliki riwayat transaksi, sistem akan mengarsipkannya agar laporan keuangan tetap akurat.`,
-        confirmText: 'Ya, Lanjutkan',
-        confirmType: 'btn-danger',
-        onConfirm: () => {
-          const res = appState.deleteOrArchiveCategory(id);
-          toast.info(res.message);
-        }
-      });
+      const inUse = appState.isCategoryInUse(id);
+      if (inUse && !cat.isArchived) {
+        modal.open({
+          title: 'Hapus / Arsipkan Kategori',
+          content: `
+            <p style="font-size:0.875rem;color:var(--color-slate-700);line-height:1.5;margin-bottom:1rem;">
+              Kategori <strong>"${cat.name}"</strong> memiliki riwayat transaksi terkait.
+            </p>
+            <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:0.75rem;font-size:0.8125rem;color:#991b1b;margin-bottom:1rem;">
+              ⚠️ <strong>Pilihan Tindakan:</strong><br>
+              • <strong>Arsipkan</strong>: Sembunyikan kategori dari pilihan pencatatan baru, riwayat lama tetap aman.<br>
+              • <strong>Hapus Permanen</strong>: Hapus kategori secara total dari daftar.
+            </div>
+          `,
+          footerButtons: [
+            { label: 'Batal', className: 'btn-secondary', onClick: () => modal.close() },
+            {
+              label: 'Arsipkan Kategori',
+              className: 'btn-secondary',
+              onClick: () => {
+                const res = appState.deleteOrArchiveCategory(id, false);
+                toast.info(res.message);
+                modal.close();
+              }
+            },
+            {
+              label: 'Hapus Permanen',
+              className: 'btn-danger',
+              onClick: () => {
+                const res = appState.deleteCategoryPermanently(id);
+                toast.success(res.message);
+                modal.close();
+              }
+            }
+          ]
+        });
+      } else {
+        modal.confirm({
+          title: 'Hapus Kategori',
+          message: `Apakah Anda yakin ingin menghapus kategori <strong>"${cat.name}"</strong> secara permanen?`,
+          confirmText: 'Ya, Hapus Kategori',
+          confirmType: 'btn-danger',
+          onConfirm: () => {
+            const res = appState.deleteCategoryPermanently(id);
+            toast.success(res.message);
+          }
+        });
+      }
     };
   });
   const openWizardBtn = document.getElementById('btn-open-onboarding-wizard');
@@ -10615,14 +10806,27 @@ function attachSettingsListeners() {
   const resetCleanBtn = document.getElementById('btn-reset-clean-db');
   if (resetCleanBtn) {
     resetCleanBtn.onclick = () => {
+      const cloudConfig = CloudSyncService.getConfig();
+      const hasCloud = Boolean(cloudConfig.gasUrl);
       modal.confirm({
         title: 'Mulai dari Nol (Data Bersih)',
-        message: 'Tindakan ini akan mengosongkan seluruh riwayat transaksi (0 transaksi) dan menyiapkan akun kas & bank utama dengan saldo Rp 0 agar Anda dapat mulai mencatat data asli keluarga Anda. Lanjutkan?',
+        message: `Tindakan ini akan mengosongkan seluruh riwayat transaksi (0 transaksi)${hasCloud ? ' baik di perangkat ini maupun di Google Sheets Anda' : ''}, serta menyiapkan akun kas & bank utama dengan saldo Rp 0 agar Anda dapat mulai mencatat data asli keluarga Anda. Lanjutkan?`,
         confirmText: 'Ya, Kosongkan Data',
         confirmType: 'btn-primary',
-        onConfirm: () => {
+        onConfirm: async () => {
           appState.resetToCleanData();
-          toast.success('Database berhasil dikosongkan (0 transaksi). Selamat mencatat!');
+          if (hasCloud) {
+            toast.info('Mengosongkan database Google Sheets cloud...');
+            try {
+              await CloudSyncService.pushFullState(cloudConfig.gasUrl);
+              toast.success('Database berhasil dikosongkan (0 transaksi) & Google Sheets terupdate!');
+            } catch (err) {
+              console.warn('Sync clean data to cloud failed:', err);
+              toast.warning('Database lokal telah dikosongkan. Periksa koneksi ke Google Sheets.');
+            }
+          } else {
+            toast.success('Database berhasil dikosongkan (0 transaksi). Selamat mencatat!');
+          }
           appState.notify();
         }
       });
@@ -10631,14 +10835,26 @@ function attachSettingsListeners() {
   const resetDemoBtn = document.getElementById('btn-reset-demo-db');
   if (resetDemoBtn) {
     resetDemoBtn.onclick = () => {
+      const cloudConfig = CloudSyncService.getConfig();
+      const hasCloud = Boolean(cloudConfig.gasUrl);
       modal.confirm({
         title: 'Muat Data Simulasi Demo',
         message: 'Apakah Anda ingin memuat data contoh (Keluarga Santoso beserta 18+ transaksi simulasi)? Data saat ini akan digantikan dengan data simulasi.',
         confirmText: 'Ya, Muat Data Demo',
         confirmType: 'btn-danger',
-        onConfirm: () => {
+        onConfirm: async () => {
           appState.resetToInitialData();
-          toast.success('Data simulasi Keluarga Santoso berhasil dimuat!');
+          if (hasCloud) {
+            toast.info('Menyinkronkan data demo ke Google Sheets...');
+            try {
+              await CloudSyncService.pushFullState(cloudConfig.gasUrl);
+              toast.success('Data simulasi Keluarga Santoso berhasil dimuat & disinkronkan!');
+            } catch (err) {
+              console.warn('Sync demo data failed:', err);
+            }
+          } else {
+            toast.success('Data simulasi Keluarga Santoso berhasil dimuat!');
+          }
           appState.notify();
         }
       });
@@ -11588,7 +11804,12 @@ class DompetKeluargaApp {
         }
       });
       window.addEventListener('transaction:changed', () => {
-        CloudSyncService.pushFullStateDebounced();
+        CloudSyncService.pushFullStateDebounced(1000);
+      });
+      window.addEventListener('appstate:changed', (e) => {
+        if (e.detail && !e.detail.isFromCloud) {
+          CloudSyncService.pushFullStateDebounced(1200);
+        }
       });
       window.addEventListener('license-updated', () => {
         this.render();
