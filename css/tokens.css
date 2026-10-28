@@ -1,8 +1,13 @@
-/* Design Tokens for Dompet Keluarga */
+/* Design Tokens for Dompet Keluarga - Millennial & Fresh Dynamic Themes */
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
-:root {
-  /* Brand Colors - Primary Emerald */
+/* ==========================================================================
+   THEME 1: Emerald Mint (Default - Harmonis & Segar Alami)
+   ========================================================================== */
+:root, [data-theme="emerald"] {
+  --theme-id: "emerald";
+  --theme-name: "Emerald Mint";
+  --primary-rgb: 5, 150, 105;
   --color-primary-50: #ecfdf5;
   --color-primary-100: #d1fae5;
   --color-primary-200: #a7f3d0;
@@ -14,6 +19,174 @@
   --color-primary-800: #065f46;
   --color-primary-900: #064e3b;
 
+  --primary-gradient: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  --primary-gradient-hover: linear-gradient(135deg, #047857 0%, #059669 100%);
+  --primary-gradient-subtle: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  --shadow-glow: 0 0 25px -2px rgba(16, 185, 129, 0.4);
+  --border-focus: #10b981;
+  --theme-accent: #059669;
+}
+
+/* ==========================================================================
+   THEME 2: Cyber Indigo (Milenial Tech & Neon Indigo)
+   ========================================================================== */
+[data-theme="indigo"] {
+  --theme-id: "indigo";
+  --theme-name: "Cyber Indigo";
+  --primary-rgb: 79, 70, 229;
+  --color-primary-50: #eef2ff;
+  --color-primary-100: #e0e7ff;
+  --color-primary-200: #c7d2fe;
+  --color-primary-300: #a5b4fc;
+  --color-primary-400: #818cf8;
+  --color-primary-500: #6366f1;
+  --color-primary-600: #4f46e5;
+  --color-primary-700: #4338ca;
+  --color-primary-800: #3730a3;
+  --color-primary-900: #312e81;
+
+  --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+  --primary-gradient-hover: linear-gradient(135deg, #4338ca 0%, #4f46e5 100%);
+  --primary-gradient-subtle: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+  --shadow-glow: 0 0 25px -2px rgba(99, 102, 241, 0.4);
+  --border-focus: #6366f1;
+  --theme-accent: #4f46e5;
+}
+
+/* ==========================================================================
+   THEME 3: Oceanic Cyan (Santai & Bersih Neo-Bank)
+   ========================================================================== */
+[data-theme="ocean"] {
+  --theme-id: "ocean";
+  --theme-name: "Oceanic Cyan";
+  --primary-rgb: 8, 145, 178;
+  --color-primary-50: #ecfeff;
+  --color-primary-100: #cffafe;
+  --color-primary-200: #a5f3fc;
+  --color-primary-300: #67e8f9;
+  --color-primary-400: #22d3ee;
+  --color-primary-500: #06b6d4;
+  --color-primary-600: #0891b2;
+  --color-primary-700: #0e7490;
+  --color-primary-800: #155e75;
+  --color-primary-900: #164e63;
+
+  --primary-gradient: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%);
+  --primary-gradient-hover: linear-gradient(135deg, #0e7490 0%, #0891b2 100%);
+  --primary-gradient-subtle: linear-gradient(135deg, #ecfeff 0%, #cffafe 100%);
+  --shadow-glow: 0 0 25px -2px rgba(6, 182, 212, 0.4);
+  --border-focus: #06b6d4;
+  --theme-accent: #0891b2;
+}
+
+/* ==========================================================================
+   THEME 4: Sunset Coral (Peach & Hangat Ceria)
+   ========================================================================== */
+[data-theme="sunset"] {
+  --theme-id: "sunset";
+  --theme-name: "Sunset Coral";
+  --primary-rgb: 234, 88, 12;
+  --color-primary-50: #fff7ed;
+  --color-primary-100: #ffedd5;
+  --color-primary-200: #fed7aa;
+  --color-primary-300: #fdba74;
+  --color-primary-400: #fb923c;
+  --color-primary-500: #f97316;
+  --color-primary-600: #ea580c;
+  --color-primary-700: #c2410c;
+  --color-primary-800: #9a3412;
+  --color-primary-900: #7c2d12;
+
+  --primary-gradient: linear-gradient(135deg, #ea580c 0%, #f97316 100%);
+  --primary-gradient-hover: linear-gradient(135deg, #c2410c 0%, #ea580c 100%);
+  --primary-gradient-subtle: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+  --shadow-glow: 0 0 25px -2px rgba(249, 115, 22, 0.4);
+  --border-focus: #f97316;
+  --theme-accent: #ea580c;
+}
+
+/* ==========================================================================
+   THEME 5: Berry Sakura (Sweet Chic & Stylish)
+   ========================================================================== */
+[data-theme="sakura"] {
+  --theme-id: "sakura";
+  --theme-name: "Berry Sakura";
+  --primary-rgb: 190, 24, 93;
+  --color-primary-50: #fdf2f8;
+  --color-primary-100: #fce7f3;
+  --color-primary-200: #fbcfe8;
+  --color-primary-300: #f472b6;
+  --color-primary-400: #ec4899;
+  --color-primary-500: #db2777;
+  --color-primary-600: #be185d;
+  --color-primary-700: #9d174d;
+  --color-primary-800: #831843;
+  --color-primary-900: #500724;
+
+  --primary-gradient: linear-gradient(135deg, #be185d 0%, #ec4899 100%);
+  --primary-gradient-hover: linear-gradient(135deg, #9d174d 0%, #be185d 100%);
+  --primary-gradient-subtle: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%);
+  --shadow-glow: 0 0 25px -2px rgba(236, 72, 153, 0.4);
+  --border-focus: #ec4899;
+  --theme-accent: #be185d;
+}
+
+/* ==========================================================================
+   THEME 6: Royal Velvet (Mewah & Eksklusif)
+   ========================================================================== */
+[data-theme="purple"] {
+  --theme-id: "purple";
+  --theme-name: "Royal Velvet";
+  --primary-rgb: 147, 51, 234;
+  --color-primary-50: #faf5ff;
+  --color-primary-100: #f3e8ff;
+  --color-primary-200: #e9d5ff;
+  --color-primary-300: #d8b4fe;
+  --color-primary-400: #c084fc;
+  --color-primary-500: #a855f7;
+  --color-primary-600: #9333ea;
+  --color-primary-700: #7e22ce;
+  --color-primary-800: #6b21a8;
+  --color-primary-900: #581c87;
+
+  --primary-gradient: linear-gradient(135deg, #9333ea 0%, #a855f7 100%);
+  --primary-gradient-hover: linear-gradient(135deg, #7e22ce 0%, #9333ea 100%);
+  --primary-gradient-subtle: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
+  --shadow-glow: 0 0 25px -2px rgba(168, 85, 247, 0.4);
+  --border-focus: #a855f7;
+  --theme-accent: #9333ea;
+}
+
+/* ==========================================================================
+   THEME 7: Midnight Slate (Sleek Minimalist Cyber)
+   ========================================================================== */
+[data-theme="slate"] {
+  --theme-id: "slate";
+  --theme-name: "Midnight Slate";
+  --primary-rgb: 30, 41, 59;
+  --color-primary-50: #f1f5f9;
+  --color-primary-100: #e2e8f0;
+  --color-primary-200: #cbd5e1;
+  --color-primary-300: #94a3b8;
+  --color-primary-400: #64748b;
+  --color-primary-500: #475569;
+  --color-primary-600: #334155;
+  --color-primary-700: #1e293b;
+  --color-primary-800: #0f172a;
+  --color-primary-900: #020617;
+
+  --primary-gradient: linear-gradient(135deg, #0f172a 0%, #334155 100%);
+  --primary-gradient-hover: linear-gradient(135deg, #020617 0%, #1e293b 100%);
+  --primary-gradient-subtle: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  --shadow-glow: 0 0 25px -2px rgba(15, 23, 42, 0.35);
+  --border-focus: #38bdf8;
+  --theme-accent: #334155;
+}
+
+/* ==========================================================================
+   GLOBAL DESIGN TOKENS
+   ========================================================================== */
+:root {
   /* Income - Green/Teal */
   --color-income: #059669;
   --color-income-light: #ecfdf5;
@@ -52,7 +225,6 @@
   --bg-surface-elevated: #ffffff;
   --bg-card: #ffffff;
   --border-subtle: #e2e8f0;
-  --border-focus: #10b981;
 
   /* Typography */
   --font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -64,18 +236,17 @@
 
   /* Elevations & Shadows */
   --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
-  --shadow-glow: 0 0 20px -3px rgba(16, 185, 129, 0.35);
+  --shadow-sm: 0 2px 4px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 6px 12px -2px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.03);
+  --shadow-lg: 0 12px 20px -4px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.03);
+  --shadow-xl: 0 24px 32px -6px rgba(0, 0, 0, 0.1), 0 8px 12px -6px rgba(0, 0, 0, 0.04);
 
-  /* Radius */
-  --radius-xs: 4px;
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
+  /* Radius (Millennial & Friendly Squircles) */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 26px;
   --radius-full: 9999px;
 
   /* Transitions */

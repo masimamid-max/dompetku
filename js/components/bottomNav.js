@@ -10,6 +10,7 @@ import { openTelegramModal } from './telegramSimulator.js';
 import { modal } from './modal.js';
 import { toast } from './toast.js';
 import { triggerPwaInstall, isAppInstalled } from './pwaInstall.js';
+import { openThemeModal } from './themeModal.js';
 
 export function renderSidebar() {
   const current = appState.currentUser;
@@ -63,6 +64,10 @@ export function renderSidebar() {
         <a class="nav-item ${activeTab === 'settings' ? 'active' : ''}" data-tab="settings">
           ${Icons.settings(19)}
           <span>Pengaturan</span>
+        </a>
+        <a class="nav-item" id="sidebar-btn-theme" title="Pilih Tema Warna (Tampilan Milenial)" style="margin-top:0.25rem;">
+          <span style="font-size:18px;">🎨</span>
+          <span>Tema Tampilan</span>
         </a>
       </nav>
 
@@ -246,6 +251,13 @@ export function openMobileMenuSheet(onTabChange) {
               <div class="mobile-nav-sheet-label">Pengaturan</div>
             </div>
 
+            <div class="mobile-nav-sheet-item" id="sheet-btn-theme">
+              <div class="mobile-nav-sheet-icon" style="background:var(--color-primary-50);color:var(--color-primary-600);">
+                <span style="font-size:20px;">🎨</span>
+              </div>
+              <div class="mobile-nav-sheet-label">Tema Warna</div>
+            </div>
+
             <div class="mobile-nav-sheet-item" id="sheet-btn-sync">
               <div class="mobile-nav-sheet-icon" style="background:linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);color:#16a34a;">
                 ${Icons.cloud ? Icons.cloud(22) : Icons.refresh(22)}
@@ -347,6 +359,14 @@ export function openMobileMenuSheet(onTabChange) {
     };
   }
 
+  const sheetThemeBtn = document.getElementById('sheet-btn-theme');
+  if (sheetThemeBtn) {
+    sheetThemeBtn.onclick = () => {
+      modal.close();
+      openThemeModal();
+    };
+  }
+
   const sheetLogoutBtn = document.getElementById('sheet-btn-logout');
   if (sheetLogoutBtn) {
     sheetLogoutBtn.onclick = () => {
@@ -374,6 +394,15 @@ function triggerAppLogout() {
 }
 
 export function attachNavListeners(onTabChange) {
+  // Sidebar Theme Button
+  const sidebarThemeBtn = document.getElementById('sidebar-btn-theme');
+  if (sidebarThemeBtn) {
+    sidebarThemeBtn.onclick = () => {
+      closeMobileSidebar();
+      openThemeModal();
+    };
+  }
+
   // Sidebar Logout Button
   const sidebarLogoutBtn = document.getElementById('sidebar-btn-logout');
   if (sidebarLogoutBtn) {

@@ -6453,6 +6453,204 @@ function openOnboardingWizardModal(force = false) {
 }
 
 
+var THEMES = [
+  {
+    id: 'emerald',
+    name: 'Emerald Mint',
+    subtitle: 'Harmonis & Segar Alami',
+    description: 'Warna hijau zamrud alami melambangkan pertumbuhan dan keharmonisan finansial keluarga.',
+    badge: 'Pilihan Asli (Default)',
+    primaryColor: '#059669',
+    secondaryColor: '#10b981',
+    lightBg: '#ecfdf5',
+    emoji: '🌿'
+  },
+  {
+    id: 'indigo',
+    name: 'Cyber Indigo',
+    subtitle: 'Milenial Tech & Neon',
+    description: 'Gaya visual modern tech bernuansa neon indigo yang energik, cerdas, dan futuristik.',
+    badge: 'Terpopuler Milenial ⭐',
+    primaryColor: '#4f46e5',
+    secondaryColor: '#6366f1',
+    lightBg: '#eef2ff',
+    emoji: '⚡'
+  },
+  {
+    id: 'ocean',
+    name: 'Oceanic Cyan',
+    subtitle: 'Sejuk, Santai & Bersih',
+    description: 'Nuansa biru laut dan cyan cerah khas neo-bank masa kini, memberikan ketenangan saat budgeting.',
+    badge: 'Estetik Digital 🌊',
+    primaryColor: '#0891b2',
+    secondaryColor: '#06b6d4',
+    lightBg: '#ecfeff',
+    emoji: '🌊'
+  },
+  {
+    id: 'sunset',
+    name: 'Sunset Coral',
+    subtitle: 'Hangat, Ceria & Berenergi',
+    description: 'Gradasi jingga coral senja yang penuh kehangatan, optimisme, dan semangat produktif.',
+    badge: 'Vibe Hangat 🌅',
+    primaryColor: '#ea580c',
+    secondaryColor: '#f97316',
+    lightBg: '#fff7ed',
+    emoji: '🌅'
+  },
+  {
+    id: 'sakura',
+    name: 'Berry Sakura',
+    subtitle: 'Manis, Anggun & Chic',
+    description: 'Sentuhan warna rose & berry yang manis dan stylish untuk suasana pencatatan yang menyenangkan.',
+    badge: 'Chic & Manis 🌸',
+    primaryColor: '#be185d',
+    secondaryColor: '#ec4899',
+    lightBg: '#fdf2f8',
+    emoji: '🌸'
+  },
+  {
+    id: 'purple',
+    name: 'Royal Velvet',
+    subtitle: 'Mewah & Eksklusif',
+    description: 'Nuansa ungu ultraviolet yang elegan dan prestisius, menghadirkan estetika premium.',
+    badge: 'Elegan Mewah 💜',
+    primaryColor: '#9333ea',
+    secondaryColor: '#a855f7',
+    lightBg: '#faf5ff',
+    emoji: '💜'
+  },
+  {
+    id: 'slate',
+    name: 'Midnight Slate',
+    subtitle: 'Sleek Minimalist Cyber',
+    description: 'Desain monokromatik gelap minimalis dengan kontras tinggi untuk pecinta estetika simpel.',
+    badge: 'Minimalis Elegan 🖤',
+    primaryColor: '#334155',
+    secondaryColor: '#64748b',
+    lightBg: '#f1f5f9',
+    emoji: '🖤'
+  }
+];
+function getCurrentTheme() {
+  try {
+    return localStorage.getItem('dk_theme') || 'emerald';
+  } catch (e) {
+    return 'emerald';
+  }
+}
+function applyTheme(themeId, showToast = true) {
+  const selectedTheme = THEMES.find(t => t.id === themeId) || THEMES[0];
+  document.documentElement.setAttribute('data-theme', selectedTheme.id);
+  try {
+    localStorage.setItem('dk_theme', selectedTheme.id);
+  } catch (e) {}
+  const metaTheme = document.querySelector('meta[name="theme-color"]');
+  if (metaTheme) {
+    metaTheme.setAttribute('content', selectedTheme.primaryColor);
+  }
+  const headerThemePill = document.getElementById('btn-header-theme');
+  if (headerThemePill) {
+    const iconSpan = headerThemePill.querySelector('.theme-trigger-icon');
+    if (iconSpan) iconSpan.textContent = selectedTheme.emoji;
+  }
+  window.dispatchEvent(new CustomEvent('dk:theme-changed', { detail: selectedTheme }));
+  if (showToast) {
+    toast.success(`${selectedTheme.emoji} Tema visual diubah ke <strong>${selectedTheme.name}</strong>! Tampilan jadi lebih segar & asik.`);
+  }
+}
+function openThemeModal() {
+  const currentThemeId = getCurrentTheme();
+  const content = `
+    <div class="theme-modal-container">
+      <div style="text-align:center;margin-bottom:1.5rem;">
+        <span style="display:inline-flex;align-items:center;gap:0.35rem;padding:0.35rem 0.85rem;background:var(--color-primary-50);color:var(--color-primary-700);border:1px solid var(--color-primary-200);border-radius:9999px;font-size:0.75rem;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;margin-bottom:0.6rem;">
+          ✨ Personalisasi Tampilan Milenial
+        </span>
+        <h3 style="font-size:1.35rem;font-weight:800;color:var(--color-slate-900);margin:0;letter-spacing:-0.02em;">Pilih Tema Warna Favorit Anda</h3>
+        <p style="font-size:0.875rem;color:var(--text-muted);margin-top:0.35rem;line-height:1.4;">
+          Ubah suasana Dompet Keluarga sesuka Anda. Klik salah satu tema di bawah untuk pratinjau langsung secara seketika!
+        </p>
+      </div>
+      <div class="theme-swatch-grid">
+        ${THEMES.map(theme => {
+          const isSelected = theme.id === currentThemeId;
+          return `
+            <div class="theme-picker-card ${isSelected ? 'active' : ''}" data-theme-id="${theme.id}">
+              <div class="theme-card-top">
+                <div class="theme-color-disc" style="background:linear-gradient(135deg, ${theme.primaryColor}, ${theme.secondaryColor});">
+                  <span class="theme-emoji">${theme.emoji}</span>
+                </div>
+                <div class="theme-meta">
+                  <div class="theme-name">${theme.name}</div>
+                  <div class="theme-subtitle">${theme.subtitle}</div>
+                </div>
+                <div class="theme-check-mark ${isSelected ? 'checked' : ''}">
+                  ${isSelected ? '✓' : ''}
+                </div>
+              </div>
+              <p class="theme-description">${theme.description}</p>
+              <div class="theme-card-bottom">
+                <span class="theme-pill-tag" style="background:${theme.lightBg};color:${theme.primaryColor};border:1px solid ${theme.primaryColor}30;">
+                  ${theme.badge}
+                </span>
+                <div class="theme-color-palette-bar">
+                  <span style="background:${theme.primaryColor};"></span>
+                  <span style="background:${theme.secondaryColor};"></span>
+                  <span style="background:${theme.lightBg};border:1px solid ${theme.primaryColor};"></span>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+      <div style="margin-top:1.5rem;display:flex;justify-content:center;gap:0.75rem;">
+        <button class="btn btn-primary" id="btn-close-theme-modal" style="min-width:180px;border-radius:9999px;font-weight:700;">
+          ✨ Selesai & Simpan Pilihan
+        </button>
+      </div>
+    </div>
+  `;
+  modal.open({
+    title: '🎨 Palet Warna & Tema Aplikasi',
+    content: content,
+    maxWidth: '680px'
+  });
+  document.querySelectorAll('.theme-picker-card').forEach(card => {
+    card.onclick = () => {
+      const themeId = card.getAttribute('data-theme-id');
+      applyTheme(themeId, true);
+      document.querySelectorAll('.theme-picker-card').forEach(c => {
+        c.classList.remove('active');
+        const chk = c.querySelector('.theme-check-mark');
+        if (chk) {
+          chk.classList.remove('checked');
+          chk.innerHTML = '';
+        }
+      });
+      card.classList.add('active');
+      const activeChk = card.querySelector('.theme-check-mark');
+      if (activeChk) {
+        activeChk.classList.add('checked');
+        activeChk.innerHTML = '✓';
+      }
+    };
+  });
+  const closeBtn = document.getElementById('btn-close-theme-modal');
+  if (closeBtn) {
+    closeBtn.onclick = () => modal.close();
+  }
+}
+if (typeof window !== 'undefined') {
+  window.ThemeManager = {
+    THEMES,
+    getCurrentTheme,
+    applyTheme,
+    openThemeModal
+  };
+}
+
+
 function openTransactionModal(existingTx = null) {
   if (!existingTx && !LicenseService.isLicensed()) {
     openLicenseActivationModal('Pencatatan Transaksi Baru');
@@ -6854,6 +7052,8 @@ function renderNavbar() {
   const family = appState.family;
   const members = appState.members;
   const current = appState.currentUser;
+  const currentThemeId = getCurrentTheme();
+  const currentTheme = THEMES.find(t => t.id === currentThemeId) || THEMES[0];
   return `
     <header class="app-header">
       <div class="header-left">
@@ -6864,7 +7064,7 @@ function renderNavbar() {
         <div class="header-family-selector" id="family-profile-trigger" title="Klik untuk info keluarga">
           <span class="family-home-icon">${Icons.home(18)}</span>
           <span class="header-family-name">${family.name}</span>
-          <span class="badge hide-on-mobile" style="background:#e0f2fe;color:#0369a1;font-size:0.6875rem;">IDR</span>
+          <span class="badge hide-on-mobile" style="background:var(--color-primary-50);color:var(--color-primary-700);font-size:0.6875rem;border:1px solid var(--color-primary-200);">IDR</span>
         </div>
       </div>
       <div class="header-right">
@@ -6882,10 +7082,10 @@ function renderNavbar() {
             `).join('')}
           </select>
         </div>
-        <!-- Quick Cloud Sync Button -->
-        <button class="btn btn-secondary btn-sm" id="btn-header-sync" style="display:inline-flex;align-items:center;gap:0.35rem;padding:0.4rem 0.65rem;font-weight:700;font-size:0.75rem;border-radius:8px;background:#f0fdf4;color:#15803d;border-color:#bbf7d0;" title="Sinkronkan dengan Google Spreadsheet Sekarang">
-          <span id="nav-sync-icon" style="display:inline-block;transition:transform 0.4s ease;">🔄</span>
-          <span class="hide-on-mobile">Sinkron</span>
+        <!-- Millennial Theme Switcher Pill Trigger -->
+        <button class="theme-trigger-pill" id="btn-header-theme" title="Pilih Tema Warna Aplikasi">
+          <span class="theme-trigger-icon">${currentTheme.emoji}</span>
+          <span class="theme-trigger-label hide-on-mobile">Tema</span>
         </button>
         <button class="btn-header-add" id="header-btn-add-tx">
           ${Icons.plus(18)} <span class="hide-on-mobile">Catat Transaksi</span>
@@ -6903,28 +7103,10 @@ function renderNavbar() {
   `;
 }
 function attachNavbarListeners() {
-  const syncBtn = document.getElementById('btn-header-sync');
-  if (syncBtn) {
-    syncBtn.onclick = async () => {
-      const config = CloudSyncService.getConfig();
-      if (!config.gasUrl) {
-        toast.error('URL Google Apps Script belum dipasang di menu Pengaturan.');
-        return;
-      }
-      const icon = document.getElementById('nav-sync-icon');
-      if (icon) icon.style.animation = 'spin 1s linear infinite';
-      syncBtn.disabled = true;
-      try {
-        const res = await CloudSyncService.pullFullState(config.gasUrl);
-        toast.success(res.hasChanges 
-          ? '✅ Data berhasil disinkronkan dengan Google Sheets!' 
-          : '✅ Data lokal sudah sama dengan Google Sheets.');
-      } catch (err) {
-        toast.error('Gagal sinkron: ' + err.message);
-      } finally {
-        if (icon) icon.style.animation = '';
-        syncBtn.disabled = false;
-      }
+  const themeBtn = document.getElementById('btn-header-theme');
+  if (themeBtn) {
+    themeBtn.onclick = () => {
+      openThemeModal();
     };
   }
   const navbarLogoutBtn = document.getElementById('navbar-btn-logout');
@@ -7075,6 +7257,10 @@ function renderSidebar() {
         <a class="nav-item ${activeTab === 'settings' ? 'active' : ''}" data-tab="settings">
           ${Icons.settings(19)}
           <span>Pengaturan</span>
+        </a>
+        <a class="nav-item" id="sidebar-btn-theme" title="Pilih Tema Warna (Tampilan Milenial)" style="margin-top:0.25rem;">
+          <span style="font-size:18px;">🎨</span>
+          <span>Tema Tampilan</span>
         </a>
       </nav>
       <div class="sidebar-footer">
@@ -7239,6 +7425,12 @@ function openMobileMenuSheet(onTabChange) {
               </div>
               <div class="mobile-nav-sheet-label">Pengaturan</div>
             </div>
+            <div class="mobile-nav-sheet-item" id="sheet-btn-theme">
+              <div class="mobile-nav-sheet-icon" style="background:var(--color-primary-50);color:var(--color-primary-600);">
+                <span style="font-size:20px;">🎨</span>
+              </div>
+              <div class="mobile-nav-sheet-label">Tema Warna</div>
+            </div>
             <div class="mobile-nav-sheet-item" id="sheet-btn-sync">
               <div class="mobile-nav-sheet-icon" style="background:linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);color:#16a34a;">
                 ${Icons.cloud ? Icons.cloud(22) : Icons.refresh(22)}
@@ -7332,6 +7524,13 @@ function openMobileMenuSheet(onTabChange) {
       }
     };
   }
+  const sheetThemeBtn = document.getElementById('sheet-btn-theme');
+  if (sheetThemeBtn) {
+    sheetThemeBtn.onclick = () => {
+      modal.close();
+      openThemeModal();
+    };
+  }
   const sheetLogoutBtn = document.getElementById('sheet-btn-logout');
   if (sheetLogoutBtn) {
     sheetLogoutBtn.onclick = () => {
@@ -7357,6 +7556,13 @@ function triggerAppLogout() {
   });
 }
 function attachNavListeners(onTabChange) {
+  const sidebarThemeBtn = document.getElementById('sidebar-btn-theme');
+  if (sidebarThemeBtn) {
+    sidebarThemeBtn.onclick = () => {
+      closeMobileSidebar();
+      openThemeModal();
+    };
+  }
   const sidebarLogoutBtn = document.getElementById('sidebar-btn-logout');
   if (sidebarLogoutBtn) {
     sidebarLogoutBtn.onclick = () => {
@@ -9468,7 +9674,7 @@ function attachReportsListeners() {
 }
 
 
-var settingsSubTab = 'family'; // 'family' | 'accounts' | 'categories' | 'cloud' | 'app' | 'license' | 'system'
+var settingsSubTab = 'family'; // 'family' | 'accounts' | 'categories' | 'cloud' | 'app' | 'theme' | 'license' | 'system'
 function renderSettingsPage() {
   const family = appState.family;
   const members = appState.members;
@@ -9509,6 +9715,9 @@ function renderSettingsPage() {
         <button class="settings-tab-btn ${settingsSubTab === 'app' ? 'active' : ''}" data-subtab="app">
           📲 Pasang Aplikasi di HP
         </button>
+        <button class="settings-tab-btn ${settingsSubTab === 'theme' ? 'active' : ''}" data-subtab="theme">
+          🎨 Tema & Tampilan
+        </button>
         <button class="settings-tab-btn ${settingsSubTab === 'license' ? 'active' : ''}" data-subtab="license">
           ${isPro ? '✨ Lisensi PRO (Aktif)' : '🔒 Lisensi Developer & PRO'}
         </button>
@@ -9522,6 +9731,7 @@ function renderSettingsPage() {
       ${settingsSubTab === 'categories' ? renderCategoriesTab(categories, canManage) : ''}
       ${settingsSubTab === 'cloud' ? renderCloudTab() : ''}
       ${settingsSubTab === 'app' ? renderAppTab() : ''}
+      ${settingsSubTab === 'theme' ? renderThemeTab() : ''}
       ${settingsSubTab === 'license' ? renderLicenseTab() : ''}
       ${settingsSubTab === 'system' ? renderSystemTab() : ''}
     </div>
@@ -10155,6 +10365,122 @@ function renderLicenseTab() {
               </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+    </div>
+  `;
+}
+function renderThemeTab() {
+  const currentThemeId = getCurrentTheme();
+  const currentTheme = THEMES.find(t => t.id === currentThemeId) || THEMES[0];
+  return `
+    <div style="display:flex;flex-direction:column;gap:1.5rem;">
+      <!-- Active Theme Banner -->
+      <div class="card" style="background:var(--primary-gradient-subtle, #ecfdf5);border:1.5px solid var(--color-primary-200);box-shadow:var(--shadow-sm);">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1.25rem;">
+          <div style="display:flex;align-items:center;gap:1rem;">
+            <div style="width:56px;height:56px;border-radius:18px;background:var(--primary-gradient);display:grid;place-items:center;font-size:2rem;box-shadow:var(--shadow-glow);flex-shrink:0;">
+              ${currentTheme.emoji}
+            </div>
+            <div>
+              <div style="display:inline-flex;align-items:center;gap:0.35rem;padding:0.2rem 0.6rem;background:white;color:var(--color-primary-700);border-radius:9999px;font-size:0.6875rem;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;border:1px solid var(--color-primary-200);">
+                Tema Aktif Saat Ini
+              </div>
+              <h2 style="font-size:1.35rem;font-weight:800;color:var(--color-slate-900);margin:0.25rem 0 0 0;letter-spacing:-0.02em;">
+                ${currentTheme.name} <span style="font-weight:600;font-size:0.9375rem;color:var(--color-slate-600);">• ${currentTheme.subtitle}</span>
+              </h2>
+              <p style="font-size:0.875rem;color:var(--color-slate-600);margin:0.25rem 0 0 0;">
+                ${currentTheme.description}
+              </p>
+            </div>
+          </div>
+          <button class="btn btn-primary" id="btn-settings-open-theme-modal" style="border-radius:9999px;font-weight:700;">
+            🎨 Dialog Palet Warna Lengkap
+          </button>
+        </div>
+      </div>
+      <!-- Theme Switcher Grid -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">
+              🎨 Galeri Tema Warna Milenial & Estetik
+            </div>
+            <div class="card-subtitle">
+              Pilih salah satu palet warna di bawah untuk mengubah tampilan seluruh tombol, aksen, dan grafik secara seketika
+            </div>
+          </div>
+        </div>
+        <div class="theme-swatch-grid">
+          ${THEMES.map(theme => {
+            const isSelected = theme.id === currentThemeId;
+            return `
+              <div class="theme-picker-card ${isSelected ? 'active' : ''}" data-theme-id="${theme.id}">
+                <div class="theme-card-top">
+                  <div class="theme-color-disc" style="background:linear-gradient(135deg, ${theme.primaryColor}, ${theme.secondaryColor});">
+                    <span class="theme-emoji">${theme.emoji}</span>
+                  </div>
+                  <div class="theme-meta">
+                    <div class="theme-name">${theme.name}</div>
+                    <div class="theme-subtitle">${theme.subtitle}</div>
+                  </div>
+                  <div class="theme-check-mark ${isSelected ? 'checked' : ''}">
+                    ${isSelected ? '✓' : ''}
+                  </div>
+                </div>
+                <p class="theme-description">${theme.description}</p>
+                <div class="theme-card-bottom">
+                  <span class="theme-pill-tag" style="background:${theme.lightBg};color:${theme.primaryColor};border:1px solid ${theme.primaryColor}30;">
+                    ${theme.badge}
+                  </span>
+                  <button class="btn btn-sm ${isSelected ? 'btn-primary' : 'btn-secondary'}" style="border-radius:9999px;font-weight:700;padding:0.35rem 0.85rem;pointer-events:none;">
+                    ${isSelected ? '✓ Aktif' : 'Pilih'}
+                  </button>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+      <!-- Live Interactive Component Preview -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">
+              ✨ Pratinjau Tampilan Komponen
+            </div>
+            <div class="card-subtitle">
+              Hasil terapan warna pada tombol, badge, dan saldo aplikasi
+            </div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:1rem;">
+          <div style="background:var(--color-primary-50);border:1px solid var(--color-primary-200);border-radius:14px;padding:1.25rem;">
+            <div style="font-size:0.75rem;font-weight:800;color:var(--color-primary-800);text-transform:uppercase;letter-spacing:0.04em;">Tombol & Aksi Utama</div>
+            <div style="margin-top:0.85rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+              <button class="btn btn-primary btn-sm">Tombol Aksi</button>
+              <button class="btn btn-secondary btn-sm">Batal</button>
+            </div>
+          </div>
+          <div style="background:var(--color-slate-50);border:1px solid var(--border-subtle);border-radius:14px;padding:1.25rem;">
+            <div style="font-size:0.75rem;font-weight:800;color:var(--color-slate-700);text-transform:uppercase;letter-spacing:0.04em;">Lencana & Label Dinamis</div>
+            <div style="margin-top:0.85rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+              <span class="badge" style="background:var(--color-primary-50);color:var(--color-primary-700);border:1px solid var(--color-primary-200);">
+                ${currentTheme.emoji} ${currentTheme.name}
+              </span>
+              <span class="badge badge-income">+ Pemasukan</span>
+              <span class="badge badge-expense">- Pengeluaran</span>
+            </div>
+          </div>
+          <div style="background:var(--color-slate-50);border:1px solid var(--border-subtle);border-radius:14px;padding:1.25rem;">
+            <div style="font-size:0.75rem;font-weight:800;color:var(--color-slate-700);text-transform:uppercase;letter-spacing:0.04em;">Aksen Saldo & Keuangan</div>
+            <div style="font-size:1.35rem;font-weight:800;color:var(--color-primary-700);margin-top:0.4rem;letter-spacing:-0.02em;">
+              Rp 45.750.000
+            </div>
+            <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.25rem;">
+              Harmonis & Segar Dipandang
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -11325,6 +11651,19 @@ function json_(payload) {
       triggerPwaInstall();
     };
   }
+  const openThemeModalBtn = document.getElementById('btn-settings-open-theme-modal');
+  if (openThemeModalBtn) {
+    openThemeModalBtn.onclick = () => {
+      openThemeModal();
+    };
+  }
+  document.querySelectorAll('.theme-picker-card[data-theme-id]').forEach(card => {
+    card.onclick = () => {
+      const themeId = card.getAttribute('data-theme-id');
+      applyTheme(themeId, true);
+      appState.notify();
+    };
+  });
 }
 
 

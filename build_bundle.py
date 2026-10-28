@@ -21,6 +21,7 @@ files_order = [
     "js/components/telegramSimulator.js",
     "js/components/exportModal.js",
     "js/components/onboardingWizardModal.js",
+    "js/components/themeModal.js",
     "js/components/transactionModal.js",
     "js/components/navbar.js",
     "js/components/bottomNav.js",

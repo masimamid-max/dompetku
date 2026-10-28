@@ -5,10 +5,10 @@ import { modal } from '../components/modal.js';
 import { toast } from '../components/toast.js';
 import { CloudSyncService } from '../utils/cloudSync.js';
 import { LicenseService } from '../utils/licenseService.js';
-import { openLicenseActivationModal } from '../components/licenseModal.js';
 import { triggerPwaInstall, isAppInstalled, getDeviceInfo } from '../components/pwaInstall.js';
+import { THEMES, getCurrentTheme, applyTheme, openThemeModal } from '../components/themeModal.js';
 
-let settingsSubTab = 'family'; // 'family' | 'accounts' | 'categories' | 'cloud' | 'app' | 'license' | 'system'
+let settingsSubTab = 'family'; // 'family' | 'accounts' | 'categories' | 'cloud' | 'app' | 'theme' | 'license' | 'system'
 
 export function renderSettingsPage() {
   const family = appState.family;
@@ -52,6 +52,9 @@ export function renderSettingsPage() {
         <button class="settings-tab-btn ${settingsSubTab === 'app' ? 'active' : ''}" data-subtab="app">
           📲 Pasang Aplikasi di HP
         </button>
+        <button class="settings-tab-btn ${settingsSubTab === 'theme' ? 'active' : ''}" data-subtab="theme">
+          🎨 Tema & Tampilan
+        </button>
         <button class="settings-tab-btn ${settingsSubTab === 'license' ? 'active' : ''}" data-subtab="license">
           ${isPro ? '✨ Lisensi PRO (Aktif)' : '🔒 Lisensi Developer & PRO'}
         </button>
@@ -66,6 +69,7 @@ export function renderSettingsPage() {
       ${settingsSubTab === 'categories' ? renderCategoriesTab(categories, canManage) : ''}
       ${settingsSubTab === 'cloud' ? renderCloudTab() : ''}
       ${settingsSubTab === 'app' ? renderAppTab() : ''}
+      ${settingsSubTab === 'theme' ? renderThemeTab() : ''}
       ${settingsSubTab === 'license' ? renderLicenseTab() : ''}
       ${settingsSubTab === 'system' ? renderSystemTab() : ''}
     </div>
@@ -750,6 +754,130 @@ function renderLicenseTab() {
               </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderThemeTab() {
+  const currentThemeId = getCurrentTheme();
+  const currentTheme = THEMES.find(t => t.id === currentThemeId) || THEMES[0];
+
+  return `
+    <div style="display:flex;flex-direction:column;gap:1.5rem;">
+      <!-- Active Theme Banner -->
+      <div class="card" style="background:var(--primary-gradient-subtle, #ecfdf5);border:1.5px solid var(--color-primary-200);box-shadow:var(--shadow-sm);">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1.25rem;">
+          <div style="display:flex;align-items:center;gap:1rem;">
+            <div style="width:56px;height:56px;border-radius:18px;background:var(--primary-gradient);display:grid;place-items:center;font-size:2rem;box-shadow:var(--shadow-glow);flex-shrink:0;">
+              ${currentTheme.emoji}
+            </div>
+            <div>
+              <div style="display:inline-flex;align-items:center;gap:0.35rem;padding:0.2rem 0.6rem;background:white;color:var(--color-primary-700);border-radius:9999px;font-size:0.6875rem;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;border:1px solid var(--color-primary-200);">
+                Tema Aktif Saat Ini
+              </div>
+              <h2 style="font-size:1.35rem;font-weight:800;color:var(--color-slate-900);margin:0.25rem 0 0 0;letter-spacing:-0.02em;">
+                ${currentTheme.name} <span style="font-weight:600;font-size:0.9375rem;color:var(--color-slate-600);">• ${currentTheme.subtitle}</span>
+              </h2>
+              <p style="font-size:0.875rem;color:var(--color-slate-600);margin:0.25rem 0 0 0;">
+                ${currentTheme.description}
+              </p>
+            </div>
+          </div>
+          <button class="btn btn-primary" id="btn-settings-open-theme-modal" style="border-radius:9999px;font-weight:700;">
+            🎨 Dialog Palet Warna Lengkap
+          </button>
+        </div>
+      </div>
+
+      <!-- Theme Switcher Grid -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">
+              🎨 Galeri Tema Warna Milenial & Estetik
+            </div>
+            <div class="card-subtitle">
+              Pilih salah satu palet warna di bawah untuk mengubah tampilan seluruh tombol, aksen, dan grafik secara seketika
+            </div>
+          </div>
+        </div>
+
+        <div class="theme-swatch-grid">
+          ${THEMES.map(theme => {
+            const isSelected = theme.id === currentThemeId;
+            return `
+              <div class="theme-picker-card ${isSelected ? 'active' : ''}" data-theme-id="${theme.id}">
+                <div class="theme-card-top">
+                  <div class="theme-color-disc" style="background:linear-gradient(135deg, ${theme.primaryColor}, ${theme.secondaryColor});">
+                    <span class="theme-emoji">${theme.emoji}</span>
+                  </div>
+                  <div class="theme-meta">
+                    <div class="theme-name">${theme.name}</div>
+                    <div class="theme-subtitle">${theme.subtitle}</div>
+                  </div>
+                  <div class="theme-check-mark ${isSelected ? 'checked' : ''}">
+                    ${isSelected ? '✓' : ''}
+                  </div>
+                </div>
+                <p class="theme-description">${theme.description}</p>
+                <div class="theme-card-bottom">
+                  <span class="theme-pill-tag" style="background:${theme.lightBg};color:${theme.primaryColor};border:1px solid ${theme.primaryColor}30;">
+                    ${theme.badge}
+                  </span>
+                  <button class="btn btn-sm ${isSelected ? 'btn-primary' : 'btn-secondary'}" style="border-radius:9999px;font-weight:700;padding:0.35rem 0.85rem;pointer-events:none;">
+                    ${isSelected ? '✓ Aktif' : 'Pilih'}
+                  </button>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+
+      <!-- Live Interactive Component Preview -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">
+              ✨ Pratinjau Tampilan Komponen
+            </div>
+            <div class="card-subtitle">
+              Hasil terapan warna pada tombol, badge, dan saldo aplikasi
+            </div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:1rem;">
+          <div style="background:var(--color-primary-50);border:1px solid var(--color-primary-200);border-radius:14px;padding:1.25rem;">
+            <div style="font-size:0.75rem;font-weight:800;color:var(--color-primary-800);text-transform:uppercase;letter-spacing:0.04em;">Tombol & Aksi Utama</div>
+            <div style="margin-top:0.85rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+              <button class="btn btn-primary btn-sm">Tombol Aksi</button>
+              <button class="btn btn-secondary btn-sm">Batal</button>
+            </div>
+          </div>
+
+          <div style="background:var(--color-slate-50);border:1px solid var(--border-subtle);border-radius:14px;padding:1.25rem;">
+            <div style="font-size:0.75rem;font-weight:800;color:var(--color-slate-700);text-transform:uppercase;letter-spacing:0.04em;">Lencana & Label Dinamis</div>
+            <div style="margin-top:0.85rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+              <span class="badge" style="background:var(--color-primary-50);color:var(--color-primary-700);border:1px solid var(--color-primary-200);">
+                ${currentTheme.emoji} ${currentTheme.name}
+              </span>
+              <span class="badge badge-income">+ Pemasukan</span>
+              <span class="badge badge-expense">- Pengeluaran</span>
+            </div>
+          </div>
+
+          <div style="background:var(--color-slate-50);border:1px solid var(--border-subtle);border-radius:14px;padding:1.25rem;">
+            <div style="font-size:0.75rem;font-weight:800;color:var(--color-slate-700);text-transform:uppercase;letter-spacing:0.04em;">Aksen Saldo & Keuangan</div>
+            <div style="font-size:1.35rem;font-weight:800;color:var(--color-primary-700);margin-top:0.4rem;letter-spacing:-0.02em;">
+              Rp 45.750.000
+            </div>
+            <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.25rem;">
+              Harmonis & Segar Dipandang
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -2041,5 +2169,21 @@ function json_(payload) {
       triggerPwaInstall();
     };
   }
+
+  // Theme Settings Listeners
+  const openThemeModalBtn = document.getElementById('btn-settings-open-theme-modal');
+  if (openThemeModalBtn) {
+    openThemeModalBtn.onclick = () => {
+      openThemeModal();
+    };
+  }
+
+  document.querySelectorAll('.theme-picker-card[data-theme-id]').forEach(card => {
+    card.onclick = () => {
+      const themeId = card.getAttribute('data-theme-id');
+      applyTheme(themeId, true);
+      appState.notify();
+    };
+  });
 }
 

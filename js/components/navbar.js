@@ -11,12 +11,14 @@ import { openReceiptScanModal } from './receiptScanModal.js';
 import { openMobileSidebar } from './bottomNav.js';
 import { modal } from './modal.js';
 import { toast } from './toast.js';
-import { triggerPwaInstall, isAppInstalled } from './pwaInstall.js';
+import { openThemeModal, getCurrentTheme, THEMES } from './themeModal.js';
 
 export function renderNavbar() {
   const family = appState.family;
   const members = appState.members;
   const current = appState.currentUser;
+  const currentThemeId = getCurrentTheme();
+  const currentTheme = THEMES.find(t => t.id === currentThemeId) || THEMES[0];
 
   return `
     <header class="app-header">
@@ -29,7 +31,7 @@ export function renderNavbar() {
         <div class="header-family-selector" id="family-profile-trigger" title="Klik untuk info keluarga">
           <span class="family-home-icon">${Icons.home(18)}</span>
           <span class="header-family-name">${family.name}</span>
-          <span class="badge hide-on-mobile" style="background:#e0f2fe;color:#0369a1;font-size:0.6875rem;">IDR</span>
+          <span class="badge hide-on-mobile" style="background:var(--color-primary-50);color:var(--color-primary-700);font-size:0.6875rem;border:1px solid var(--color-primary-200);">IDR</span>
         </div>
       </div>
 
@@ -49,10 +51,10 @@ export function renderNavbar() {
           </select>
         </div>
 
-        <!-- Quick Cloud Sync Button -->
-        <button class="btn btn-secondary btn-sm" id="btn-header-sync" style="display:inline-flex;align-items:center;gap:0.35rem;padding:0.4rem 0.65rem;font-weight:700;font-size:0.75rem;border-radius:8px;background:#f0fdf4;color:#15803d;border-color:#bbf7d0;" title="Sinkronkan dengan Google Spreadsheet Sekarang">
-          <span id="nav-sync-icon" style="display:inline-block;transition:transform 0.4s ease;">🔄</span>
-          <span class="hide-on-mobile">Sinkron</span>
+        <!-- Millennial Theme Switcher Pill Trigger -->
+        <button class="theme-trigger-pill" id="btn-header-theme" title="Pilih Tema Warna Aplikasi">
+          <span class="theme-trigger-icon">${currentTheme.emoji}</span>
+          <span class="theme-trigger-label hide-on-mobile">Tema</span>
         </button>
 
         <button class="btn-header-add" id="header-btn-add-tx">
@@ -74,28 +76,10 @@ export function renderNavbar() {
 }
 
 export function attachNavbarListeners() {
-  const syncBtn = document.getElementById('btn-header-sync');
-  if (syncBtn) {
-    syncBtn.onclick = async () => {
-      const config = CloudSyncService.getConfig();
-      if (!config.gasUrl) {
-        toast.error('URL Google Apps Script belum dipasang di menu Pengaturan.');
-        return;
-      }
-      const icon = document.getElementById('nav-sync-icon');
-      if (icon) icon.style.animation = 'spin 1s linear infinite';
-      syncBtn.disabled = true;
-      try {
-        const res = await CloudSyncService.pullFullState(config.gasUrl);
-        toast.success(res.hasChanges 
-          ? '✅ Data berhasil disinkronkan dengan Google Sheets!' 
-          : '✅ Data lokal sudah sama dengan Google Sheets.');
-      } catch (err) {
-        toast.error('Gagal sinkron: ' + err.message);
-      } finally {
-        if (icon) icon.style.animation = '';
-        syncBtn.disabled = false;
-      }
+  const themeBtn = document.getElementById('btn-header-theme');
+  if (themeBtn) {
+    themeBtn.onclick = () => {
+      openThemeModal();
     };
   }
 

@@ -28,15 +28,23 @@
   <meta http-equiv="Expires" content="0">
 
   <script>
+    // Early theme initialization to prevent flash
+    (function() {
+      try {
+        var t = localStorage.getItem('dk_theme') || 'emerald';
+        document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {}
+    })();
+
     // Force cache purge if older version detected
     (function() {
-      var CURRENT_BUILD = '20261028_0830';
+      var CURRENT_BUILD = '20261028_0920';
       var savedBuild = localStorage.getItem('dk_build_version');
       if (savedBuild !== CURRENT_BUILD) {
         if ('caches' in window) {
           caches.keys().then(function(names) {
             names.forEach(function(name) {
-              if (!name.includes('v3.18.17')) caches.delete(name);
+              if (!name.includes('v3.18.18')) caches.delete(name);
             });
           });
         }
@@ -46,10 +54,10 @@
   </script>
 
   <!-- Core & Component Stylesheets with Cache Buster -->
-  <link rel="stylesheet" href="css/tokens.css?v=20261028_0830">
-  <link rel="stylesheet" href="css/layout.css?v=20261028_0830">
-  <link rel="stylesheet" href="css/components.css?v=20261028_0830">
-  <link rel="stylesheet" href="css/pages.css?v=20261028_0830">
+  <link rel="stylesheet" href="css/tokens.css?v=20261028_0920">
+  <link rel="stylesheet" href="css/layout.css?v=20261028_0920">
+  <link rel="stylesheet" href="css/components.css?v=20261028_0920">
+  <link rel="stylesheet" href="css/pages.css?v=20261028_0920">
 </head>
 <body>
   <!-- App Root Shell -->
@@ -88,7 +96,7 @@
   </script>
 
   <!-- Single Unified Production Bundle with Cache Buster -->
-  <script src="js/bundle.js?v=20261028_0830" onerror="this.onerror=null;this.src='bundle.js?v=20261028_0830';"></script>
+  <script src="js/bundle.js?v=20261028_0920" onerror="this.onerror=null;this.src='bundle.js?v=20261028_0920';"></script>
 
   <!-- PWA Service Worker Registration -->
   <script>

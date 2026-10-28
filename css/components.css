@@ -25,14 +25,14 @@
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--color-primary-600), var(--color-primary-700));
+  background: var(--primary-gradient, linear-gradient(135deg, var(--color-primary-600), var(--color-primary-700)));
   color: white;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 4px 12px rgba(var(--primary-rgb, 5, 150, 105), 0.28);
 }
 .btn-primary:hover {
-  background: linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600));
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
-  transform: translateY(-1px);
+  background: var(--primary-gradient-hover, linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600)));
+  box-shadow: 0 6px 18px rgba(var(--primary-rgb, 5, 150, 105), 0.38);
+  transform: translateY(-2px);
 }
 
 .btn-secondary {
@@ -72,15 +72,16 @@
 /* Cards */
 .card {
   background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid rgba(226, 232, 240, 0.9);
   border-radius: var(--radius-lg);
   padding: 1.5rem;
-  box-shadow: var(--shadow-sm);
-  transition: box-shadow var(--transition-fast);
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04), 0 2px 6px -1px rgba(15, 23, 42, 0.02);
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .card:hover {
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 12px 28px -4px rgba(15, 23, 42, 0.07), 0 4px 8px -2px rgba(15, 23, 42, 0.03);
+  border-color: rgba(203, 213, 225, 0.9);
 }
 
 .card-header {
@@ -703,4 +704,179 @@
     padding: 0.75rem 0.875rem !important;
   }
 }
+
+/* ==========================================================================
+   MILLENNIAL THEME PICKER & SWATCHES
+   ========================================================================== */
+.theme-trigger-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.45rem 0.85rem;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-50);
+  color: var(--color-primary-700);
+  border: 1px solid var(--color-primary-200);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 2px 6px rgba(var(--primary-rgb, 5, 150, 105), 0.1);
+  text-decoration: none;
+}
+
+.theme-trigger-pill:hover {
+  transform: translateY(-2px) scale(1.03);
+  background: white;
+  border-color: var(--color-primary-400);
+  box-shadow: 0 4px 14px rgba(var(--primary-rgb, 5, 150, 105), 0.22);
+}
+
+.theme-trigger-pill:active {
+  transform: translateY(0) scale(0.97);
+}
+
+.theme-trigger-icon {
+  font-size: 1rem;
+  display: inline-block;
+  transition: transform 0.3s ease;
+}
+
+.theme-trigger-pill:hover .theme-trigger-icon {
+  transform: rotate(20deg) scale(1.15);
+}
+
+.theme-swatch-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.theme-picker-card {
+  background: white;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.15rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-xs);
+}
+
+.theme-picker-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--color-primary-300);
+  box-shadow: 0 10px 24px -4px rgba(0, 0, 0, 0.08);
+}
+
+.theme-picker-card.active {
+  border-color: var(--color-primary-500);
+  background: linear-gradient(180deg, #ffffff 0%, var(--color-primary-50) 100%);
+  box-shadow: 0 8px 24px -2px rgba(var(--primary-rgb, 5, 150, 105), 0.22);
+}
+
+.theme-card-top {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.theme-color-disc {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+}
+
+.theme-emoji {
+  font-size: 1.35rem;
+}
+
+.theme-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.theme-name {
+  font-size: 0.9375rem;
+  font-weight: 800;
+  color: var(--color-slate-900);
+  line-height: 1.2;
+}
+
+.theme-subtitle {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+}
+
+.theme-check-mark {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid var(--color-slate-300);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  color: transparent;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.theme-check-mark.checked {
+  background: var(--color-primary-600);
+  border-color: var(--color-primary-600);
+  color: white;
+  box-shadow: 0 2px 8px rgba(var(--primary-rgb, 5, 150, 105), 0.35);
+}
+
+.theme-description {
+  font-size: 0.8125rem;
+  color: var(--color-slate-600);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.theme-card-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 0.5rem;
+  border-top: 1px dashed var(--border-subtle);
+}
+
+.theme-pill-tag {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  letter-spacing: 0.02em;
+}
+
+.theme-color-palette-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.theme-color-palette-bar span {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
 
