@@ -165,21 +165,15 @@ export function renderBudgetsPage() {
               </div>
 
               <!-- Action Buttons Row -->
-              <div style="display:flex;gap:0.375rem;align-items:center;margin-top:0.25rem;">
-                <button class="btn btn-secondary btn-sm action-set-budget" data-cat-id="${cat.id}" data-current="${item.budgetAmount}" style="flex:1;">
-                  ${Icons.edit(14)} Atur Target
-                </button>
-                <button class="btn btn-secondary btn-icon btn-sm action-edit-cat-from-budget" data-cat-id="${cat.id}" title="Edit Detail Kategori (${cat.name})">
-                  ${Icons.settings(14)}
+              <div style="display:flex;gap:0.375rem;align-items:center;margin-top:0.5rem;">
+                <button class="btn btn-secondary btn-sm action-set-budget" data-cat-id="${cat.id}" data-current="${item.budgetAmount}" style="flex:1;display:inline-flex;align-items:center;justify-content:center;gap:0.35rem;">
+                  ${Icons.edit(14)} <span>Atur Target</span>
                 </button>
                 ${item.budgetAmount > 0 ? `
-                  <button class="btn btn-secondary btn-icon btn-sm action-clear-budget" data-cat-id="${cat.id}" data-name="${cat.name}" title="Nolkan Anggaran Bulan Ini" style="color:var(--color-expense);">
-                    ${Icons.x(14)}
+                  <button class="btn btn-secondary btn-icon btn-sm action-clear-budget" data-cat-id="${cat.id}" data-name="${cat.name}" title="Hapus Target Anggaran Bulan Ini" style="color:var(--color-expense);width:34px;height:34px;flex-shrink:0;">
+                    ${Icons.trash(14)}
                   </button>
                 ` : ''}
-                <button class="btn btn-secondary btn-icon btn-sm action-delete-cat-from-budget" data-cat-id="${cat.id}" data-name="${cat.name}" title="Hapus / Arsipkan Kategori" style="color:var(--color-expense);">
-                  ${Icons.trash(14)}
-                </button>
               </div>
             </div>
           `;
@@ -187,167 +181,6 @@ export function renderBudgetsPage() {
       </div>
     </div>
   `;
-}
-
-// Modal for Creating New Custom Category (e.g. Investasi)
-function openCreateCategoryModal(prefillType = 'expense', onCreatedCallback = null) {
-  modal.open({
-    title: 'Tambah Kategori Kustom Baru',
-    content: `
-      <div class="form-group">
-        <label class="form-label">Nama Kategori *</label>
-        <input 
-          type="text" 
-          id="custom-cat-name-input" 
-          class="form-input" 
-          placeholder="Contoh: Investasi & Reksadana, Tabungan Haji, Zakat" 
-          required 
-        />
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Jenis Kategori *</label>
-        <select id="custom-cat-type-select" class="form-select">
-          <option value="expense" ${prefillType === 'expense' ? 'selected' : ''}>Pengeluaran / Anggaran Belanja</option>
-          <option value="income" ${prefillType === 'income' ? 'selected' : ''}>Pemasukan</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Subkategori (Pisahkan dengan tanda koma)</label>
-        <input 
-          type="text" 
-          id="custom-cat-subcats-input" 
-          class="form-input" 
-          placeholder="Contoh: Saham, Reksadana Pasar Uang, Emas Batangan, P2P" 
-        />
-        <span class="form-hint">Opsional. Membantu merinci pencatatan transaksi lebih spesifik.</span>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Pilihan Warna Kategori</label>
-        <div style="display:flex;align-items:center;gap:0.75rem;">
-          <input 
-            type="color" 
-            id="custom-cat-color-input" 
-            class="form-input" 
-            value="#0284c7" 
-            style="width:54px;height:42px;padding:2px;cursor:pointer;" 
-          />
-          <span style="font-size:0.8125rem;color:var(--text-muted);">Pilih warna tema untuk grafik & kartu anggaran</span>
-        </div>
-      </div>
-    `,
-    footerButtons: [
-      {
-        label: 'Batal',
-        className: 'btn-secondary',
-        onClick: () => modal.close()
-      },
-      {
-        label: 'Simpan Kategori Baru',
-        className: 'btn-primary',
-        onClick: () => {
-          const name = document.getElementById('custom-cat-name-input')?.value;
-          const type = document.getElementById('custom-cat-type-select')?.value || 'expense';
-          const subcatsRaw = document.getElementById('custom-cat-subcats-input')?.value || '';
-          const color = document.getElementById('custom-cat-color-input')?.value || '#0284c7';
-
-          if (!name || !name.trim()) {
-            toast.error('Nama kategori wajib diisi.');
-            return;
-          }
-
-          const subcategories = subcatsRaw.split(',').map(s => s.trim()).filter(Boolean);
-          const newCat = appState.addCategory({
-            name: name.trim(),
-            type,
-            color,
-            subcategories,
-            icon: type === 'expense' ? 'target' : 'trendingUp'
-          });
-
-          toast.success(`Kategori kustom "${newCat.name}" berhasil ditambahkan!`);
-          modal.close();
-
-          if (onCreatedCallback) {
-            onCreatedCallback(newCat);
-          }
-        }
-      }
-    ]
-  });
-}
-
-// Modal for Editing Existing Category Metadata (Name, Color, Subcategories)
-function openEditCategoryModal(catId) {
-  const cat = appState.getCategoryById(catId);
-  if (!cat) return;
-
-  modal.open({
-    title: `Edit Kategori: ${cat.name}`,
-    content: `
-      <div class="form-group">
-        <label class="form-label">Nama Kategori *</label>
-        <input type="text" id="edit-cat-name-input" class="form-input" value="${cat.name}" required />
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Subkategori (Pisahkan dengan koma)</label>
-        <input 
-          type="text" 
-          id="edit-cat-subcats-input" 
-          class="form-input" 
-          value="${(cat.subcategories || []).join(', ')}" 
-        />
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Warna Kategori</label>
-        <div style="display:flex;align-items:center;gap:0.75rem;">
-          <input 
-            type="color" 
-            id="edit-cat-color-input" 
-            class="form-input" 
-            value="${cat.color || '#6366f1'}" 
-            style="width:54px;height:42px;padding:2px;cursor:pointer;" 
-          />
-          <span style="font-size:0.8125rem;color:var(--text-muted);">Pilih warna kartu anggaran & grafik</span>
-        </div>
-      </div>
-    `,
-    footerButtons: [
-      {
-        label: 'Batal',
-        className: 'btn-secondary',
-        onClick: () => modal.close()
-      },
-      {
-        label: 'Simpan Perubahan',
-        className: 'btn-primary',
-        onClick: () => {
-          const name = document.getElementById('edit-cat-name-input')?.value;
-          const subcatsRaw = document.getElementById('edit-cat-subcats-input')?.value || '';
-          const color = document.getElementById('edit-cat-color-input')?.value || cat.color;
-
-          if (!name || !name.trim()) {
-            toast.error('Nama kategori wajib diisi.');
-            return;
-          }
-
-          const subcategories = subcatsRaw.split(',').map(s => s.trim()).filter(Boolean);
-          appState.updateCategory(catId, {
-            name: name.trim(),
-            color,
-            subcategories
-          });
-
-          toast.success(`Kategori "${name}" berhasil diperbarui!`);
-          modal.close();
-        }
-      }
-    ]
-  });
 }
 
 function openCategoryBudgetModal(selectedCatId = null) {
@@ -360,17 +193,15 @@ function openCategoryBudgetModal(selectedCatId = null) {
     title: 'Rencanakan & Atur Anggaran Kategori',
     content: `
       <div class="form-group">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.25rem;">
-          <label class="form-label" style="margin-bottom:0;">Pilih Kategori Pengeluaran *</label>
-          <button type="button" class="btn btn-secondary btn-sm" id="btn-quick-create-cat" style="font-size:0.75rem;padding:0.2rem 0.5rem;">
-            ${Icons.plus(12)} + Tambah Kategori Baru
-          </button>
-        </div>
+        <label class="form-label">Pilih Kategori Pengeluaran *</label>
         <select id="modal-cat-select" class="form-select">
           ${expenseCats.map(c => `
             <option value="${c.id}" ${c.id === defaultCatId ? 'selected' : ''}>${c.name}</option>
           `).join('')}
         </select>
+        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.35rem;">
+          💡 Untuk menambah kategori baru atau mengedit rincian subkategori, gunakan menu <strong>Kategori</strong> di sidebar.
+        </div>
       </div>
 
       <div class="form-group">
@@ -431,17 +262,6 @@ function openCategoryBudgetModal(selectedCatId = null) {
     ]
   });
 
-  // Quick create category button inside budget modal
-  const quickCreateCatBtn = document.getElementById('btn-quick-create-cat');
-  if (quickCreateCatBtn) {
-    quickCreateCatBtn.onclick = () => {
-      openCreateCategoryModal('expense', (newCat) => {
-        // Automatically reopen budget modal selecting newly created category!
-        openCategoryBudgetModal(newCat.id);
-      });
-    };
-  }
-
   const catSelect = document.getElementById('modal-cat-select');
   const input = document.getElementById('modal-budget-input');
 
@@ -459,10 +279,14 @@ function openCategoryBudgetModal(selectedCatId = null) {
     };
   }
 
-  document.querySelectorAll('.preset-chip').forEach(chip => {
+  const modalContainer = document.querySelector('.modal-container') || document;
+  modalContainer.querySelectorAll('.preset-chip').forEach(chip => {
     chip.onclick = () => {
       const val = parseInt(chip.dataset.val, 10);
-      input.value = val.toLocaleString('id-ID');
+      if (!isNaN(val) && input) {
+        const cur = parseRupiah(input.value) || 0;
+        input.value = (cur + val).toLocaleString('id-ID');
+      }
     };
   });
 }
@@ -520,45 +344,19 @@ export function attachBudgetsListeners() {
     };
   });
 
-  // Edit Category details directly from card
-  document.querySelectorAll('.action-edit-cat-from-budget').forEach(btn => {
-    btn.onclick = () => {
-      const catId = btn.dataset.catId;
-      openEditCategoryModal(catId);
-    };
-  });
-
   // Clear / Zero budget for category this month
   document.querySelectorAll('.action-clear-budget').forEach(btn => {
     btn.onclick = () => {
       const catId = btn.dataset.catId;
       const catName = btn.dataset.name;
       modal.confirm({
-        title: 'Nolkan Anggaran Kategori',
-        message: `Apakah Anda yakin ingin menonaktifkan / menolkan target anggaran untuk kategori <strong>"${catName}"</strong> pada bulan ${getMonthName(appState.selectedMonth)} ${appState.selectedYear}?`,
-        confirmText: 'Ya, Nolkan Target',
-        confirmType: 'btn-secondary',
-        onConfirm: () => {
-          appState.setBudget(catId, 0, appState.selectedMonth, appState.selectedYear);
-          toast.info(`Anggaran "${catName}" telah dinolkan.`);
-        }
-      });
-    };
-  });
-
-  // Delete / Archive Category directly from card
-  document.querySelectorAll('.action-delete-cat-from-budget').forEach(btn => {
-    btn.onclick = () => {
-      const catId = btn.dataset.catId;
-      const catName = btn.dataset.name;
-      modal.confirm({
-        title: 'Hapus / Arsipkan Kategori',
-        message: `Apakah Anda yakin ingin menghapus kategori <strong>"${catName}"</strong>? Jika kategori ini sudah memiliki riwayat transaksi, sistem akan mengarsipkannya agar laporan keuangan tetap aman.`,
-        confirmText: 'Ya, Lanjutkan',
+        title: 'Hapus Target Anggaran Bulan Ini',
+        message: `Apakah Anda yakin ingin menghapus / menolkan target anggaran untuk kategori <strong>"${catName}"</strong> pada bulan ${getMonthName(appState.selectedMonth)} ${appState.selectedYear}?<br><br><span style="font-size:0.8125rem;color:var(--text-muted);">ℹ️ Catatan: Kategori "${catName}" dan seluruh riwayat transaksinya tetap aman tersimpan.</span>`,
+        confirmText: 'Ya, Hapus Target',
         confirmType: 'btn-danger',
         onConfirm: () => {
-          const res = appState.deleteOrArchiveCategory(catId);
-          toast.info(res.message);
+          appState.setBudget(catId, 0, appState.selectedMonth, appState.selectedYear);
+          toast.info(`Target anggaran "${catName}" bulan ini telah dinolkan.`);
         }
       });
     };

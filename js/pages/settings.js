@@ -1503,6 +1503,72 @@ export function attachSettingsListeners() {
     };
   });
 
+  // Edit Category Modal in Settings
+  document.querySelectorAll('.action-edit-category').forEach(btn => {
+    btn.onclick = () => {
+      const id = btn.dataset.id;
+      const cat = appState.getCategoryById(id);
+      if (!cat) return;
+
+      modal.open({
+        title: `Ubah Kategori "${cat.name}"`,
+        content: `
+          <div class="form-group" style="margin-bottom:1rem;">
+            <label class="form-label">Nama Kategori *</label>
+            <input type="text" id="edit-cat-name-input" class="form-input" value="${cat.name}" required />
+          </div>
+          <div class="form-group" style="margin-bottom:1rem;">
+            <label class="form-label">Tipe Kategori</label>
+            <select id="edit-cat-type-select" class="form-input">
+              <option value="expense" ${cat.type === 'expense' ? 'selected' : ''}>Pengeluaran</option>
+              <option value="income" ${cat.type === 'income' ? 'selected' : ''}>Pemasukan</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:1rem;">
+            <label class="form-label">Subkategori (Pisahkan dengan koma)</label>
+            <textarea id="edit-cat-subcats-input" class="form-input" rows="3">${(cat.subcategories || []).join(', ')}</textarea>
+            <div style="font-size:0.6875rem;color:var(--text-muted);margin-top:0.25rem;">
+              Pisahkan subkategori dengan tanda koma (contoh: Sayur, Buah, Bumbu).
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom:1rem;">
+            <label class="form-label">Warna Kategori</label>
+            <input type="color" id="edit-cat-color-input" class="form-input" value="${cat.color || '#6366f1'}" style="height:44px;padding:4px;" />
+          </div>
+        `,
+        footerButtons: [
+          { label: 'Batal', className: 'btn-secondary', onClick: () => modal.close() },
+          {
+            label: 'Simpan Perubahan',
+            className: 'btn-primary',
+            onClick: () => {
+              const name = document.getElementById('edit-cat-name-input')?.value;
+              const type = document.getElementById('edit-cat-type-select')?.value || cat.type;
+              const subcatsRaw = document.getElementById('edit-cat-subcats-input')?.value || '';
+              const color = document.getElementById('edit-cat-color-input')?.value || cat.color;
+
+              if (!name || !name.trim()) {
+                toast.error('Nama kategori tidak boleh kosong.');
+                return;
+              }
+
+              const subcategories = subcatsRaw.split(',').map(s => s.trim()).filter(Boolean);
+              appState.updateCategory(id, {
+                name: name.trim(),
+                type,
+                color,
+                subcategories
+              });
+
+              toast.success(`Kategori "${name}" berhasil diperbarui!`);
+              modal.close();
+            }
+          }
+        ]
+      });
+    };
+  });
+
   // Restore Archived Category
   document.querySelectorAll('.action-restore-category').forEach(btn => {
     btn.onclick = () => {

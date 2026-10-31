@@ -364,6 +364,7 @@ class AppState {
 
   deleteCategoryPermanently(id) {
     this.categories = this.categories.filter(c => c.id !== id);
+    this.budgets = this.budgets.filter(b => b.categoryId !== id);
     this.saveState();
     return { status: 'deleted', message: 'Kategori berhasil dihapus permanen.' };
   }
@@ -498,8 +499,9 @@ class AppState {
 
     const netSavings = totalIncome - totalExpense;
 
-    // Monthly Budgets Comparison
-    const currentBudgets = this.budgets.filter(b => b.month === month && b.year === year);
+    // Monthly Budgets Comparison (only active expense categories)
+    const expenseCats = this.getCategories('expense');
+    const currentBudgets = this.budgets.filter(b => b.month === month && b.year === year && expenseCats.some(c => c.id === b.categoryId));
     const totalBudget = currentBudgets.reduce((sum, b) => sum + b.amount, 0);
     const budgetUsedPercent = totalBudget > 0 ? Math.round((totalExpense / totalBudget) * 100) : 0;
 
