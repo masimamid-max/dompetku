@@ -4346,7 +4346,7 @@ function openPwaInstallModal() {
     guideHTML = `
       <div style="display:flex;flex-direction:column;gap:1.25rem;">
         <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:1rem;display:flex;align-items:center;gap:0.875rem;">
-          <img src="icons/icon-192.png" width="48" height="48" style="border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.15);" alt="Dompetku">
+          <img src="icons/icon-192.png" width="48" height="48" style="border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.15);" alt="Dompet Keluarga">
           <div>
             <div style="font-weight:800;font-size:1rem;color:#065f46;">Dompet Keluarga (iOS Safari)</div>
             <div style="font-size:0.75rem;color:#047857;margin-top:0.25rem;">Pasang langsung tanpa perlu App Store</div>
@@ -4390,7 +4390,7 @@ function openPwaInstallModal() {
     guideHTML = `
       <div style="display:flex;flex-direction:column;gap:1.25rem;">
         <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:1rem;display:flex;align-items:center;gap:0.875rem;">
-          <img src="icons/icon-192.png" width="48" height="48" style="border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.15);" alt="Dompetku">
+          <img src="icons/icon-192.png" width="48" height="48" style="border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.15);" alt="Dompet Keluarga">
           <div>
             <div style="font-weight:800;font-size:1rem;color:#065f46;">Dompet Keluarga (Android / Chrome)</div>
             <div style="font-size:0.75rem;color:#047857;margin-top:0.25rem;">Install instan hemat kuota & layar penuh</div>
