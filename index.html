@@ -39,13 +39,13 @@
 
     // Force cache purge if older version detected
     (function() {
-      var CURRENT_BUILD = '20261028_0920';
+      var CURRENT_BUILD = '20261102_1920';
       var savedBuild = localStorage.getItem('dk_build_version');
       if (savedBuild !== CURRENT_BUILD) {
         if ('caches' in window) {
           caches.keys().then(function(names) {
             names.forEach(function(name) {
-              if (!name.includes('v3.18.18')) caches.delete(name);
+              if (!name.includes('v3.18.22')) caches.delete(name);
             });
           });
         }
@@ -55,10 +55,10 @@
   </script>
 
   <!-- Core & Component Stylesheets with Cache Buster -->
-  <link rel="stylesheet" href="css/tokens.css?v=20261028_0920">
-  <link rel="stylesheet" href="css/layout.css?v=20261028_0920">
-  <link rel="stylesheet" href="css/components.css?v=20261028_0920">
-  <link rel="stylesheet" href="css/pages.css?v=20261028_0920">
+  <link rel="stylesheet" href="css/tokens.css?v=20261102_1920">
+  <link rel="stylesheet" href="css/layout.css?v=20261102_1920">
+  <link rel="stylesheet" href="css/components.css?v=20261102_1920">
+  <link rel="stylesheet" href="css/pages.css?v=20261102_1920">
 </head>
 <body>
   <!-- App Root Shell -->
