@@ -24,10 +24,10 @@ export function renderSidebar() {
       <div class="sidebar-brand">
         <div class="brand-wrapper">
           <div class="brand-icon">
-            ${Icons.wallet(20)}
+            <img src="./icons/icon-192.png" alt="Dompet Keluarga" style="width:100%;height:100%;object-fit:cover;border-radius:10px;display:block;" />
           </div>
           <div class="brand-text">
-            <div class="brand-title">Dompetku</div>
+            <div class="brand-title">Dompet Keluarga</div>
             <div class="brand-subtitle">Keuangan Harmonis</div>
           </div>
         </div>

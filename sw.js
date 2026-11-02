@@ -1,25 +1,25 @@
 /**
  * Dompet Keluarga Service Worker (PWA Offline First)
  */
-const CACHE_NAME = 'dompetku-v3.18.21-fix-budget-category-overlap';
+const CACHE_NAME = 'dompetku-v3.18.22-new-brand-logo';
 
 const STATIC_ASSETS = [
   './',
   './index.html',
   './manifest.json',
-  './css/tokens.css?v=20261031_0645',
-  './css/layout.css?v=20261031_0645',
-  './css/components.css?v=20261031_0645',
-  './css/pages.css?v=20261031_0645',
-  './js/bundle.latest.js?v=20261031_0645',
-  './bundle.latest.js?v=20261031_0645',
-  './js/bundle.js?v=20261031_0645',
-  './bundle.js?v=20261031_0645',
+  './css/tokens.css?v=20261102_1920',
+  './css/layout.css?v=20261102_1920',
+  './css/components.css?v=20261102_1920',
+  './css/pages.css?v=20261102_1920',
+  './js/bundle.latest.js?v=20261102_1920',
+  './bundle.latest.js?v=20261102_1920',
+  './js/bundle.js?v=20261102_1920',
+  './bundle.js?v=20261102_1920',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/apple-touch-icon.png',
-  './icons/icon-192.svg',
-  './icons/icon-512.svg'
+  './icons/logo.png',
+  './favicon.ico'
 ];
 
 // Install Event: Pre-cache static core assets
