@@ -59,6 +59,33 @@
   <link rel="stylesheet" href="css/layout.css?v=20261102_1920">
   <link rel="stylesheet" href="css/components.css?v=20261102_1920">
   <link rel="stylesheet" href="css/pages.css?v=20261102_1920">
+
+  <!-- Meta Pixel Code -->
+  <script>
+    !function(f,b,e,v,n,t,s)
+    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+    n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];
+    s.parentNode.insertBefore(t,s)}(window, document,'script',
+    'https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init', '1726703792391881');
+    fbq('track', 'PageView');
+    fbq('track', 'ViewContent', {
+      content_name: 'Aplikasi Dompet Keluarga',
+      content_category: 'Finance App'
+    });
+    // Custom Event khusus untuk Retargeting Meta Ads
+    fbq('trackCustom', 'ViewContent_DK', {
+      source: 'web_app',
+      appName: 'Dompet Keluarga'
+    });
+  </script>
+  <noscript><img height="1" width="1" style="display:none"
+  src="https://www.facebook.com/tr?id=1726703792391881&ev=PageView&noscript=1"
+  /></noscript>
+  <!-- End Meta Pixel Code -->
 </head>
 <body>
   <!-- App Root Shell -->

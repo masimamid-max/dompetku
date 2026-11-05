@@ -29,6 +29,33 @@
     @media(max-width:560px){.wrap,.narrow{width:min(100% - 24px,1120px)}.topbar{font-size:12px}.navin{height:62px}.brand span:nth-child(2){display:none}.navlinks .btn{padding:10px 13px;font-size:13px}.hero{padding:38px 0 48px}.hero h1{font-size:38px}.lead{font-size:17px}.hero-actions .btn,.hero-countdown{width:100%;justify-content:center}.phone{width:92%}.receipt{left:-2px;bottom:28px}.trustgrid{grid-template-columns:1fr;text-align:left;gap:8px}.section{padding:64px 0}.problem-grid,.benefits,.steps{grid-template-columns:1fr}.offer ul{grid-template-columns:1fr}.offer{padding:25px 18px}.pricebox{padding:23px 17px}.foot{flex-direction:column}.sticky{position:fixed;z-index:50;bottom:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;gap:12px;background:rgba(255,255,255,.97);border-top:1px solid var(--line);padding:10px 12px}.sticky b{font-family:Manrope,sans-serif;color:var(--green)}.sticky small{display:block;color:var(--muted)}.sticky .btn{padding:11px 14px;font-size:13px}footer{padding-bottom:90px}}
     @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.btn{transition:none}}
   </style>
+
+  <!-- Meta Pixel Code -->
+  <script>
+    !function(f,b,e,v,n,t,s)
+    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+    n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];
+    s.parentNode.insertBefore(t,s)}(window, document,'script',
+    'https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init', '1726703792391881');
+    fbq('track', 'PageView');
+    fbq('track', 'ViewContent', {
+      content_name: 'Dompet Keluarga PRO Landing Page',
+      content_category: 'Finance App'
+    });
+    // Custom Event khusus untuk Retargeting Meta Ads
+    fbq('trackCustom', 'ViewContent_DK', {
+      source: 'landing_page',
+      page: 'Dompet Keluarga PRO'
+    });
+  </script>
+  <noscript><img height="1" width="1" style="display:none"
+  src="https://www.facebook.com/tr?id=1726703792391881&ev=PageView&noscript=1"
+  /></noscript>
+  <!-- End Meta Pixel Code -->
 </head>
 <body>
   <div class="topbar">Harga bertahap hari ini <span data-current-price>Rp47.000</span> • Naik setiap 24 jam hingga Rp299.000</div>
